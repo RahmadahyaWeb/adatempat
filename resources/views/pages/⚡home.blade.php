@@ -190,7 +190,7 @@ new class extends Component {
                             <p class="px-3 text-xs leading-5 text-[var(--text-muted)]">
                                 Mulai dari kata kunci atau lokasi. Kamu juga bisa pilih kategori di bawah.
                             </p>
-                            <button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--accent-primary)] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
+                            <button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--accent-primary)] px-5 py-3 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-primary-hover)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
                                 Cari venue
                                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4">
                                     <path d="M5 12h14m-7-7 7 7-7 7"/>
@@ -453,7 +453,7 @@ new class extends Component {
                             <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-[var(--text-secondary)]">
                                 Coba ganti kata kunci atau area pencarian. Kamu juga bisa menghapus filter untuk melihat semua venue yang tersedia.
                             </p>
-                            <button type="button" wire:click="resetSearch" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
+                            <button type="button" wire:click="resetSearch" class="mt-5 inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent-primary)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-primary-hover)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
                                 Lihat semua venue
                             </button>
                         @else
@@ -483,7 +483,7 @@ new class extends Component {
                     <p class="mt-4 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:text-base sm:leading-7">
                         Rencana terasa lebih mudah ketika informasi tempat ada dalam satu alur yang jelas.
                     </p>
-                    <a href="#jelajahi" class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent-primary)] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
+                    <a href="#jelajahi" class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--accent-primary)] px-5 py-3 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-primary-hover)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
                         Mulai menjelajah
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4">
                             <path d="M5 12h14m-7-7 7 7-7 7"/>
@@ -539,7 +539,7 @@ new class extends Component {
                     </div>
 
                     <div class="relative z-10 flex shrink-0 flex-col items-start gap-2">
-                        <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--accent-primary)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
+                        <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--accent-primary)] px-6 py-3 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent-primary-hover)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
                             Daftarkan usaha
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4">
                                 <path d="M5 12h14m-7-7 7 7-7 7"/>
