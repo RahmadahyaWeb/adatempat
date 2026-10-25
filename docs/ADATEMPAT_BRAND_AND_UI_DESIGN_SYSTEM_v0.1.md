@@ -179,17 +179,18 @@ Dark mode is **not a launch requirement in this proposal**. Do not create and ma
 
 ## 7. Typography
 
-### Proposed font family: Inter
+### Proposed font family: Plus Jakarta Sans
 
-Use **Inter Variable as the single typeface across the entire product**, with system sans-serif fallbacks. Avoid introducing a separate serif or monospace family into the UI by default.
+Use **Plus Jakarta Sans as the single typeface across the entire product**, with system sans-serif fallbacks. Avoid introducing a separate serif or monospace family into the UI by default.
 
 Why this choice:
-- Inter was designed for on-screen reading and has letterforms suited to mixed-case interface text.
+- Its geometric forms feel modern and friendly without becoming decorative or childish.
+- The font's relatively tall x-height and open counters help letters remain distinguishable across a range of interface sizes, according to its typeface documentation. <https://github.com/google/fonts/blob/main/ofl/plusjakartasans/DESCRIPTION.en_us.html>
 - A single family makes the product easier to maintain and keeps headings, venue details, forms, tables, and transactional states visually consistent.
-- The Citrus Lime identity can supply the distinctiveness through color, photography, layout, and graphic identity instead of decorative typography.
-- Booking references, prices, dates, and dashboard metrics can use Inter's tabular numerals where supported; a separate monospace font is not required for these.
+- The Citrus Lime identity can supply distinctiveness through color, photography, layout, and graphic identity instead of relying on elaborate typography.
+- Prices, dates, and dashboard metrics can use tabular numerals where supported; a separate monospace font is not required.
 
-This is a deliberate simplification from the earlier Ailene-inspired typography. It aims to make Adatempat feel clear, practical, and dependable.
+This is the recommended balance between readability and a warmer, less rigid personality. The family was designed by Gumpita Rahayu of Tokotype and commissioned originally for Jakarta's City of Collaboration identity.
 
 ### Type scale proposal
 
@@ -410,7 +411,7 @@ This table is a starting point for implementation after approval. It is not inte
 | Warning / background | #915E10 / #FBF0D8 |
 | Danger / background | #B42318 / #FDE8E7 |
 | Information / background | #235D8C / #E6F0FA |
-| Primary UI and heading font | Inter Variable (single family) |
+| Primary UI and heading font | Plus Jakarta Sans (single family) |
 | Card shadow | 0 2px 8px rgba(29, 42, 36, 0.05) |
 | Overlay shadow | 0 12px 32px rgba(29, 42, 36, 0.16) |
 
