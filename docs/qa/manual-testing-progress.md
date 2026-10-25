@@ -33,6 +33,7 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 - Filter lokasi `Banjarbaru` menampilkan venue dari kedua usaha demo.
 - Kombinasi kata kunci `Ruang Meeting`, lokasi `Banjarbaru`, dan kategori Meeting menampilkan hasil yang sesuai.
 - Pencarian dengan kata kunci yang tidak cocok (`VenueTidakAda123`) menampilkan keadaan tanpa hasil dan opsi untuk membersihkan pencarian.
+- Pencarian berdasarkan nama usaha `Studio Demo Pemilik Dua` menampilkan venue `Ruang Meeting Pemilik Dua`.
 
 ## Data uji yang sudah dibuat secara manual
 
