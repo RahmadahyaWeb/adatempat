@@ -3,47 +3,39 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#FAFBF6">
+    <meta name="theme-color" content="#FBFCF8">
     <meta name="description" content="Temukan tempat untuk acara, pertemuan, produksi, dan berbagai rencana lainnya bersama Adatempat.">
     <meta name="color-scheme" content="light">
     <title>{{ isset($title) && $title ? $title . ' — ' : '' }}{{ config('app.name', 'Adatempat') }}</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
 <body class="flex min-h-screen flex-col bg-[var(--canvas)] font-sans text-[var(--ink)] antialiased">
     @php
-        $compactHeader = request()->routeIs(
-            'login',
-            'register',
-            'password.request',
-            'password.reset',
-            'verification.notice',
-            'mfa.setup',
-            'mfa.challenge',
-        );
+        $compactHeader = request()->routeIs('login', 'register', 'password.request', 'password.reset', 'verification.notice', 'mfa.setup', 'mfa.challenge');
     @endphp
 
-    <a href="#konten-utama" class="sr-only z-50 rounded-lg bg-white px-4 py-3 font-semibold text-[var(--ink)] shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+    <a href="#konten-utama" class="sr-only z-50 rounded-lg bg-white px-4 py-3 font-bold text-[var(--ink)] shadow-lg focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Lewati ke konten utama
     </a>
 
     <header class="site-header">
-        <div class="site-container flex min-h-[4.5rem] items-center justify-between gap-4 sm:min-h-[5rem]">
+        <div class="site-container flex min-h-[4.25rem] items-center justify-between gap-4 sm:min-h-[4.75rem]">
             <a href="{{ route('home') }}" class="brand-wordmark rounded-lg py-2" aria-label="Adatempat — Beranda">
-                <span class="brand-dot" aria-hidden="true"></span>
+                <span class="brand-symbol" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                        <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
+                    </svg>
+                </span>
                 <span>adatempat</span>
             </a>
 
             @if ($compactHeader)
                 <a href="{{ route('home') }}" class="btn btn-secondary min-h-10 px-3 py-2 sm:px-4">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4">
-                        <path d="m15 18-6-6 6-6"/>
-                    </svg>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
                     <span class="hidden sm:inline">Kembali ke beranda</span>
                     <span class="sm:hidden">Beranda</span>
                 </a>
@@ -69,9 +61,7 @@
 
                 <details class="mobile-menu md:hidden">
                     <summary aria-label="Buka menu navigasi">
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5">
-                            <path d="M4 7h16M4 12h16M4 17h16"/>
-                        </svg>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                     </summary>
                     <nav aria-label="Navigasi seluler" class="mobile-menu-panel">
                         <a href="{{ route('home') }}#hasil" class="site-nav-link">Jelajahi tempat</a>
@@ -99,10 +89,12 @@
     </main>
 
     <footer class="site-footer">
-        <div class="site-container grid gap-8 py-8 sm:grid-cols-[1fr_auto] sm:items-end sm:py-10">
+        <div class="site-container grid gap-6 py-7 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-8 sm:py-9">
             <div>
                 <a href="{{ route('home') }}" class="brand-wordmark text-lg">
-                    <span class="brand-dot" aria-hidden="true"></span>
+                    <span class="brand-symbol !h-7 !w-7 !rounded-md" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/></svg>
+                    </span>
                     <span>adatempat</span>
                 </a>
                 <p class="mt-3 max-w-md text-sm leading-6 text-[var(--muted)]">
@@ -118,7 +110,6 @@
             <p class="border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)] sm:col-span-2">© {{ date('Y') }} Adatempat. Semua hak dilindungi.</p>
         </div>
     </footer>
-
     @livewireScripts
 </body>
 </html>
