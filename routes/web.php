@@ -48,11 +48,11 @@ Route::get('/email/verify/{publicId}/{hash}', function (
 })->where('publicId', '[0-9A-HJKMNP-TV-Z]{26}')
     ->where('hash', '[a-fA-F0-9]{40}')
     ->middleware([
-    'auth',
-    'account.active',
-    'signed',
-    'throttle:6,1',
-])->name('verification.verify');
+        'auth',
+        'account.active',
+        'signed',
+        'throttle:6,1',
+    ])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (
     Request $request
