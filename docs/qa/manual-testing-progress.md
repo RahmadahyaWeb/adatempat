@@ -39,6 +39,7 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 - Akses ke URL edit usaha dengan ID numerik (`/owner/businesses/1/edit`) ditolak dengan 404; route management tidak menerima numeric ID.
 - Akses ke URL edit venue dengan ID numerik (`/owner/businesses/1/venues/1/edit`) ditolak dengan 404; route management venue tidak menerima numeric ID.
 - Registrasi customer baru setelah perubahan URL verifikasi email berhasil dan diarahkan ke halaman verifikasi.
+- Tautan verifikasi untuk `uji-verifikasi-ulid@example.com` berhasil digunakan; akun berhasil diverifikasi setelah perubahan URL verifikasi berbasis ULID.
 
 ## Data uji yang sudah dibuat secara manual
 
