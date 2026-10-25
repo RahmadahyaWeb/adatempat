@@ -48,6 +48,9 @@
 
                 <div class="hidden items-center gap-2 md:flex">
                     @auth
+                        @if (auth()->user()->isOwner() && auth()->user()->hasVerifiedEmail())
+                            <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary">Kelola usaha</a>
+                        @endif
                         <span class="mr-2 max-w-40 truncate text-sm font-semibold text-[var(--ink-soft)]">Hai, {{ auth()->user()->name }}</span>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -70,6 +73,9 @@
                         <div class="my-1 border-t border-[var(--border)]"></div>
                         @auth
                             <p class="px-3 py-2 text-sm font-semibold text-[var(--ink-soft)]">Masuk sebagai {{ auth()->user()->name }}</p>
+                            @if (auth()->user()->isOwner() && auth()->user()->hasVerifiedEmail())
+                                <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full">Kelola usaha</a>
+                            @endif
                             <form method="POST" action="{{ route('logout') }}" class="p-1">
                                 @csrf
                                 <button type="submit" class="btn btn-secondary w-full">Keluar</button>
