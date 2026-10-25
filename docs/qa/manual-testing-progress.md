@@ -67,10 +67,33 @@ Sebelum perubahan URL berbasis ULID, pemeriksaan terakhir untuk membuka kembali 
 - Mengingatkan pengembang agar seluruh query pengelolaan tetap dibatasi melalui relasi owner yang sedang login. Identifier yang sulit ditebak bukan pengganti otorisasi.
 
 
-## Format penanda progress pengujian
+## Progress utama pengujian manual — 20 poin
 
-Mulai checkpoint lanjutan ini, setiap instruksi pengujian manual harus memakai penanda `[n/20 testing]`, dengan satu langkah per giliran dan menunggu hasil dari pengguna sebelum melanjutkan. Pengujian terdahulu dicatat sebagai riwayat lulus, tetapi karena belum dihitung memakai counter konsisten, counter eksplisit dimulai dari rangkaian lanjutan ini.
+Penghitungan ini mencakup pengujian yang dilakukan sejak awal percakapan, bukan hanya pengujian setelah format progress diperkenalkan. Satu poin dapat menggabungkan beberapa pemeriksaan yang membentuk satu skenario fungsional.
 
-Progress rangkaian lanjutan:
-- `[1/20 testing]` Lulus — registrasi akun owner baru tanpa memverifikasi email; akun diarahkan ke halaman verifikasi.
-- `[2/20 testing]` Berikutnya — pastikan owner yang belum memverifikasi email tidak dapat membuka area pengelolaan owner.
+1. **Lulus** — Validasi registrasi: field wajib, format email, konfirmasi password, dan persetujuan Terms/Privacy.
+2. **Lulus** — Registrasi customer berhasil dan verifikasi email reguler berhasil.
+3. **Lulus** — Login/logout: password salah ditolak, kredensial benar diterima.
+4. **Lulus** — Registrasi dan verifikasi email owner berhasil.
+5. **Lulus** — Halaman Kelola Usaha dapat dibuka setelah perbaikan sintaks Livewire Title.
+6. **Lulus** — Pembuatan usaha: validasi field wajib, usaha tersimpan sebagai Draft dan muncul di daftar.
+7. **Lulus** — Edit usaha berhasil; perubahan alamat bertahan setelah reload.
+8. **Lulus** — Halaman Kelola Venue dan formulir venue terbuka; kategori tersedia.
+9. **Lulus** — Validasi nama/kategori venue dan pembuatan venue Draft.
+10. **Lulus** — Edit venue berhasil; nama/deskripsi tersimpan setelah reload dan pencarian daftar venue menemukan hasil sekali.
+11. **Lulus** — Venue Draft tidak muncul di katalog publik.
+12. **Lulus** — Pengunjung tanpa login diarahkan ke login; akun customer ditolak dari area owner dengan 403.
+13. **Lulus** — Isolasi usaha: owner hanya melihat usahanya; akses langsung ke usaha owner lain menghasilkan 404 dari kedua arah.
+14. **Lulus** — Isolasi venue: akses langsung ke venue owner lain menghasilkan 404 dari kedua arah.
+15. **Lulus** — URL pengelolaan usaha/venue milik sendiri menggunakan ULID dan dapat dibuka; URL numerik ditolak dengan 404.
+16. **Lulus** — Profil publik kedua usaha demo dan venue terpublikasinya tampil tanpa login.
+17. **Lulus** — Pencarian kata kunci venue, pencarian berdasarkan nama usaha, dan keadaan tanpa hasil.
+18. **Lulus** — Filter kategori, lokasi, kombinasi beberapa filter, serta reset pencarian.
+19. **Lulus** — Responsivitas halaman utama pada viewport 390 px; tidak ada pemotongan elemen atau scroll horizontal yang tidak semestinya. Audit responsivitas halaman owner ditunda atas keputusan pengguna.
+20. **Sedang berjalan** — Keamanan verifikasi email: URL ULID berhasil, signature yang dimanipulasi ditolak, dan tautan ditolak dari sesi akun lain. Subtes terakhir yang masih perlu diselesaikan adalah memastikan owner yang belum memverifikasi email tidak bisa membuka halaman Kelola Usaha.
+
+### Posisi saat ini
+
+**19/20 poin lulus. Poin 20/20 sedang berjalan.** Langkah aktif berikutnya: saat login sebagai `owner-belum-verify@example.com`, buka `/owner/businesses`. Harapan: akses ditolak dan pengguna diarahkan kembali ke halaman verifikasi email.
+
+Setiap instruksi pengujian berikutnya harus menggunakan penanda `[n/20 testing]`. Saya akan menaikkan nomor setelah hasil langkah tersebut dikonfirmasi pengguna; pengujian yang sudah lulus tidak akan dihitung ulang.
