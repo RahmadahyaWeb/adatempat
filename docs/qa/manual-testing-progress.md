@@ -24,6 +24,14 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 - Perubahan nama dan deskripsi venue berhasil disimpan.
 - Pencarian venue menemukan hasil yang sesuai tepat satu kali.
 - Venue Draft tidak muncul di katalog publik.
+- Setelah penerapan URL ULID, owner pertama dan owner kedua berhasil mengakses halaman edit milik masing-masing; akses silang ke usaha maupun venue owner lain menghasilkan 404 dari kedua arah.
+- Akun demo owner dapat melihat daftar usaha sendiri saja.
+- Profil publik `studio-demo-adatempat` dan `studio-demo-owner-dua` tampil tanpa login beserta venue yang dipublikasikan.
+- Akun customer menerima 403 saat mencoba membuka `/owner/businesses`.
+- Pencarian dengan kata kunci `Ruang Meeting Demo` menampilkan hasil yang sesuai.
+- Filter kategori Meeting menampilkan dua venue Meeting demo yang dipublikasikan.
+- Filter lokasi `Banjarbaru` menampilkan venue dari kedua usaha demo.
+- Kombinasi kata kunci `Ruang Meeting`, lokasi `Banjarbaru`, dan kategori Meeting menampilkan hasil yang sesuai.
 
 ## Data uji yang sudah dibuat secara manual
 
