@@ -6,7 +6,6 @@ use App\Models\BusinessRevision;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -264,8 +263,8 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
                             <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <button type="button" wire:click="beginReject('{{ $revision->public_id }}')" class="btn btn-secondary w-full sm:w-auto">Tolak revisi</button>
                                 <button type="button" wire:click="approve('{{ $revision->public_id }}')" wire:confirm="Setujui perubahan identitas ini? Informasi usaha publik akan diperbarui." wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
-                                    <span wire:loading.remove wire:target="approve('{{ $revision->public_id }}')">Setujui revisi</span>
-                                    <span wire:loading wire:target="approve('{{ $revision->public_id }}')">Memproses...</span>
+                                    <span wire:loading.remove wire:target="approve">Setujui revisi</span>
+                                    <span wire:loading wire:target="approve">Memproses...</span>
                                 </button>
                             </div>
                         @endif
