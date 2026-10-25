@@ -65,3 +65,12 @@ Sebelum perubahan URL berbasis ULID, pemeriksaan terakhir untuk membuka kembali 
 - Memakai `public_id` pada URL verifikasi email; URL tetap harus bertanda tangan dan terikat pada akun terautentikasi serta hash email.
 - Menambahkan data demo customer, owner, usaha aktif, dan venue terpublikasi khusus environment lokal.
 - Mengingatkan pengembang agar seluruh query pengelolaan tetap dibatasi melalui relasi owner yang sedang login. Identifier yang sulit ditebak bukan pengganti otorisasi.
+
+
+## Format penanda progress pengujian
+
+Mulai checkpoint lanjutan ini, setiap instruksi pengujian manual harus memakai penanda `[n/20 testing]`, dengan satu langkah per giliran dan menunggu hasil dari pengguna sebelum melanjutkan. Pengujian terdahulu dicatat sebagai riwayat lulus, tetapi karena belum dihitung memakai counter konsisten, counter eksplisit dimulai dari rangkaian lanjutan ini.
+
+Progress rangkaian lanjutan:
+- `[1/20 testing]` Lulus — registrasi akun owner baru tanpa memverifikasi email; akun diarahkan ke halaman verifikasi.
+- `[2/20 testing]` Berikutnya — pastikan owner yang belum memverifikasi email tidak dapat membuka area pengelolaan owner.
