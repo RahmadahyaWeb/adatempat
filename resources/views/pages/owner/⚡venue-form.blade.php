@@ -10,8 +10,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Data venue')]
-new class extends Component {
+new #[Title('Data venue')] class extends Component {
     public int $businessId;
 
     public ?int $venueId = null;
