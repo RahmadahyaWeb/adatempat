@@ -4,27 +4,30 @@ namespace Database\Seeders;
 
 use App\Models\LegalDocument;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class LegalDocumentSeeder extends Seeder
 {
     public function run(): void
     {
+        $isLocalPreview = app()->environment('local');
+
         $documents = [
             [
                 'type' => 'terms_and_conditions',
                 'version' => 'v1.0',
                 'title' => 'Syarat dan Ketentuan Penggunaan Platform Adatempat',
-                'content' => $this->termsAndConditions(),
-                'status' => 'draft',
-                'published_at' => null,
+                'content' => $this->readDraft('docs/legal/terms-and-conditions-v1.0.md'),
+                'status' => $isLocalPreview ? 'published' : 'draft',
+                'published_at' => $isLocalPreview ? now() : null,
             ],
             [
                 'type' => 'privacy_policy',
                 'version' => 'v1.0',
                 'title' => 'Kebijakan Privasi Platform Adatempat',
-                'content' => $this->privacyPolicy(),
-                'status' => 'draft',
-                'published_at' => null,
+                'content' => $this->readDraft('docs/legal/privacy-policy-v1.0.md'),
+                'status' => $isLocalPreview ? 'published' : 'draft',
+                'published_at' => $isLocalPreview ? now() : null,
             ],
         ];
 
@@ -39,17 +42,15 @@ class LegalDocumentSeeder extends Seeder
         }
     }
 
-    private function termsAndConditions(): string
+    private function readDraft(string $relativePath): string
     {
-        return <<<'TEXT'
-TEMPELKAN TEKS LENGKAP BAGIAN 18 PRD v1.5 DI SINI
-TEXT;
-    }
+        $path = base_path($relativePath);
+        $content = file_get_contents($path);
 
-    private function privacyPolicy(): string
-    {
-        return <<<'TEXT'
-TEMPELKAN TEKS LENGKAP BAGIAN 19 PRD v1.5 DI SINI
-TEXT;
+        if ($content === false) {
+            throw new RuntimeException("Unable to read legal document draft: {$relativePath}");
+        }
+
+        return $content;
     }
 }
