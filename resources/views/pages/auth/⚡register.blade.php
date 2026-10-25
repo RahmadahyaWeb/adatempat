@@ -141,7 +141,7 @@ new class extends Component {
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-5"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-3.6 2.8-5.5 7-5.5s6.5 1.9 7 5.5"/></svg>
                     </span>
                     <span class="mt-3 block text-sm font-extrabold">Saya mencari tempat</span>
-                    <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Untuk menemukan opsi tempat sesuai rencana.</span>
+                    <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Untuk menemukan tempat sesuai kebutuhanmu.</span>
                 </button>
                 <button type="button" wire:click="selectRegistrationType('owner')" aria-pressed="{{ $registrationType === 'owner' ? 'true' : 'false' }}" class="rounded-xl border p-4 text-left transition-colors {{ $registrationType === 'owner' ? 'border-[var(--brand-forest)] bg-[var(--surface-soft)] ring-2 ring-[var(--brand-forest)]/15' : 'border-[var(--border)] bg-white hover:border-[var(--border-strong)]' }}">
                     <span class="flex size-9 items-center justify-center rounded-lg {{ $registrationType === 'owner' ? 'bg-[var(--brand-lime)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]' }}">
