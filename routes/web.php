@@ -145,7 +145,21 @@ Route::prefix('owner')
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');
 
+        Route::livewire('/businesses/{business}/venues', 'pages::owner.venues')
+            ->whereNumber('business')
+            ->name('businesses.venues.index');
+
+        Route::livewire('/businesses/{business}/venues/create', 'pages::owner.venue-form')
+            ->whereNumber('business')
+            ->name('businesses.venues.create');
+
+        Route::livewire('/businesses/{business}/venues/{venue}/edit', 'pages::owner.venue-form')
+            ->whereNumber('business')
+            ->whereNumber('venue')
+            ->name('businesses.venues.edit');
+
         Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
+            ->whereNumber('business')
             ->name('businesses.edit');
     });
 
