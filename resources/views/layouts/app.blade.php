@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#FBFCF8">
-    <meta name="description" content="Temukan tempat untuk acara, pertemuan, produksi, dan berbagai rencana lainnya bersama Adatempat.">
+    <meta name="description" content="Temukan tempat yang tepat untuk acara, pertemuan, produksi, dan kebutuhan lainnya bersama Adatempat.">
     <meta name="color-scheme" content="light">
     <title>{{ isset($title) && $title ? $title . ' — ' : '' }}{{ config('app.name', 'Adatempat') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,7 +98,7 @@
                     <span>adatempat</span>
                 </a>
                 <p class="mt-3 max-w-md text-sm leading-6 text-[var(--muted)]">
-                    Mulai dari rencana, temukan tempat yang sesuai. Informasi venue ditampilkan berdasarkan data yang dipublikasikan pemiliknya.
+                    Temukan tempat yang sesuai untuk berbagai kebutuhan. Informasi venue ditampilkan berdasarkan data yang dipublikasikan pemiliknya.
                 </p>
             </div>
             <nav aria-label="Navigasi footer" class="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-[var(--ink-soft)]">

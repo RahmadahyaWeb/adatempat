@@ -141,8 +141,8 @@ new class extends Component {
             <p class="eyebrow !text-[var(--brand-lime)]"><span class="eyebrow-dot !bg-[var(--brand-lime)]"></span> Adatempat / Temukan tempat</p>
         </div>
         <div class="relative max-w-md">
-            <p class="text-xs font-bold uppercase tracking-[0.1em] text-white/65">Untuk rencana yang berbeda-beda</p>
-            <h2 class="mt-4 text-4xl font-extrabold leading-[1.12] tracking-[-0.055em] text-white xl:text-5xl">Setiap rencana dimulai dengan pilihan yang tepat.</h2>
+            <p class="text-xs font-bold uppercase tracking-[0.1em] text-white/65">Untuk berbagai kebutuhan</p>
+            <h2 class="mt-4 text-4xl font-extrabold leading-[1.12] tracking-[-0.055em] text-white xl:text-5xl">Pilihan tempat yang jelas, untuk keputusan yang lebih mudah.</h2>
             <p class="mt-5 max-w-sm text-sm leading-7 text-white/80">Temukan tempat berdasarkan kebutuhan, kategori, dan lokasi. Informasi yang jelas membantu kamu membandingkan pilihan.</p>
         </div>
         <div class="relative flex flex-wrap gap-2 text-xs font-semibold text-white/90">
