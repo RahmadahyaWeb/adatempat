@@ -34,6 +34,7 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 - Kombinasi kata kunci `Ruang Meeting`, lokasi `Banjarbaru`, dan kategori Meeting menampilkan hasil yang sesuai.
 - Pencarian dengan kata kunci yang tidak cocok (`VenueTidakAda123`) menampilkan keadaan tanpa hasil dan opsi untuk membersihkan pencarian.
 - Pencarian berdasarkan nama usaha `Studio Demo Pemilik Dua` menampilkan venue `Ruang Meeting Pemilik Dua`.
+- Pemeriksaan responsivitas halaman utama pada viewport 390 px lulus: layout rapi, kolom pencarian tidak terpotong, kartu venue sesuai lebar layar, dan tidak ada scroll horizontal yang tidak semestinya.
 
 ## Data uji yang sudah dibuat secara manual
 
