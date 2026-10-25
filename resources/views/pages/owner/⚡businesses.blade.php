@@ -7,8 +7,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Kelola usaha')]
-new class extends Component {
+new #[Title('Kelola usaha')] class extends Component {
     public bool $showCreateForm = false;
 
     public string $name = '';
