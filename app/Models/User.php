@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
+use App\Notifications\VerifyEmail;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -17,6 +19,20 @@ class User extends Authenticatable implements MustVerifyEmail
     public const ROLE_OWNER = 'owner';
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (! $user->public_id) {
+                $user->public_id = (string) Str::ulid();
+            }
+        });
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmail());
+    }
 
     protected $fillable = [
         'name',
