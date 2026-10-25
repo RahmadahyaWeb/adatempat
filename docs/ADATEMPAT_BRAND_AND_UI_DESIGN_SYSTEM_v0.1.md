@@ -60,6 +60,18 @@ Use a **modern, clear, energetic marketplace** visual language: direct, human, a
 
 The design should be recognizable through a consistent combination of color, wordmark, typography, photo treatment, spacing, and interaction—not through a decorative landing-page illustration. The high-level direction is approved; the exact palette values below remain exploratory.
 
+### Additional direction from the first UI review
+
+The product owner likes the Citrus Lime and deep-green combination, but does not want the warm-cream frame treatment used around the lead photograph in the first implementation. Going forward:
+
+- Do not put a thick cream-colored frame, padding mat, or contrasting border around the main venue imagery. Let the image sit naturally in the layout, with a restrained crop and corner radius if needed.
+- Use citrus lime and forest green as purposeful accents; use a calm, light neutral canvas for the main reading surface. Warm cream is optional, not a required surface color.
+- Prefer a more distinctive, relaxed composition over a stack of generic rounded cards. Establish hierarchy through typography, spacing, section rhythm, and real product content.
+- Avoid decorative circles, rings, floating blobs, and ornamental badges when they do not improve navigation or explain the product.
+- The landing page should put the search task first, then make category discovery and published venue information easy to scan. Keep it welcoming without becoming wedding-only, overly formal, or visually noisy.
+
+These refinements describe composition and color usage, not a final production HEX approval.
+
 ### Five design principles
 
 1. **Discovery before decoration.** Search, location, categories, filters, and venue inventory must be easy to find.
@@ -232,6 +244,9 @@ Venue imagery is one of the main ways users judge whether a place suits their pl
 
 - Use a consistent content container, approximately **1200–1280 px maximum width** on large screens.
 - Build on a 4 px spacing base, using a small, repeatable scale rather than arbitrary values.
+- Do not add a contrasting outer mat or thick border to lead photography. Use the photo as an independent content element, not as an object mounted inside a decorative frame.
+- Avoid the same rounded-card pattern for every section. Use open layouts, restrained grouping surfaces, and clear changes in spacing/background only where they help users scan.
+- Design from the narrow viewport first; prioritize search and key decisions before adding supporting copy or decorative composition.
 - Organize sections by function: search, filters, results, venue detail, booking summary, and support actions.
 - Use whitespace to group related information; do not rely on decorative shapes to communicate structure.
 - Keep the primary action visible at the moment the user needs it, especially on mobile booking flows.
