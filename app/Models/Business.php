@@ -49,6 +49,11 @@ class Business extends Model
         ];
     }
 
+    public function getRouteKeyName()
+    {
+        return 'public_id';
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
