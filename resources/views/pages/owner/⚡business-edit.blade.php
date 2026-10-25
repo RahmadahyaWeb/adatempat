@@ -7,7 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Profil usaha')] class extends Component {
-    public int $businessId;
+    public string $businessPublicId;
 
     public string $name = '';
 
@@ -17,9 +17,10 @@ new #[Title('Profil usaha')] class extends Component {
     {
         $record = auth()->user()
             ->businesses()
-            ->findOrFail($business);
+            ->where('public_id', $business)
+            ->firstOrFail();
 
-        $this->businessId = (int) $record->getKey();
+        $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
         $this->address = (string) ($record->address ?? '');
     }
@@ -30,7 +31,8 @@ new #[Title('Profil usaha')] class extends Component {
         return auth()->user()
             ->businesses()
             ->withCount('venues')
-            ->findOrFail($this->businessId);
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
     }
 
     public function canEditIdentity(): bool
@@ -46,7 +48,8 @@ new #[Title('Profil usaha')] class extends Component {
     {
         $business = auth()->user()
             ->businesses()
-            ->findOrFail($this->businessId);
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
 
         abort_unless(
             in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true),
@@ -194,7 +197,7 @@ new #[Title('Profil usaha')] class extends Component {
             </div>
             <p class="mt-5 text-xs leading-5 text-[var(--muted)]">Kelola nama, kategori, dan deskripsi venue dari katalog usaha ini. Pengaturan foto, harga, dan jadwal menyusul pada modul berikutnya.</p>
             @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
-                <a href="{{ route('owner.businesses.venues.index', ['business' => $business->id]) }}" class="btn btn-primary mt-5 w-full">
+                <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-primary mt-5 w-full">
                     Kelola venue
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
                 </a>
