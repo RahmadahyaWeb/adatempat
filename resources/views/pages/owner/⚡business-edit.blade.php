@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Business;
+use App\Models\BusinessRevision;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -35,6 +37,16 @@ new #[Title('Profil usaha')] class extends Component {
             ->firstOrFail();
     }
 
+    #[Computed]
+    public function pendingRevision(): ?BusinessRevision
+    {
+        return $this->currentBusiness
+            ->revisions()
+            ->where('status', BusinessRevision::STATUS_PENDING)
+            ->latest('created_at')
+            ->first();
+    }
+
     public function canEditIdentity(): bool
     {
         return in_array(
@@ -44,15 +56,28 @@ new #[Title('Profil usaha')] class extends Component {
         );
     }
 
+    public function canSubmitRevision(): bool
+    {
+        return $this->currentBusiness->status === Business::STATUS_ACTIVE
+            && $this->pendingRevision === null;
+    }
+
     public function save(): void
     {
-        $business = auth()->user()
-            ->businesses()
+        $owner = auth()->user();
+
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $business = $owner->businesses()
             ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
 
         abort_unless(
-            in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true),
+            in_array($business->status, [
+                Business::STATUS_DRAFT,
+                Business::STATUS_REJECTED,
+                Business::STATUS_ACTIVE,
+            ], true),
             403,
         );
 
@@ -69,6 +94,55 @@ new #[Title('Profil usaha')] class extends Component {
         );
 
         $businessName = trim($validated['name']);
+        $businessAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+
+        if ($business->status === Business::STATUS_ACTIVE) {
+            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress): ?BusinessRevision {
+                $lockedBusiness = $owner->businesses()
+                    ->whereKey($business->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                abort_unless($lockedBusiness->status === Business::STATUS_ACTIVE, 403);
+
+                if ($lockedBusiness->revisions()->where('status', BusinessRevision::STATUS_PENDING)->exists()) {
+                    $this->addError('name', 'Sudah ada revisi identitas yang menunggu peninjauan.');
+
+                    return null;
+                }
+
+                if (
+                    $businessName === $lockedBusiness->name
+                    && $businessAddress === ($lockedBusiness->address ?: null)
+                ) {
+                    session()->flash('status', 'Tidak ada perubahan identitas untuk diajukan.');
+
+                    return null;
+                }
+
+                return $lockedBusiness->revisions()->create([
+                    'submitted_by' => $owner->getKey(),
+                    'proposed_name' => $businessName,
+                    'proposed_address' => $businessAddress,
+                    'proposed_latitude' => $lockedBusiness->latitude,
+                    'proposed_longitude' => $lockedBusiness->longitude,
+                ]);
+            });
+
+            if ($revision === null) {
+                return;
+            }
+
+            $this->resetValidation();
+            unset($this->currentBusiness, $this->pendingRevision);
+            session()->flash(
+                'status',
+                'Revisi identitas berhasil diajukan. Informasi publik tetap menggunakan data yang saat ini disetujui sampai Super Admin meninjau revisi.',
+            );
+
+            return;
+        }
+
         $slugBase = Str::slug($businessName) ?: 'usaha';
         $slug = $slugBase;
         $suffix = 2;
@@ -84,7 +158,7 @@ new #[Title('Profil usaha')] class extends Component {
         $business->fill([
             'name' => $businessName,
             'slug' => $slug,
-            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
+            'address' => $businessAddress,
         ])->save();
 
         $this->resetValidation();
@@ -92,6 +166,7 @@ new #[Title('Profil usaha')] class extends Component {
 
         session()->flash('status', 'Perubahan profil dasar tersimpan. Status usaha tidak berubah.');
     }
+
 };
 ?>
 
@@ -107,6 +182,8 @@ new #[Title('Profil usaha')] class extends Component {
             default => [$business->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
         };
         $canEdit = $this->canEditIdentity();
+        $canSubmit = $canEdit || $this->canSubmitRevision();
+        $pendingRevision = $this->pendingRevision;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -139,7 +216,7 @@ new #[Title('Profil usaha')] class extends Component {
             @if (!$canEdit)
                 <div class="status-note mt-5">
                     @if ($business->status === 'active')
-                        Usaha ini sedang aktif. Perubahan nama atau alamat membutuhkan alur revisi identitas agar data publik yang sudah disetujui tidak berubah tanpa peninjauan.
+                        Usaha ini sedang aktif. Perubahan nama atau alamat akan diajukan sebagai revisi dan harus disetujui Super Admin. Data publik yang sudah disetujui tidak akan berubah sebelum peninjauan selesai.
                     @elseif ($business->status === 'pending_verification')
                         Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.
                     @elseif ($business->status === 'suspended')
@@ -154,22 +231,31 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @endif
 
+            @if ($pendingRevision)
+                <div class="status-note mt-5">
+                    <p class="font-bold">Revisi identitas menunggu peninjauan</p>
+                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $pendingRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Usulan alamat: <strong>{{ $pendingRevision->proposed_address ?: 'Belum diisi' }}</strong></p>
+                    <p class="mt-2 text-xs leading-5">Data publik tetap memakai nama dan alamat saat ini sampai revisi disetujui atau ditolak.</p>
+                </div>
+            @endif
+
             <form wire:submit="save" class="mt-6 space-y-5">
                 <div>
                     <label for="business-name" class="ui-label">Nama usaha</label>
-                    <input id="business-name" type="text" wire:model="name" required maxlength="255" class="ui-input" @disabled(!$canEdit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
+                    <input id="business-name" type="text" wire:model="name" required maxlength="255" class="ui-input" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
                     @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="business-address" class="ui-label">Alamat usaha</label>
-                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Jalan, area, kota" @disabled(!$canEdit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
+                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Jalan, area, kota" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
                     @error('address') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
-                @if ($canEdit)
+                @if ($canSubmit)
                     <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
                         <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full sm:w-auto">Kembali</a>
                         <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
-                            <span wire:loading.remove wire:target="save">Simpan perubahan</span>
+                            <span wire:loading.remove wire:target="save">{{ $business->status === \\App\\Models\\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
                             <span wire:loading wire:target="save">Menyimpan...</span>
                         </button>
                     </div>
