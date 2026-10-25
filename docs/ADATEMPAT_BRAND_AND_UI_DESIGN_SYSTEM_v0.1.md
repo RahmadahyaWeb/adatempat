@@ -179,13 +179,17 @@ Dark mode is **not a launch requirement in this proposal**. Do not create and ma
 
 ## 7. Typography
 
-### Proposed font families
+### Proposed font family: Inter
 
-- **Primary UI and body:** Manrope, with a system sans-serif fallback.
-- **Metadata and technical identifiers:** IBM Plex Mono, used sparingly for booking references, compact metrics, timestamps, and some labels.
-- **Serif display font:** not part of the default system. The product should get its distinctiveness from clear hierarchy and real imagery rather than relying on oversized editorial serif headlines.
+Use **Inter Variable as the single typeface across the entire product**, with system sans-serif fallbacks. Avoid introducing a separate serif or monospace family into the UI by default.
 
-This is a departure from the earlier Ailene-inspired combination. It aims to make Adatempat feel like a dependable discovery and booking product.
+Why this choice:
+- Inter was designed for on-screen reading and has letterforms suited to mixed-case interface text.
+- A single family makes the product easier to maintain and keeps headings, venue details, forms, tables, and transactional states visually consistent.
+- The Citrus Lime identity can supply the distinctiveness through color, photography, layout, and graphic identity instead of decorative typography.
+- Booking references, prices, dates, and dashboard metrics can use Inter's tabular numerals where supported; a separate monospace font is not required for these.
+
+This is a deliberate simplification from the earlier Ailene-inspired typography. It aims to make Adatempat feel clear, practical, and dependable.
 
 ### Type scale proposal
 
@@ -406,8 +410,7 @@ This table is a starting point for implementation after approval. It is not inte
 | Warning / background | #915E10 / #FBF0D8 |
 | Danger / background | #B42318 / #FDE8E7 |
 | Information / background | #235D8C / #E6F0FA |
-| Primary font | Manrope |
-| Metadata font | IBM Plex Mono |
+| Primary UI and heading font | Inter Variable (single family) |
 | Card shadow | 0 2px 8px rgba(29, 42, 36, 0.05) |
 | Overlay shadow | 0 12px 32px rgba(29, 42, 36, 0.16) |
 
