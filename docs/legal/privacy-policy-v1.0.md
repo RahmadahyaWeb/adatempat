@@ -75,7 +75,7 @@ Jika fitur lokasi tersedia, akses koordinat perangkat hanya dilakukan setelah iz
 
 ## 6. Pengungkapan Data dan Pihak Ketiga
 
-Adatempat tidak menjual data pribadi hanya untuk tujuan menjual data tersebut. Data dapat dibagikan secara terbatas jika diperlukan dan memiliki dasar yang sesuai, antara lain:
+Adatempat tidak memperjualbelikan data pribadi. Data dapat dibagikan secara terbatas jika diperlukan dan memiliki dasar yang sesuai, Data dapat dibagikan secara terbatas jika diperlukan dan memiliki dasar yang sesuai, antara lain:
 - kepada Owner atas informasi Pelanggan yang benar-benar diperlukan untuk melaksanakan booking, apabila fitur booking tersedia;
 - kepada penyedia hosting/infrastruktur, layanan email atau notifikasi, payment gateway, pemroses pembayaran, dan penyedia teknis lain sesuai fungsi yang diaktifkan;
 - kepada penyedia pengamanan, pencatatan log, atau dukungan teknis sejauh diperlukan untuk operasi dan keamanan;
