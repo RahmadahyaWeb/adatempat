@@ -196,16 +196,16 @@ This is the recommended balance between readability and a warmer, less rigid per
 
 | Style | Desktop guidance | Mobile guidance | Use |
 |---|---|---|---|
-| Display | 48–60 px, weight 750–800 | 36–42 px, weight 750–800 | One primary heading on a marketing page |
-| H1 | 36–44 px, weight 700–800 | 30–36 px, weight 700–800 | Page title |
+| Display | 48–56 px, weight 700 | 36–40 px, weight 700 | One primary heading on a marketing page; use 800 only when stronger emphasis is genuinely needed |
+| H1 | 36–42 px, weight 700 | 30–34 px, weight 700 | Page title |
 | H2 | 28–32 px, weight 700 | 24–28 px, weight 700 | Section title |
-| H3 | 20–24 px, weight 650–750 | 20–22 px, weight 650–750 | Card and panel title |
-| Body | 16 px, line-height 1.5–1.65 | 16 px, line-height 1.5–1.65 | Main content |
-| Supporting | 14 px, line-height 1.5 | 14 px, line-height 1.5 | Descriptions and supporting labels |
+| H3 | 20–24 px, weight 600 | 20–22 px, weight 600 | Card and panel title |
+| Body | 16 px, weight 400, line-height 1.5–1.65 | 16 px, weight 400, line-height 1.5–1.65 | Main content |
+| Supporting | 14 px, weight 400, line-height 1.5 | 14 px, weight 400, line-height 1.5 | Descriptions and supporting labels |
 | Metadata | 12–13 px | 12–13 px | Timestamps, IDs, small metadata |
-| Form label | 14 px, weight 600–700 | 14 px, weight 600–700 | Form labels |
+| Form label | 14 px, weight 600 | 14 px, weight 600 | Form labels |
 
-Avoid long uppercase text, excessive letter spacing, and paragraphs set too small. Use tabular numerals for prices, durations, booking references, and dashboard metrics.
+Use regular and medium weights for most body content; reserve semibold and bold for hierarchy rather than making everything heavy. Avoid long uppercase text, excessive letter spacing, and paragraphs set too small. Use tabular numerals for prices, durations, booking references, and dashboard metrics.
 
 ## 8. Photography and imagery
 
