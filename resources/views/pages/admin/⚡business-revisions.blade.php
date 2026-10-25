@@ -66,21 +66,9 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
             ];
 
             $proposedName = trim($revision->proposed_name);
-            $slugBase = Str::slug($proposedName) ?: 'usaha';
-            $slug = $slugBase;
-            $suffix = 2;
-
-            while (Business::query()
-                ->where('slug', $slug)
-                ->whereKeyNot($business->getKey())
-                ->exists()) {
-                $slug = $slugBase . '-' . $suffix;
-                $suffix++;
-            }
 
             $business->fill([
                 'name' => $proposedName,
-                'slug' => $slug,
                 'address' => $revision->proposed_address,
                 'latitude' => $revision->proposed_latitude,
                 'longitude' => $revision->proposed_longitude,
