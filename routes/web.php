@@ -121,3 +121,30 @@ Route::livewire('/forgot-password', 'pages::auth.forgot-password')
 Route::livewire('/reset-password/{token}', 'pages::auth.reset-password')
     ->middleware('guest')
     ->name('password.reset');
+
+
+/*
+|--------------------------------------------------------------------------
+| Area Owner
+|--------------------------------------------------------------------------
+|
+| Akses pengelolaan usaha hanya tersedia untuk owner yang aktif dan telah
+| memverifikasi email. Setiap halaman tetap melakukan query berbasis owner_id.
+|
+*/
+
+Route::prefix('owner')
+    ->name('owner.')
+    ->middleware([
+        'auth',
+        'account.active',
+        'verified',
+        'role:owner',
+    ])
+    ->group(function () {
+        Route::livewire('/businesses', 'pages::owner.businesses')
+            ->name('businesses.index');
+
+        Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
+            ->name('businesses.edit');
+    });
