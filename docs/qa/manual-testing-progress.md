@@ -36,6 +36,10 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 
 Sebelum perubahan URL berbasis ULID, pemeriksaan terakhir untuk membuka kembali URL edit venue milik owner pertama justru menghasilkan 404. Hasil ini belum memenuhi ekspektasi akses normal untuk pemilik yang benar. Setelah rute ULID dipasang, buka kembali halaman lewat navigasi daftar usaha/venue saat login sebagai owner pertama, lalu pastikan halaman edit milik sendiri terbuka. Setelah itu, ulangi pengujian akses antar-owner menggunakan URL ULID yang baru.
 
+## Data demo untuk uji isolasi antar-owner
+
+`DemoDataSeeder` sekarang juga perlu menyiapkan owner kedua (`demo-owner-2@adatempat.test`) dengan usaha `Studio Demo Pemilik Dua` dan venue `Ruang Meeting Pemilik Dua`. Gunakan owner pertama untuk mencoba membuka URL edit milik owner kedua, lalu ulangi sebaliknya. Masing-masing harus menerima 404 ketika mencoba mengakses record yang bukan miliknya.
+
 ## Perubahan implementasi yang sedang dikerjakan
 
 - Menambahkan `public_id` ULID untuk usaha dan venue serta mengisi identifier untuk data lama.

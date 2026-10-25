@@ -37,8 +37,16 @@ class DemoDataSeeder extends Seeder
             role: User::ROLE_OWNER,
         );
 
+        $secondOwner = $this->seedUser(
+            name: 'Pemilik Demo Dua',
+            email: 'demo-owner-2@adatempat.test',
+            password: 'AdatempatOwner2Demo123!',
+            role: User::ROLE_OWNER,
+        );
+
         $this->seedCustomerProfile($customer);
-        $this->seedOwnerProfile($owner);
+        $this->seedOwnerProfile($owner, 'Adatempat Demo Studio');
+        $this->seedOwnerProfile($secondOwner, 'Studio Demo Pemilik Dua');
 
         $business = $this->seedBusiness($owner);
 
@@ -58,10 +66,27 @@ class DemoDataSeeder extends Seeder
             description: 'Studio foto demo untuk kebutuhan potret, produk, dan konten kreatif.',
         );
 
+        $secondBusiness = $this->seedBusiness(
+            owner: $secondOwner,
+            slug: 'studio-demo-owner-dua',
+            name: 'Studio Demo Pemilik Dua',
+            address: 'Banjarbaru, Kalimantan Selatan',
+        );
+
+        $this->seedVenue(
+            business: $secondBusiness,
+            slug: 'ruang-meeting-owner-dua',
+            name: 'Ruang Meeting Pemilik Dua',
+            categorySlug: 'meeting',
+            description: 'Venue demo milik owner kedua untuk pengujian isolasi kepemilikan.',
+        );
+
         $this->command?->info('Data demo Adatempat berhasil disiapkan untuk environment local.');
         $this->command?->line('Pengunjung: demo-customer@adatempat.test / AdatempatCustomer123!');
-        $this->command?->line('Owner: demo-owner@adatempat.test / AdatempatOwner123!');
-        $this->command?->line('Profil usaha publik: /' . $business->slug);
+        $this->command?->line('Owner pertama: demo-owner@adatempat.test / AdatempatOwner123!');
+        $this->command?->line('Owner kedua: demo-owner-2@adatempat.test / AdatempatOwner2Demo123!');
+        $this->command?->line('Profil usaha publik owner pertama: /' . $business->slug);
+        $this->command?->line('Profil usaha publik owner kedua: /' . $secondBusiness->slug);
     }
 
     private function seedUser(string $name, string $email, string $password, string $role): User
@@ -108,7 +133,7 @@ class DemoDataSeeder extends Seeder
         );
     }
 
-    private function seedOwnerProfile(User $owner): void
+    private function seedOwnerProfile(User $owner, string $legalEntityName): void
     {
         $existing = DB::table('owner_profiles')
             ->where('user_id', $owner->getKey())
@@ -117,7 +142,7 @@ class DemoDataSeeder extends Seeder
         DB::table('owner_profiles')->updateOrInsert(
             ['user_id' => $owner->getKey()],
             [
-                'legal_entity_name' => 'Adatempat Demo Studio',
+                'legal_entity_name' => $legalEntityName,
                 'identity_number_masked' => null,
                 'verification_status' => 'verified',
                 'rejection_reason' => null,
@@ -129,14 +154,18 @@ class DemoDataSeeder extends Seeder
         );
     }
 
-    private function seedBusiness(User $owner): Business
+    private function seedBusiness(
+        User $owner,
+        string $slug = 'studio-demo-adatempat',
+        string $name = 'Studio Demo Adatempat',
+        string $address = 'Banjarbaru, Kalimantan Selatan',
+    ): Business
     {
-        $slug = 'studio-demo-adatempat';
         $business = Business::query()->where('slug', $slug)->first();
 
         if ($business !== null && (int) $business->owner_id !== (int) $owner->getKey()) {
             throw new RuntimeException(
-                'Slug studio-demo-adatempat sudah digunakan usaha milik akun lain. Seeder tidak mengubah kepemilikannya.'
+                "Slug {$slug} sudah digunakan usaha milik akun lain. Seeder tidak mengubah kepemilikannya."
             );
         }
 
@@ -144,9 +173,9 @@ class DemoDataSeeder extends Seeder
 
         $business->forceFill([
             'owner_id' => $owner->getKey(),
-            'name' => 'Studio Demo Adatempat',
+            'name' => $name,
             'slug' => $slug,
-            'address' => 'Banjarbaru, Kalimantan Selatan',
+            'address' => $address,
             'latitude' => null,
             'longitude' => null,
             'status' => Business::STATUS_ACTIVE,
