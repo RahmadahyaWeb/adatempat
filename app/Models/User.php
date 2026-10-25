@@ -58,6 +58,11 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function getRouteKeyName()
+    {
+        return 'public_id';
+    }
+
     public function businesses(): HasMany
     {
         return $this->hasMany(Business::class, 'owner_id');
