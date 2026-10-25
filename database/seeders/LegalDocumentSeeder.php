@@ -10,6 +10,8 @@ class LegalDocumentSeeder extends Seeder
 {
     public function run(): void
     {
+        // Draft is marked published only in local development so registration can be tested.
+        // Non-local environments keep these unreviewed documents in draft status.
         $isLocalPreview = app()->environment('local');
 
         $documents = [
