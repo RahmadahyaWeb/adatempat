@@ -124,13 +124,13 @@ new class extends Component {
     <section aria-labelledby="hero-heading" class="hero-section">
         <div class="site-container hero-grid">
             <div class="hero-copy">
-                <p class="eyebrow"><span class="eyebrow-dot"></span> Temukan tempat untuk rencanamu</p>
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Adatempat / Jelajahi venue</p>
                 <h1 id="hero-heading" class="hero-title">
-                    Ada rencana?
-                    <span class="block">Cari <span class="hero-title-accent">tempatnya.</span></span>
+                    Temukan tempat
+                    <span class="block"><span class="hero-title-accent">yang tepat.</span></span>
                 </h1>
                 <p class="hero-description">
-                    Dari acara keluarga sampai ruang meeting, mulai pencarian dengan kebutuhan dan lokasi yang kamu punya.
+                    Cari venue untuk acara, pertemuan, produksi foto, atau kebutuhan lainnya. Mulai dari kategori dan lokasi, lalu jelajahi pilihan yang tersedia.
                 </p>
 
                 <div id="jelajahi" class="search-panel scroll-mt-28">
@@ -188,7 +188,7 @@ new class extends Component {
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div class="max-w-2xl">
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Mulai dari jenis kegiatan</p>
-                    <h2 id="category-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] sm:text-3xl lg:text-4xl">Tempat untuk berbagai rencana.</h2>
+                    <h2 id="category-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] sm:text-3xl lg:text-4xl">Tempat untuk berbagai kebutuhan.</h2>
                     <p class="mt-2 max-w-xl text-sm leading-6 text-[var(--ink-soft)] sm:text-base">Pilih kategori untuk mempersempit daftar tempat yang sudah dipublikasikan.</p>
                 </div>
                 @if ($category !== '')
@@ -276,8 +276,8 @@ new class extends Component {
             <div class="grid gap-6 rounded-[1.25rem] bg-[var(--brand-forest)] px-5 py-7 text-white sm:px-8 sm:py-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12 lg:px-10 lg:py-11">
                 <div class="max-w-2xl">
                     <p class="eyebrow !text-[var(--brand-lime)]"><span class="eyebrow-dot !bg-[var(--brand-lime)]"></span> Untuk pemilik tempat</p>
-                    <h2 id="owner-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] text-white sm:text-3xl lg:text-4xl">Punya tempat untuk diperkenalkan?</h2>
-                    <p class="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base">Buat akun pemilik usaha untuk mulai menyiapkan profil tempatmu. Informasi yang jelas membantu calon pelanggan memahami pilihan mereka.</p>
+                    <h2 id="owner-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] text-white sm:text-3xl lg:text-4xl">Punya venue yang ingin dikenal lebih luas?</h2>
+                    <p class="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base">Buat akun pemilik usaha untuk menampilkan tempat dan mulai menyiapkan profil venue-mu di Adatempat. Informasi yang jelas membantu calon pelanggan membandingkan pilihan.</p>
                 </div>
                 <a href="{{ route('register') }}" class="btn btn-primary w-full sm:w-fit">Daftar sebagai pemilik <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
             </div>
