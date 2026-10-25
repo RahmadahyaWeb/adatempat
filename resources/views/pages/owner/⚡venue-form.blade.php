@@ -11,9 +11,9 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Data venue')] class extends Component {
-    public int $businessId;
+    public string $businessPublicId;
 
-    public ?int $venueId = null;
+    public ?string $venuePublicId = null;
 
     public string $name = '';
 
@@ -25,20 +25,22 @@ new #[Title('Data venue')] class extends Component {
     {
         $businessRecord = auth()->user()
             ->businesses()
-            ->findOrFail($business);
+            ->where('public_id', $business)
+            ->firstOrFail();
 
         abort_unless($businessRecord->status !== Business::STATUS_SUSPENDED, 403);
 
-        $this->businessId = (int) $businessRecord->getKey();
+        $this->businessPublicId = (string) $businessRecord->public_id;
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
                 ->with('category')
-                ->findOrFail($venue);
+                ->where('public_id', $venue)
+                ->firstOrFail();
 
             abort_unless($record->status !== Venue::STATUS_ARCHIVED, 403);
 
-            $this->venueId = (int) $record->getKey();
+            $this->venuePublicId = (string) $record->public_id;
             $this->name = $record->name;
             $this->categoryId = (string) $record->category_id;
             $this->description = (string) ($record->description ?? '');
@@ -50,20 +52,22 @@ new #[Title('Data venue')] class extends Component {
     {
         return auth()->user()
             ->businesses()
-            ->findOrFail($this->businessId);
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
     }
 
     #[Computed]
     public function currentVenue(): ?Venue
     {
-        if ($this->venueId === null) {
+        if ($this->venuePublicId === null) {
             return null;
         }
 
         return $this->currentBusiness
             ->venues()
             ->with('category')
-            ->findOrFail($this->venueId);
+            ->where('public_id', $this->venuePublicId)
+            ->firstOrFail();
     }
 
     #[Computed]
@@ -81,13 +85,15 @@ new #[Title('Data venue')] class extends Component {
 
         abort_unless($user && $user->isOwner(), 403);
 
-        $business = $user->businesses()->findOrFail($this->businessId);
+        $business = $user->businesses()->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
 
         abort_unless($business->status !== Business::STATUS_SUSPENDED, 403);
 
-        $venue = $this->venueId === null
+        $venue = $this->venuePublicId === null
             ? null
-            : $business->venues()->findOrFail($this->venueId);
+            : $business->venues()->where('public_id', $this->venuePublicId)
+            ->firstOrFail();
 
         if ($venue !== null) {
             abort_unless($venue->status !== Venue::STATUS_ARCHIVED, 403);
@@ -131,7 +137,7 @@ new #[Title('Data venue')] class extends Component {
 
         while ($business->venues()
             ->where('slug', $slug)
-            ->where('id', '!=', $this->venueId ?? 0)
+            ->when($this->venuePublicId !== null, fn ($query) => $query->where('public_id', '!=', $this->venuePublicId))
             ->exists()) {
             $slug = $slugBase . '-' . $suffix;
             $suffix++;
@@ -163,7 +169,7 @@ new #[Title('Data venue')] class extends Component {
 
         $this->redirectRoute(
             'owner.businesses.venues.edit',
-            ['business' => $business->getKey(), 'venue' => $venue->getKey()],
+            ['business' => $business->public_id, 'venue' => $venue->public_id],
             navigate: false,
         );
     }
@@ -186,7 +192,7 @@ new #[Title('Data venue')] class extends Component {
         $venueStatus = $venue ? ($statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]']) : null;
     @endphp
 
-    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
+    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
         Kembali ke daftar venue
     </a>
@@ -266,7 +272,7 @@ new #[Title('Data venue')] class extends Component {
                 </div>
 
                 <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
-                    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->id]) }}" class="btn btn-secondary w-full sm:w-auto">Batal</a>
+                    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">Batal</a>
                     <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
                         <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Simpan perubahan' : 'Simpan sebagai draft' }}</span>
                         <span wire:loading wire:target="save">Menyimpan...</span>
