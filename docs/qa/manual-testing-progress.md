@@ -102,5 +102,6 @@ Setiap instruksi pengujian berikutnya harus menggunakan penanda `[n/20 testing]`
 ## Catatan setelah rangkaian 20 poin
 
 - Pengujian tambahan halaman pemulihan password (`/forgot-password`) **dilewati atas permintaan pengguna**. Kode halaman memang tersedia di repository, tetapi belum ada hasil pengujian manual; status ini tidak mengubah hasil 20/20 poin sebelumnya.
+- Pengujian MFA Super Admin (`/admin/mfa/setup`) juga **dilewati atas permintaan pengguna**. Implementasi halaman tersedia di repository, tetapi hasil pengujian manualnya belum diverifikasi.
 - Sebelum memberi instruksi uji manual baru, periksa terlebih dahulu `main` di GitHub untuk memastikan fitur dan kontrolnya benar-benar sudah diimplementasikan. Jangan membuat skenario pengujian untuk fitur yang belum ada.
 - Setelah pemeriksaan fitur yang sudah ada selesai atau dilewati berdasarkan keputusan pengguna, lanjutkan pengembangan dengan mencocokkan implementasi di repository terhadap PRD Adatempat v1.5 dan roadmap implementasinya.
