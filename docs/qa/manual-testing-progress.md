@@ -90,10 +90,10 @@ Penghitungan ini mencakup pengujian yang dilakukan sejak awal percakapan, bukan 
 17. **Lulus** — Pencarian kata kunci venue, pencarian berdasarkan nama usaha, dan keadaan tanpa hasil.
 18. **Lulus** — Filter kategori, lokasi, kombinasi beberapa filter, serta reset pencarian.
 19. **Lulus** — Responsivitas halaman utama pada viewport 390 px; tidak ada pemotongan elemen atau scroll horizontal yang tidak semestinya. Audit responsivitas halaman owner ditunda atas keputusan pengguna.
-20. **Sedang berjalan** — Keamanan verifikasi email: URL ULID berhasil, signature yang dimanipulasi ditolak, dan tautan ditolak dari sesi akun lain. Subtes terakhir yang masih perlu diselesaikan adalah memastikan owner yang belum memverifikasi email tidak bisa membuka halaman Kelola Usaha.
+20. **Lulus** — Keamanan verifikasi email: URL ULID berhasil, signature yang dimanipulasi ditolak, tautan ditolak dari sesi akun lain, dan owner yang belum memverifikasi email diarahkan kembali ke halaman verifikasi saat membuka area owner.
 
 ### Posisi saat ini
 
-**19/20 poin lulus. Poin 20/20 sedang berjalan.** Langkah aktif berikutnya: saat login sebagai `owner-belum-verify@example.com`, buka `/owner/businesses`. Harapan: akses ditolak dan pengguna diarahkan kembali ke halaman verifikasi email.
+**20/20 poin lulus. Rangkaian pengujian manual ini selesai.** Uji terakhir mengonfirmasi owner yang belum memverifikasi email tidak dapat membuka `/owner/businesses` dan diarahkan kembali ke halaman verifikasi email.
 
 Setiap instruksi pengujian berikutnya harus menggunakan penanda `[n/20 testing]`. Saya akan menaikkan nomor setelah hasil langkah tersebut dikonfirmasi pengguna; pengujian yang sudah lulus tidak akan dihitung ulang.
