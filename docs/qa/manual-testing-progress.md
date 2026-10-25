@@ -97,3 +97,10 @@ Penghitungan ini mencakup pengujian yang dilakukan sejak awal percakapan, bukan 
 **20/20 poin lulus. Rangkaian pengujian manual ini selesai.** Uji terakhir mengonfirmasi owner yang belum memverifikasi email tidak dapat membuka `/owner/businesses` dan diarahkan kembali ke halaman verifikasi email.
 
 Setiap instruksi pengujian berikutnya harus menggunakan penanda `[n/20 testing]`. Saya akan menaikkan nomor setelah hasil langkah tersebut dikonfirmasi pengguna; pengujian yang sudah lulus tidak akan dihitung ulang.
+
+
+## Catatan setelah rangkaian 20 poin
+
+- Pengujian tambahan halaman pemulihan password (`/forgot-password`) **dilewati atas permintaan pengguna**. Kode halaman memang tersedia di repository, tetapi belum ada hasil pengujian manual; status ini tidak mengubah hasil 20/20 poin sebelumnya.
+- Sebelum memberi instruksi uji manual baru, periksa terlebih dahulu `main` di GitHub untuk memastikan fitur dan kontrolnya benar-benar sudah diimplementasikan. Jangan membuat skenario pengujian untuk fitur yang belum ada.
+- Setelah pemeriksaan fitur yang sudah ada selesai atau dilewati berdasarkan keputusan pengguna, lanjutkan pengembangan dengan mencocokkan implementasi di repository terhadap PRD Adatempat v1.5 dan roadmap implementasinya.
