@@ -6,8 +6,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Profil usaha')]
-new class extends Component {
+new #[Title('Profil usaha')] class extends Component {
     public int $businessId;
 
     public string $name = '';
