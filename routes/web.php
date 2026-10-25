@@ -148,3 +148,18 @@ Route::prefix('owner')
         Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
             ->name('businesses.edit');
     });
+
+
+/*
+|--------------------------------------------------------------------------
+| Halaman publik usaha
+|--------------------------------------------------------------------------
+|
+| Letakkan rute slug di bagian akhir agar rute statis seperti login,
+| registrasi, dan pemulihan password tetap menjadi prioritas.
+|
+*/
+
+Route::livewire('/{businessSlug}', 'pages::business')
+    ->where('businessSlug', '[a-z0-9-]+')
+    ->name('business.public');
