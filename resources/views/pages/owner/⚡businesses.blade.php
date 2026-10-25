@@ -75,7 +75,7 @@ new #[Title('Kelola usaha')] class extends Component {
 
         $this->redirectRoute(
             'owner.businesses.edit',
-            ['business' => $business->getKey()],
+            ['business' => $business->public_id],
             navigate: false,
         );
     }
@@ -215,12 +215,12 @@ new #[Title('Kelola usaha')] class extends Component {
                         </div>
                         <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
                             @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
-                                <a href="{{ route('owner.businesses.venues.index', ['business' => $business->id]) }}" class="btn btn-primary w-full sm:w-auto">
+                                <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-primary w-full sm:w-auto">
                                     Kelola venue
                                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
                                 </a>
                             @endif
-                            <a href="{{ route('owner.businesses.edit', ['business' => $business->id]) }}" class="btn btn-secondary w-full sm:w-auto">
+                            <a href="{{ route('owner.businesses.edit', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">
                                 Kelola data
                             </a>
                         </div>

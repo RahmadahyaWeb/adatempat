@@ -45,3 +45,10 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+## Identifiers in URLs and authorization
+
+- Never place numeric database primary keys in application URLs. Use an opaque public identifier (`public_id`) backed by a ULID for owner-management routes; use a stable slug only where a human-readable public URL is a product requirement.
+- Do not treat a ULID, UUID, or slug as authorization. Every owner-managed record lookup and mutation must be scoped through the authenticated owner's relationship and must not rely on a client-supplied identifier.
+- Avoid storing sequential primary keys in public Livewire state when an opaque public identifier is available.
+- Keep email-verification URLs free of sequential user IDs; use the user's opaque public identifier and validate the signed URL, authenticated account, and email hash.
+- For cross-owner access, prefer a not-found response to avoid disclosing the existence of another owner's records.

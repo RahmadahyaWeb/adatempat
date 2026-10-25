@@ -6,7 +6,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Notifications\VerifyEmail;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -17,6 +19,20 @@ class User extends Authenticatable implements MustVerifyEmail
     public const ROLE_OWNER = 'owner';
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (! $user->public_id) {
+                $user->public_id = (string) Str::ulid();
+            }
+        });
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmail());
+    }
 
     protected $fillable = [
         'name',
@@ -40,6 +56,11 @@ class User extends Authenticatable implements MustVerifyEmail
             'mfa_enabled_at' => 'datetime',
             'deactivated_at' => 'datetime',
         ];
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'public_id';
     }
 
     public function businesses(): HasMany

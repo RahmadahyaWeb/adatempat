@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class Venue extends Model
 {
@@ -16,6 +17,15 @@ class Venue extends Model
     public const STATUS_PUBLISHED = 'published';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_ARCHIVED = 'archived';
+
+    protected static function booted(): void
+    {
+        static::creating(function (Venue $venue): void {
+            if (! $venue->public_id) {
+                $venue->public_id = (string) Str::ulid();
+            }
+        });
+    }
 
     protected $fillable = [
         'business_id',
@@ -32,6 +42,11 @@ class Venue extends Model
         return [
             'published_at' => 'datetime',
         ];
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'public_id';
     }
 
     public function business(): BelongsTo

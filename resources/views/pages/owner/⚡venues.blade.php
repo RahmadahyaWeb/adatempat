@@ -9,7 +9,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Kelola venue')] class extends Component {
-    public int $businessId;
+    public string $businessPublicId;
 
     public string $search = '';
 
@@ -19,11 +19,12 @@ new #[Title('Kelola venue')] class extends Component {
     {
         $record = auth()->user()
             ->businesses()
-            ->findOrFail($business);
+            ->where('public_id', $business)
+            ->firstOrFail();
 
         abort_unless($record->status !== Business::STATUS_SUSPENDED, 403);
 
-        $this->businessId = (int) $record->getKey();
+        $this->businessPublicId = (string) $record->public_id;
     }
 
     #[Computed]
@@ -37,7 +38,8 @@ new #[Title('Kelola venue')] class extends Component {
                 'venues as published_venues_count' => fn (Builder $query) => $query->where('status', Venue::STATUS_PUBLISHED),
                 'venues as pending_venues_count' => fn (Builder $query) => $query->where('status', Venue::STATUS_PENDING_REVIEW),
             ])
-            ->findOrFail($this->businessId);
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
     }
 
     #[Computed]
@@ -102,7 +104,7 @@ new #[Title('Kelola venue')] class extends Component {
         ];
     @endphp
 
-    <a href="{{ route('owner.businesses.edit', ['business' => $business->id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
+    <a href="{{ route('owner.businesses.edit', ['business' => $business->public_id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
         Kembali ke profil usaha
     </a>
@@ -114,7 +116,7 @@ new #[Title('Kelola venue')] class extends Component {
             <p class="mt-2 break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-base">{{ $business->name }}</p>
             <p class="mt-3 text-sm leading-6 text-[var(--muted)]">Atur nama, kategori, dan deskripsi setiap tempat di bawah usaha ini.</p>
         </div>
-        <a href="{{ route('owner.businesses.venues.create', ['business' => $business->id]) }}" class="btn btn-primary w-full shrink-0 sm:w-auto">
+        <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary w-full shrink-0 sm:w-auto">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
             Tambah venue
         </a>
@@ -194,7 +196,7 @@ new #[Title('Kelola venue')] class extends Component {
                     {{ $this->currentBusiness->venues_count === 0 ? 'Tambahkan venue untuk mulai menyiapkan katalog tempat.' : 'Coba kata kunci atau status lain, atau buat venue baru.' }}
                 </p>
                 @if ($this->currentBusiness->venues_count === 0)
-                    <a href="{{ route('owner.businesses.venues.create', ['business' => $business->id]) }}" class="btn btn-primary mt-5">Tambah venue pertama</a>
+                    <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary mt-5">Tambah venue pertama</a>
                 @endif
             </div>
         @else
@@ -221,7 +223,7 @@ new #[Title('Kelola venue')] class extends Component {
                             </div>
                         </div>
                         @if ($venue->status !== \App\Models\Venue::STATUS_ARCHIVED)
-                            <a href="{{ route('owner.businesses.venues.edit', ['business' => $business->id, 'venue' => $venue->id]) }}" class="btn btn-secondary w-full shrink-0 sm:w-auto">
+                            <a href="{{ route('owner.businesses.venues.edit', ['business' => $business->public_id, 'venue' => $venue->public_id]) }}" class="btn btn-secondary w-full shrink-0 sm:w-auto">
                                 Edit venue
                                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
                             </a>
