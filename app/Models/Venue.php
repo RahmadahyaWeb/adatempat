@@ -44,6 +44,11 @@ class Venue extends Model
         ];
     }
 
+    public function getRouteKeyName()
+    {
+        return 'public_id';
+    }
+
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
