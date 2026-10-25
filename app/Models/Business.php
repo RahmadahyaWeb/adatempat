@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Business extends Model
 {
@@ -18,6 +19,15 @@ class Business extends Model
     public const STATUS_SUSPENDED = 'suspended';
 
     public const STATUS_REJECTED = 'rejected';
+
+    protected static function booted(): void
+    {
+        static::creating(function (Business $business): void {
+            if (! $business->public_id) {
+                $business->public_id = (string) Str::ulid();
+            }
+        });
+    }
 
     protected $fillable = [
         'owner_id',
