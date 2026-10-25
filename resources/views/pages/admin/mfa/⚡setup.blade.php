@@ -75,49 +75,50 @@ new class extends Component {
 };
 ?>
 
-<div class="site-container grid max-w-5xl items-center gap-8 py-8 sm:py-12 lg:min-h-[calc(100vh-9rem)] lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] lg:gap-14 lg:py-14">
-    <aside class="rounded-[1.75rem] bg-[#E9F3EC] p-6 sm:p-8 lg:p-10">
-        <p class="editorial-eyebrow text-[#49634E]"><span class="size-2 rounded-full bg-[var(--accent-sage)]"></span> Keamanan administrator</p>
-        <h1 class="mt-5 font-editorial text-4xl leading-tight tracking-[-0.035em] text-[#203E2A] sm:text-5xl">Satu lapis perlindungan tambahan.</h1>
-        <p class="mt-4 text-sm leading-7 text-[#49634E]">Autentikasi dua faktor menambahkan langkah verifikasi saat masuk ke area administrasi Adatempat.</p>
-        <div class="mt-7 flex items-start gap-3 border-t border-[#C8D9CA] pt-5 text-sm leading-6 text-[#49634E]">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 size-5 shrink-0"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
-            <p>Simpan secret dengan aman. Siapa pun yang memilikinya dapat membuat kode autentikasi.</p>
-        </div>
-    </aside>
+<div class="site-container max-w-5xl py-6 sm:py-10 lg:py-14">
+    <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,.78fr)_minmax(0,1.22fr)] lg:gap-8">
+        <aside class="rounded-[1.5rem] bg-[var(--brand-forest)] p-5 text-white sm:p-7 lg:sticky lg:top-24 lg:p-8">
+            <p class="eyebrow !text-[var(--brand-lime)]"><span class="eyebrow-dot !bg-[var(--brand-lime)]"></span> Keamanan administrator</p>
+            <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-[-0.05em] text-white sm:text-4xl">Tambahkan lapisan perlindungan.</h1>
+            <p class="mt-4 text-sm leading-7 text-white/80">Hubungkan akun dengan aplikasi authenticator yang mendukung TOTP, lalu konfirmasi menggunakan kode enam digit.</p>
+            <div class="mt-6 space-y-4 border-t border-white/20 pt-5">
+                <div class="flex items-start gap-3"><span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-lime)] text-xs font-extrabold text-[var(--ink)]">1</span><p class="text-sm leading-6 text-white/90">Simpan secret di aplikasi authenticator milikmu.</p></div>
+                <div class="flex items-start gap-3"><span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-lime)] text-xs font-extrabold text-[var(--ink)]">2</span><p class="text-sm leading-6 text-white/90">Masukkan kode terbaru untuk mengaktifkan MFA.</p></div>
+            </div>
+            <p class="mt-6 border-t border-white/20 pt-5 text-xs leading-5 text-white/65">Secret TOTP bersifat rahasia. Siapa pun yang memilikinya dapat membuat kode autentikasi.</p>
+        </aside>
 
-    <section class="ui-surface p-6 sm:p-8 lg:p-10">
-        <p class="editorial-eyebrow text-[var(--accent-primary)]">Pengaturan keamanan / 01</p>
-        <h2 class="mt-4 font-editorial text-3xl leading-tight sm:text-4xl">Aktifkan autentikasi dua faktor.</h2>
-        <p class="mt-3 text-sm leading-6 text-[var(--text-secondary)]">Gunakan aplikasi authenticator yang mendukung TOTP, seperti Google Authenticator, Microsoft Authenticator, atau 1Password.</p>
+        <section class="ui-panel min-w-0 p-5 sm:p-7 lg:p-8">
+            <p class="eyebrow"><span class="eyebrow-dot"></span> Pengaturan keamanan / 01</p>
+            <h2 class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] sm:text-3xl">Hubungkan aplikasi authenticator.</h2>
+            <p class="mt-3 text-sm leading-6 text-[var(--ink-soft)]">Tambahkan akun secara manual menggunakan secret berikut.</p>
 
-        <section class="mt-7 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-4 sm:p-5">
-            <p class="font-metadata text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">01 / Hubungkan aplikasi</p>
-            <h3 class="mt-2 font-semibold">Tambahkan akun secara manual</h3>
-            <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Masukkan secret ini ke aplikasi authenticator milikmu.</p>
-            <div class="mt-4 break-all rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] p-4 font-metadata text-sm leading-6 text-[var(--text-primary)]" aria-label="Secret TOTP">{{ $this->secret }}</div>
-            <button type="button" x-data x-on:click="navigator.clipboard.writeText(@js($this->secret))" class="ui-button ui-button-secondary mt-3 min-h-10 w-full sm:w-auto">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="size-4"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
-                Salin secret
-            </button>
-            <p class="mt-3 text-xs leading-5 text-[var(--text-muted)]">Jangan bagikan secret ini kepada siapa pun.</p>
-        </section>
-
-        <section class="mt-5 rounded-2xl border border-[var(--border-subtle)] p-4 sm:p-5">
-            <p class="font-metadata text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">02 / Konfirmasi</p>
-            <h3 class="mt-2 font-semibold">Masukkan kode enam digit</h3>
-            <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Gunakan kode terbaru yang ditampilkan aplikasi authenticator.</p>
-            <form wire:submit="activate" class="mt-4 space-y-4">
-                <div>
-                    <label for="code" class="ui-label">Kode authenticator</label>
-                    <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" wire:model="code" class="ui-input font-metadata text-base tracking-[0.3em]" placeholder="000000" required>
-                    @error('code') <p role="alert" class="mt-2 text-sm leading-5 text-[#B42318]">{{ $message }}</p> @enderror
-                </div>
-                <button type="submit" wire:loading.attr="disabled" class="ui-button ui-button-primary w-full">
-                    <span wire:loading.remove wire:target="activate">Aktifkan MFA</span>
-                    <span wire:loading wire:target="activate">Memverifikasi...</span>
+            <div class="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:p-5">
+                <label class="ui-label">Secret TOTP</label>
+                <div class="break-all rounded-lg border border-[var(--border-strong)] bg-white p-3 font-mono text-sm leading-6 text-[var(--ink)]" aria-label="Secret TOTP">{{ $this->secret }}</div>
+                <button type="button" x-data x-on:click="navigator.clipboard.writeText(@js($this->secret))" class="btn btn-secondary mt-3 w-full sm:w-auto">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+                    Salin secret
                 </button>
-            </form>
+                <p class="form-note mt-3">Jangan kirim secret ini melalui chat atau email.</p>
+            </div>
+
+            <div class="mt-6 border-t border-[var(--border)] pt-6">
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Pengaturan keamanan / 02</p>
+                <h3 class="mt-3 text-xl font-extrabold tracking-[-0.04em]">Konfirmasi kode</h3>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Masukkan enam digit yang sedang ditampilkan aplikasi authenticator.</p>
+                <form wire:submit="activate" class="mt-5 space-y-4">
+                    <div>
+                        <label for="code" class="ui-label">Kode authenticator</label>
+                        <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" wire:model="code" class="ui-input font-mono text-base tracking-[0.28em]" placeholder="000000" required aria-invalid="{{ $errors->has('code') ? 'true' : 'false' }}">
+                        @error('code') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full">
+                        <span wire:loading.remove wire:target="activate">Aktifkan MFA</span>
+                        <span wire:loading wire:target="activate">Memverifikasi...</span>
+                    </button>
+                </form>
+            </div>
         </section>
-    </section>
+    </div>
 </div>
