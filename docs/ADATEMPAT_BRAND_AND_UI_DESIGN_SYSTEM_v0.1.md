@@ -36,13 +36,11 @@ The visual identity must work across more than a marketing homepage. It must sup
 
 The core benefit is not inspiration alone. It is moving from “I need a place for this” to “I understand this option and know what to do next.”
 
-### Proposed brand promise
+### Confirmed brand tagline
 
-**Tempat yang pas untuk setiap rencana.**
+**TEMUKAN TEMPAT YANG TEPAT**
 
-Supporting message: find a place based on what matters—purpose, location, budget, capacity, facilities, and schedule—then continue into a clear booking process.
-
-The tagline is a working recommendation, not a locked marketing claim.
+This is the product owner's selected brand tagline and should lead the public-facing brand presentation. It communicates the marketplace's core value directly: helping people find a venue that fits their needs. Use supporting copy about specific needs, activities, categories, and locations rather than repeating the word “rencana” as a generic catch-all.
 
 ## 3. Design direction exploration
 
@@ -59,6 +57,18 @@ Three possible directions were considered against Adatempat's breadth of use cas
 Use a **modern, clear, energetic marketplace** visual language: direct, human, and useful. Citrus Lime should make Adatempat recognizable and optimistic without turning every page into a bright yellow-green surface. Pair the lime signature with deep green and ink-dark elements for clarity, plus a warm cream or neutral base that lets real venue photography remain the focus. Transactional and administrative areas should stay calm and high-contrast.
 
 The design should be recognizable through a consistent combination of color, wordmark, typography, photo treatment, spacing, and interaction—not through a decorative landing-page illustration. The high-level direction is approved; the exact palette values below remain exploratory.
+
+### Additional direction from the first UI review
+
+The product owner likes the Citrus Lime and deep-green combination, but does not want the warm-cream frame treatment used around the lead photograph in the first implementation. Going forward:
+
+- Do not put a thick cream-colored frame, padding mat, or contrasting border around the main venue imagery. Let the image sit naturally in the layout, with a restrained crop and corner radius if needed.
+- Use citrus lime and forest green as purposeful accents; use a calm, light neutral canvas for the main reading surface. Warm cream is optional, not a required surface color.
+- Prefer a more distinctive, relaxed composition over a stack of generic rounded cards. Establish hierarchy through typography, spacing, section rhythm, and real product content.
+- Avoid decorative circles, rings, floating blobs, and ornamental badges when they do not improve navigation or explain the product.
+- The landing page should put the search task first, then make category discovery and published venue information easy to scan. Keep it welcoming without becoming wedding-only, overly formal, or visually noisy.
+
+These refinements describe composition and color usage, not a final production HEX approval.
 
 ### Five design principles
 
@@ -88,7 +98,7 @@ The design should be recognizable through a consistent combination of color, wor
 
 ### Tone of voice
 
-Use clear, natural Bahasa Indonesia. Keep copy friendly and direct, but avoid slang that may feel dated or undermine trust in a financial or booking flow. Use the same terms consistently within a flow.
+Use clear, natural Bahasa Indonesia. Keep copy friendly, relaxed, and direct, but avoid slang that may feel dated or undermine trust in a financial or booking flow. Use the same terms consistently within a flow. The tagline **“TEMUKAN TEMPAT YANG TEPAT”** is selected. Avoid using “rencana” as a generic stand-in in UI copy; prefer precise terms such as “kebutuhan”, “acara”, “aktivitas”, “pertemuan”, or “tempat” according to context.
 
 **Prefer**
 - “Cari tempat”
@@ -232,6 +242,9 @@ Venue imagery is one of the main ways users judge whether a place suits their pl
 
 - Use a consistent content container, approximately **1200–1280 px maximum width** on large screens.
 - Build on a 4 px spacing base, using a small, repeatable scale rather than arbitrary values.
+- Do not add a contrasting outer mat or thick border to lead photography. Use the photo as an independent content element, not as an object mounted inside a decorative frame.
+- Avoid the same rounded-card pattern for every section. Use open layouts, restrained grouping surfaces, and clear changes in spacing/background only where they help users scan.
+- Design from the narrow viewport first; prioritize search and key decisions before adding supporting copy or decorative composition.
 - Organize sections by function: search, filters, results, venue detail, booking summary, and support actions.
 - Use whitespace to group related information; do not rely on decorative shapes to communicate structure.
 - Keep the primary action visible at the moment the user needs it, especially on mobile booking flows.
