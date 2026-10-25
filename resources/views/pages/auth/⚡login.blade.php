@@ -91,95 +91,69 @@ new class extends Component {
 };
 ?>
 
-<div class="min-h-screen bg-[var(--bg-canvas)] px-4 py-12 text-[var(--text-primary)] sm:px-6">
-    <div class="mx-auto w-full max-w-md">
-        <div class="mt-10 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm sm:p-8">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-primary)]">
-                Selamat datang kembali
-            </p>
+<div class="site-container grid max-w-6xl items-center gap-8 py-8 sm:py-12 lg:min-h-[calc(100vh-9rem)] lg:grid-cols-[minmax(0,.9fr)_minmax(22rem,1fr)] lg:gap-14 lg:py-14">
+    <aside class="relative hidden min-h-[34rem] overflow-hidden rounded-[1.75rem] bg-[#203E2A] lg:block">
+        <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=85" alt="" loading="lazy" decoding="async" class="absolute inset-0 size-full object-cover opacity-80">
+        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-[#121210]/90 via-[#121210]/20 to-[#121210]/10"></div>
+        <div class="relative flex min-h-[34rem] flex-col justify-between p-8 xl:p-10">
+            <p class="editorial-eyebrow text-white/80"><span class="size-2 rounded-full bg-[#9CC3A2]"></span> Adatempat / Ruang untuk rencana</p>
+            <div class="max-w-md text-white">
+                <p class="font-metadata text-[10px] uppercase tracking-[0.16em] text-white/65">Senang melihatmu kembali</p>
+                <h2 class="mt-4 font-editorial text-5xl leading-[.98] tracking-[-0.035em] text-white xl:text-6xl">Rencanamu belum selesai.</h2>
+                <p class="mt-5 max-w-sm text-sm leading-7 text-white/75">Masuk untuk kembali ke aktivitasmu dan menemukan tempat yang kamu butuhkan.</p>
+            </div>
+        </div>
+    </aside>
 
-            <h1 class="mt-3 font-serif text-3xl tracking-tight">
-                Masuk ke akun Anda.
-            </h1>
-
-            <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                Masuk untuk melanjutkan aktivitas Anda di Adatempat.
-            </p>
+    <section class="mx-auto w-full max-w-lg">
+        <div class="ui-surface p-6 sm:p-8 lg:p-10">
+            <p class="editorial-eyebrow text-[var(--accent-primary)]">Masuk ke akun</p>
+            <h1 class="mt-4 font-editorial text-4xl leading-tight tracking-[-0.035em] sm:text-5xl">Selamat datang kembali.</h1>
+            <p class="mt-3 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">Masuk untuk melanjutkan aktivitasmu di Adatempat.</p>
 
             @if (session('status'))
-                <div role="status"
-                    class="mt-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--accent-sage-bg)] p-3 text-sm leading-6 text-[var(--accent-sage)]">
+                <div role="status" class="mt-6 rounded-xl border border-[#C8D9CA] bg-[var(--accent-sage-bg)] p-4 text-sm leading-6 text-[var(--accent-sage)]">
                     {{ session('status') }}
                 </div>
             @endif
 
             <form wire:submit="login" class="mt-7 space-y-5">
                 <div>
-                    <label for="email" class="mb-2 block text-sm font-medium">
-                        Alamat email
-                    </label>
-
-                    <input id="email" type="email" wire:model="email" autocomplete="username" required autofocus
-                        class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                        placeholder="nama@email.com" aria-describedby="email-error">
-
+                    <label for="email" class="ui-label">Alamat email</label>
+                    <input id="email" type="email" wire:model="email" autocomplete="username" required autofocus aria-describedby="email-error" class="ui-input" placeholder="nama@email.com">
                     @error('email')
-                        <p id="email-error" role="alert" class="mt-1.5 text-sm text-red-700">
-                            {{ $message }}
-                        </p>
+                        <p id="email-error" role="alert" class="mt-2 text-sm leading-5 text-[#B42318]">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
-                        <label for="password" class="text-sm font-medium">
-                            Password
-                        </label>
-
-                        <a href="{{ route('password.request') }}"
-                            class="text-sm font-medium text-[var(--accent-primary)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
-                            Lupa password?
-                        </a>
+                        <label for="password" class="ui-label mb-0">Password</label>
+                        <a href="{{ route('password.request') }}" class="text-xs font-semibold text-[var(--accent-primary)] underline-offset-4 hover:underline sm:text-sm">Lupa password?</a>
                     </div>
-
-                    <input id="password" type="password" wire:model="password" autocomplete="current-password" required
-                        class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                        placeholder="Masukkan password">
-
+                    <input id="password" type="password" wire:model="password" autocomplete="current-password" required class="ui-input" placeholder="Masukkan password">
                     @error('password')
-                        <p role="alert" class="mt-1.5 text-sm text-red-700">
-                            {{ $message }}
-                        </p>
+                        <p role="alert" class="mt-2 text-sm leading-5 text-[#B42318]">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <label class="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <input type="checkbox" wire:model="remember"
-                        class="h-4 w-4 rounded border-[var(--border-strong)] accent-[var(--accent-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)]">
-
-                    Ingat saya
+                <label class="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[var(--text-secondary)]">
+                    <input type="checkbox" wire:model="remember" class="mt-1 size-4 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]">
+                    <span>Ingat saya di perangkat ini</span>
                 </label>
 
-                <button type="submit" wire:loading.attr="disabled"
-                    class="w-full rounded-xl bg-[var(--accent-primary)] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60">
-                    <span wire:loading.remove wire:target="login">
-                        Masuk
-                    </span>
-
-                    <span wire:loading wire:target="login">
-                        Memeriksa akun...
-                    </span>
+                <button type="submit" wire:loading.attr="disabled" class="ui-button ui-button-primary w-full">
+                    <span wire:loading.remove wire:target="login">Masuk</span>
+                    <span wire:loading wire:target="login">Memeriksa akun...</span>
+                    <svg wire:loading.remove wire:target="login" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
                 </button>
             </form>
 
-            <p class="mt-6 text-center text-sm text-[var(--text-secondary)]">
+            <p class="mt-7 border-t border-[var(--border-subtle)] pt-5 text-center text-sm leading-6 text-[var(--text-secondary)]">
                 Belum punya akun?
-
-                <a href="{{ route('register') }}"
-                    class="font-semibold text-[var(--accent-primary)] underline-offset-4 hover:underline">
-                    Daftar
-                </a>
+                <a href="{{ route('register') }}" class="font-semibold text-[var(--accent-primary)] underline-offset-4 hover:underline">Buat akun</a>
             </p>
         </div>
-    </div>
+        <p class="mt-4 text-center text-xs leading-5 text-[var(--text-muted)]">Dengan masuk, kamu bisa melanjutkan aktivitas sesuai jenis akunmu.</p>
+    </section>
 </div>
