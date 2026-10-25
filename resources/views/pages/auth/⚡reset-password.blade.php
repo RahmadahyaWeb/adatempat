@@ -59,69 +59,43 @@ new class extends Component {
 };
 ?>
 
-<div class="min-h-screen bg-[var(--bg-canvas)] px-4 py-12 text-[var(--text-primary)] sm:px-6">
-    <div class="mx-auto max-w-md">
-        <div class="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm sm:p-8">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-primary)]">
-                Pemulihan akun
-            </p>
+<div class="site-container grid max-w-6xl items-center gap-8 py-8 sm:py-12 lg:min-h-[calc(100vh-9rem)] lg:grid-cols-[minmax(0,.9fr)_minmax(22rem,1fr)] lg:gap-14 lg:py-14">
+    <aside class="relative hidden min-h-[30rem] overflow-hidden rounded-[1.75rem] bg-[#203E2A] lg:block">
+        <img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1100&q=80" alt="" loading="lazy" decoding="async" class="absolute inset-0 size-full object-cover opacity-75">
+        <div aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-[#121210]/90 via-[#121210]/20 to-transparent"></div>
+        <div class="relative flex min-h-[30rem] flex-col justify-end p-8 xl:p-10">
+            <p class="font-metadata text-[10px] uppercase tracking-[0.16em] text-white/70">Keamanan akun</p>
+            <h2 class="mt-3 max-w-sm font-editorial text-5xl leading-[.98] text-white xl:text-6xl">Aksesmu, kendalimu.</h2>
+            <p class="mt-4 max-w-sm text-sm leading-7 text-white/75">Pilih password baru yang kuat untuk melanjutkan menggunakan Adatempat.</p>
+        </div>
+    </aside>
 
-            <h1 class="mt-3 font-serif text-3xl">
-                Buat password baru.
-            </h1>
+    <section class="mx-auto w-full max-w-lg">
+        <div class="ui-surface p-6 sm:p-8 lg:p-10">
+            <p class="editorial-eyebrow text-[var(--accent-primary)]">Pemulihan akun</p>
+            <h1 class="mt-4 font-editorial text-4xl leading-tight tracking-[-0.035em] sm:text-5xl">Buat password baru.</h1>
+            <p class="mt-3 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">Masukkan email dan password baru untuk menyelesaikan pemulihan akun.</p>
 
-            <p class="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                Masukkan password baru untuk akun Anda.
-            </p>
-
-            <form wire:submit="resetPassword" class="mt-6 space-y-5">
+            <form wire:submit="resetPassword" class="mt-7 space-y-5">
                 <div>
-                    <label for="email" class="mb-2 block text-sm font-medium">
-                        Alamat email
-                    </label>
-
-                    <input id="email" type="email" wire:model="email" autocomplete="email" required
-                        class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15">
-
-                    @error('email')
-                        <p role="alert" class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                    @enderror
+                    <label for="email" class="ui-label">Alamat email</label>
+                    <input id="email" type="email" wire:model="email" autocomplete="email" required class="ui-input" placeholder="nama@email.com">
+                    @error('email') <p role="alert" class="mt-2 text-sm leading-5 text-[#B42318]">{{ $message }}</p> @enderror
                 </div>
-
                 <div>
-                    <label for="password" class="mb-2 block text-sm font-medium">
-                        Password baru
-                    </label>
-
-                    <input id="password" type="password" wire:model="password" autocomplete="new-password" required
-                        class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15">
-
-                    @error('password')
-                        <p role="alert" class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                    @enderror
+                    <label for="password" class="ui-label">Password baru</label>
+                    <input id="password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat password baru">
+                    @error('password') <p role="alert" class="mt-2 text-sm leading-5 text-[#B42318]">{{ $message }}</p> @enderror
                 </div>
-
                 <div>
-                    <label for="password_confirmation" class="mb-2 block text-sm font-medium">
-                        Konfirmasi password baru
-                    </label>
-
-                    <input id="password_confirmation" type="password" wire:model="password_confirmation"
-                        autocomplete="new-password" required
-                        class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15">
+                    <label for="password_confirmation" class="ui-label">Konfirmasi password baru</label>
+                    <input id="password_confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi password baru">
                 </div>
-
-                <button type="submit" wire:loading.attr="disabled"
-                    class="w-full rounded-xl bg-[var(--accent-primary)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--accent-primary-hover)] disabled:opacity-60">
-                    <span wire:loading.remove wire:target="resetPassword">
-                        Simpan password baru
-                    </span>
-
-                    <span wire:loading wire:target="resetPassword">
-                        Memproses...
-                    </span>
+                <button type="submit" wire:loading.attr="disabled" class="ui-button ui-button-primary w-full">
+                    <span wire:loading.remove wire:target="resetPassword">Simpan password baru</span>
+                    <span wire:loading wire:target="resetPassword">Memperbarui...</span>
                 </button>
             </form>
         </div>
-    </div>
+    </section>
 </div>

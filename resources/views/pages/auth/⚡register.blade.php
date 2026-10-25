@@ -124,248 +124,122 @@ new class extends Component {
 };
 ?>
 
-<div class="min-h-screen bg-[var(--bg-canvas)] px-4 py-12 text-[var(--text-primary)] sm:px-6">
-    <div class="mx-auto w-full max-w-md">
-        <div class="mt-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm sm:p-8">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-primary)]">
-                Buat akun
-            </p>
+<div class="site-container grid max-w-6xl items-start gap-8 py-8 sm:py-12 lg:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)] lg:gap-14 lg:py-14">
+    <aside class="relative hidden min-h-[42rem] overflow-hidden rounded-[1.75rem] bg-[#E9F3EC] lg:flex lg:flex-col lg:justify-between lg:p-8 xl:p-10">
+        <div aria-hidden="true" class="absolute -right-16 -top-12 size-64 rounded-full border border-[#C8D9CA]"></div>
+        <div aria-hidden="true" class="absolute -right-8 top-8 size-44 rounded-full border-[24px] border-[#D6E6D8]"></div>
+        <div class="relative z-10">
+            <p class="editorial-eyebrow text-[#49634E]"><span class="size-2 rounded-full bg-[var(--accent-sage)]"></span> Adatempat / Mulai di sini</p>
+        </div>
+        <div class="relative z-10 max-w-md">
+            <p class="font-metadata text-[10px] uppercase tracking-[0.16em] text-[#49634E]">Satu akun, banyak kemungkinan</p>
+            <h2 class="mt-4 font-editorial text-5xl leading-[.98] tracking-[-0.035em] text-[#203E2A] xl:text-6xl">Ada tempat untuk rencana berikutnya.</h2>
+            <p class="mt-5 text-sm leading-7 text-[#49634E]">Bergabung sebagai pelanggan yang sedang mencari tempat, atau sebagai pemilik usaha yang ingin memperkenalkan venuenya.</p>
+        </div>
+        <div class="relative z-10 overflow-hidden rounded-2xl">
+            <img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy" decoding="async" class="h-48 w-full object-cover">
+        </div>
+    </aside>
 
-            <h1 class="mt-3 font-serif text-3xl tracking-tight">
-                Mulai dari sini.
-            </h1>
-
-            <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                Pilih jenis akun sesuai kebutuhan Anda.
-            </p>
+    <section class="mx-auto w-full max-w-2xl">
+        <div class="ui-surface p-6 sm:p-8 lg:p-9">
+            <p class="editorial-eyebrow text-[var(--accent-primary)]">Buat akun Adatempat</p>
+            <h1 class="mt-4 font-editorial text-4xl leading-tight tracking-[-0.035em] sm:text-5xl">Mulai dari sini.</h1>
+            <p class="mt-3 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">Pilih jenis akun yang paling sesuai dengan kebutuhanmu.</p>
 
             @error('legal')
-                <div role="alert"
-                    class="mt-6 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
+                <div role="alert" class="mt-5 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
                     {{ $message }}
                 </div>
             @enderror
 
-            <div class="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-[var(--bg-subtle)] p-1" aria-label="Jenis registrasi">
-                <button type="button" wire:click="selectRegistrationType('customer')"
-                    aria-pressed="{{ $registrationType === 'customer' ? 'true' : 'false' }}"
-                    class="rounded-lg px-3 py-3 text-sm transition {{ $registrationType === 'customer' ? 'bg-[var(--bg-surface)] font-semibold text-[var(--accent-primary)] shadow-sm' : 'text-[var(--text-secondary)]' }}">
-                    Pelanggan
+            <div class="mt-7 grid grid-cols-2 gap-2 rounded-2xl bg-[var(--bg-subtle)] p-1.5" aria-label="Jenis akun">
+                <button type="button" wire:click="selectRegistrationType('customer')" aria-pressed="{{ $registrationType === 'customer' ? 'true' : 'false' }}" class="rounded-xl px-3 py-3 text-sm font-semibold transition-colors {{ $registrationType === 'customer' ? 'bg-[var(--bg-surface)] text-[var(--accent-primary)] shadow-card' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' }}">
+                    Saya mencari tempat
                 </button>
-
-                <button type="button" wire:click="selectRegistrationType('owner')"
-                    aria-pressed="{{ $registrationType === 'owner' ? 'true' : 'false' }}"
-                    class="rounded-lg px-3 py-3 text-sm transition {{ $registrationType === 'owner' ? 'bg-[var(--bg-surface)] font-semibold text-[var(--accent-primary)] shadow-sm' : 'text-[var(--text-secondary)]' }}">
-                    Pemilik usaha
+                <button type="button" wire:click="selectRegistrationType('owner')" aria-pressed="{{ $registrationType === 'owner' ? 'true' : 'false' }}" class="rounded-xl px-3 py-3 text-sm font-semibold transition-colors {{ $registrationType === 'owner' ? 'bg-[var(--bg-surface)] text-[var(--accent-primary)] shadow-card' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' }}">
+                    Saya punya usaha
                 </button>
             </div>
 
             @if ($registrationType === 'customer')
-                <section class="mt-6">
-                    <h2 class="font-serif text-xl">
-                        Daftar sebagai pelanggan
-                    </h2>
+                <section class="mt-7">
+                    <h2 class="font-editorial text-2xl leading-tight sm:text-3xl">Buat akun pelanggan</h2>
+                    <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Jelajahi venue, simpan tempat favorit, dan lanjutkan proses pemesanan.</p>
 
-                    <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                        Buat akun untuk menyimpan favorit, menghubungi pemilik
-                        usaha, dan melakukan pemesanan venue.
-                    </p>
-
-                    <form wire:submit="registerCustomer" class="mt-6 space-y-5">
+                    <form wire:submit="registerCustomer" class="mt-6 space-y-4">
                         <div>
-                            <label for="customer-name" class="mb-2 block text-sm font-medium">
-                                Nama lengkap
-                            </label>
-
-                            <input id="customer-name" type="text" wire:model="name" autocomplete="name" required
-                                maxlength="255"
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Nama Anda">
-
-                            @error('name')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="customer-name" class="ui-label">Nama lengkap</label>
+                            <input id="customer-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkapmu">
+                            @error('name') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="customer-email" class="mb-2 block text-sm font-medium">
-                                Alamat email
-                            </label>
-
-                            <input id="customer-email" type="email" wire:model="email" autocomplete="email" required
-                                maxlength="255"
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="nama@email.com">
-
-                            @error('email')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="customer-email" class="ui-label">Alamat email</label>
+                            <input id="customer-email" type="email" wire:model="email" autocomplete="email" required maxlength="255" class="ui-input" placeholder="nama@email.com">
+                            @error('email') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="customer-password" class="mb-2 block text-sm font-medium">
-                                Password
-                            </label>
-
-                            <input id="customer-password" type="password" wire:model="password"
-                                autocomplete="new-password" required
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Buat password">
-
-                            @error('password')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="customer-password" class="ui-label">Password</label>
+                            <input id="customer-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat password">
+                            @error('password') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="customer-password-confirmation" class="mb-2 block text-sm font-medium">
-                                Konfirmasi password
-                            </label>
-
-                            <input id="customer-password-confirmation" type="password"
-                                wire:model="password_confirmation" autocomplete="new-password" required
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Ulangi password">
+                            <label for="customer-password-confirmation" class="ui-label">Konfirmasi password</label>
+                            <input id="customer-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi password">
                         </div>
-
-                        <div>
-                            <label class="flex items-start gap-3 text-sm leading-6 text-[var(--text-secondary)]">
-                                <input type="checkbox" wire:model="acceptedLegal" required
-                                    class="mt-1 h-4 w-4 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]">
-
-                                <span>
-                                    Saya telah membaca dan menyetujui Terms and
-                                    Conditions serta Kebijakan Privasi yang berlaku.
-                                </span>
-                            </label>
-
-                            @error('acceptedLegal')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <button type="submit" wire:loading.attr="disabled" wire:target="registerCustomer"
-                            class="w-full rounded-xl bg-[var(--accent-primary)] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60">
-                            <span wire:loading.remove wire:target="registerCustomer">
-                                Buat akun pelanggan
-                            </span>
-
-                            <span wire:loading wire:target="registerCustomer">
-                                Memproses...
-                            </span>
+                        <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--text-secondary)]">
+                            <input type="checkbox" wire:model="acceptedLegal" required class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]">
+                            <span>Saya menyetujui Terms and Conditions dan Privacy Policy Adatempat.</span>
+                        </label>
+                        @error('acceptedLegal') <p role="alert" class="text-sm text-[#B42318]">{{ $message }}</p> @enderror
+                        <button type="submit" wire:loading.attr="disabled" wire:target="registerCustomer" class="ui-button ui-button-primary w-full">
+                            <span wire:loading.remove wire:target="registerCustomer">Buat akun pelanggan</span>
+                            <span wire:loading wire:target="registerCustomer">Menyiapkan akun...</span>
                         </button>
                     </form>
                 </section>
             @else
-                <section class="mt-6">
-                    <h2 class="font-serif text-xl">
-                        Daftar sebagai pemilik usaha
-                    </h2>
+                <section class="mt-7">
+                    <h2 class="font-editorial text-2xl leading-tight sm:text-3xl">Daftarkan akun pemilik usaha</h2>
+                    <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Siapkan akun untuk memperkenalkan usaha dan mengelola venue-mu di Adatempat.</p>
 
-                    <p class="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                        Buat akun untuk mendaftarkan usaha dan mengelola venue.
-                        Email harus diverifikasi sebelum melanjutkan proses
-                        pengelolaan usaha.
-                    </p>
-
-                    <form wire:submit="registerOwner" class="mt-6 space-y-5">
+                    <form wire:submit="registerOwner" class="mt-6 space-y-4">
                         <div>
-                            <label for="owner-name" class="mb-2 block text-sm font-medium">
-                                Nama pemilik
-                            </label>
-
-                            <input id="owner-name" type="text" wire:model="name" autocomplete="name" required
-                                maxlength="255"
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Nama lengkap pemilik">
-
-                            @error('name')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="owner-name" class="ui-label">Nama pemilik</label>
+                            <input id="owner-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkapmu">
+                            @error('name') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="owner-email" class="mb-2 block text-sm font-medium">
-                                Email pemilik usaha
-                            </label>
-
-                            <input id="owner-email" type="email" wire:model="email" autocomplete="email" required
-                                maxlength="255"
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="nama@email.com">
-
-                            @error('email')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="owner-email" class="ui-label">Alamat email</label>
+                            <input id="owner-email" type="email" wire:model="email" autocomplete="email" required maxlength="255" class="ui-input" placeholder="nama@email.com">
+                            @error('email') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="owner-password" class="mb-2 block text-sm font-medium">
-                                Password
-                            </label>
-
-                            <input id="owner-password" type="password" wire:model="password"
-                                autocomplete="new-password" required
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Buat password">
-
-                            @error('password')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
+                            <label for="owner-password" class="ui-label">Password</label>
+                            <input id="owner-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat password">
+                            @error('password') <p role="alert" class="mt-2 text-sm text-[#B42318]">{{ $message }}</p> @enderror
                         </div>
-
                         <div>
-                            <label for="owner-password-confirmation" class="mb-2 block text-sm font-medium">
-                                Konfirmasi password
-                            </label>
-
-                            <input id="owner-password-confirmation" type="password"
-                                wire:model="password_confirmation" autocomplete="new-password" required
-                                class="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/15"
-                                placeholder="Ulangi password">
+                            <label for="owner-password-confirmation" class="ui-label">Konfirmasi password</label>
+                            <input id="owner-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi password">
                         </div>
-
-                        <div>
-                            <label class="flex items-start gap-3 text-sm leading-6 text-[var(--text-secondary)]">
-                                <input type="checkbox" wire:model="acceptedLegal" required
-                                    class="mt-1 h-4 w-4 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]">
-
-                                <span>
-                                    Saya telah membaca dan menyetujui Terms and
-                                    Conditions serta Kebijakan Privasi yang berlaku.
-                                </span>
-                            </label>
-
-                            @error('acceptedLegal')
-                                <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <button type="submit" wire:loading.attr="disabled" wire:target="registerOwner"
-                            class="w-full rounded-xl bg-[var(--accent-primary)] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60">
-                            <span wire:loading.remove wire:target="registerOwner">
-                                Daftar sebagai pemilik usaha
-                            </span>
-
-                            <span wire:loading wire:target="registerOwner">
-                                Memproses...
-                            </span>
+                        <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--text-secondary)]">
+                            <input type="checkbox" wire:model="acceptedLegal" required class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--accent-primary)]">
+                            <span>Saya menyetujui Terms and Conditions dan Privacy Policy Adatempat.</span>
+                        </label>
+                        @error('acceptedLegal') <p role="alert" class="text-sm text-[#B42318]">{{ $message }}</p> @enderror
+                        <button type="submit" wire:loading.attr="disabled" wire:target="registerOwner" class="ui-button ui-button-primary w-full">
+                            <span wire:loading.remove wire:target="registerOwner">Buat akun pemilik usaha</span>
+                            <span wire:loading wire:target="registerOwner">Menyiapkan akun...</span>
                         </button>
                     </form>
                 </section>
             @endif
 
-            <p class="mt-6 text-center text-sm text-[var(--text-secondary)]">
+            <p class="mt-7 border-t border-[var(--border-subtle)] pt-5 text-center text-sm leading-6 text-[var(--text-secondary)]">
                 Sudah punya akun?
-                <a href="{{ route('login') }}"
-                    class="font-semibold text-[var(--accent-primary)] underline-offset-4 hover:underline">
-                    Masuk
-                </a>
+                <a href="{{ route('login') }}" class="font-semibold text-[var(--accent-primary)] underline-offset-4 hover:underline">Masuk</a>
             </p>
         </div>
-
-        <p class="mt-6 text-center text-xs leading-5 text-[var(--text-muted)]">
-            Dengan mendaftar, Anda membuat akun Adatempat sesuai ketentuan yang berlaku.
-        </p>
-    </div>
+    </section>
 </div>
