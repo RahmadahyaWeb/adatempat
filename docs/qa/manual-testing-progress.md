@@ -35,6 +35,7 @@ Dokumen ini menyimpan hasil uji manual lokal sebelum pengembangan dilanjutkan. T
 - Pencarian dengan kata kunci yang tidak cocok (`VenueTidakAda123`) menampilkan keadaan tanpa hasil dan opsi untuk membersihkan pencarian.
 - Pencarian berdasarkan nama usaha `Studio Demo Pemilik Dua` menampilkan venue `Ruang Meeting Pemilik Dua`.
 - Pemeriksaan responsivitas halaman utama pada viewport 390 px lulus: layout rapi, kolom pencarian tidak terpotong, kartu venue sesuai lebar layar, dan tidak ada scroll horizontal yang tidak semestinya.
+- Pemeriksaan responsivitas khusus halaman Kelola Usaha pada viewport 390 px ditunda atas keputusan pengguna; UI dinilai aman untuk sementara dan audit UI lanjutan dilewati.
 
 ## Data uji yang sudah dibuat secara manual
 
