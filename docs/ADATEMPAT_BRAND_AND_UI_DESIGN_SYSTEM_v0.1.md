@@ -36,13 +36,11 @@ The visual identity must work across more than a marketing homepage. It must sup
 
 The core benefit is not inspiration alone. It is moving from “I need a place for this” to “I understand this option and know what to do next.”
 
-### Proposed brand promise
+### Confirmed brand tagline
 
-**Tempat yang pas untuk setiap rencana.**
+**TEMUKAN TEMPAT YANG TEPAT**
 
-Supporting message: find a place based on what matters—purpose, location, budget, capacity, facilities, and schedule—then continue into a clear booking process.
-
-The tagline is a working recommendation, not a locked marketing claim.
+This is the product owner's selected brand tagline and should lead the public-facing brand presentation. It communicates the marketplace's core value directly: helping people find a venue that fits their needs. Use supporting copy about specific needs, activities, categories, and locations rather than repeating the word “rencana” as a generic catch-all.
 
 ## 3. Design direction exploration
 
@@ -100,7 +98,7 @@ These refinements describe composition and color usage, not a final production H
 
 ### Tone of voice
 
-Use clear, natural Bahasa Indonesia. Keep copy friendly and direct, but avoid slang that may feel dated or undermine trust in a financial or booking flow. Use the same terms consistently within a flow.
+Use clear, natural Bahasa Indonesia. Keep copy friendly, relaxed, and direct, but avoid slang that may feel dated or undermine trust in a financial or booking flow. Use the same terms consistently within a flow. The tagline **“TEMUKAN TEMPAT YANG TEPAT”** is selected. Avoid using “rencana” as a generic stand-in in UI copy; prefer precise terms such as “kebutuhan”, “acara”, “aktivitas”, “pertemuan”, or “tempat” according to context.
 
 **Prefer**
 - “Cari tempat”
