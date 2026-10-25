@@ -1,7 +1,7 @@
 
 <?php
 
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -26,13 +26,28 @@ Route::livewire('/email/verify', 'pages::auth.verify-email')
     ->middleware(['auth', 'account.active'])
     ->name('verification.notice');
 
-Route::get('/email/verify/{id}/{hash}', function (
-    EmailVerificationRequest $request
+Route::get('/email/verify/{publicId}/{hash}', function (
+    Request $request,
+    string $publicId,
+    string $hash,
 ) {
-    $request->fulfill();
+    $user = $request->user();
+
+    abort_unless(
+        $user && is_string($user->public_id) && hash_equals($user->public_id, $publicId),
+        403,
+    );
+    abort_unless(hash_equals(sha1($user->getEmailForVerification()), $hash), 403);
+
+    if (! $user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+        event(new Verified($user));
+    }
 
     return redirect()->route('home');
-})->middleware([
+})->where('publicId', '[0-9A-HJKMNP-TV-Z]{26}')
+    ->where('hash', '[a-fA-F0-9]{40}')
+    ->middleware([
     'auth',
     'account.active',
     'signed',
@@ -146,20 +161,20 @@ Route::prefix('owner')
             ->name('businesses.index');
 
         Route::livewire('/businesses/{business}/venues', 'pages::owner.venues')
-            ->whereNumber('business')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.index');
 
         Route::livewire('/businesses/{business}/venues/create', 'pages::owner.venue-form')
-            ->whereNumber('business')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.create');
 
         Route::livewire('/businesses/{business}/venues/{venue}/edit', 'pages::owner.venue-form')
-            ->whereNumber('business')
-            ->whereNumber('venue')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.edit');
 
         Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
-            ->whereNumber('business')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.edit');
     });
 
