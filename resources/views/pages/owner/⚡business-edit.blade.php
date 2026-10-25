@@ -47,6 +47,16 @@ new #[Title('Profil usaha')] class extends Component {
             ->first();
     }
 
+    #[Computed]
+    public function latestRejectedRevision(): ?BusinessRevision
+    {
+        return $this->currentBusiness
+            ->revisions()
+            ->where('status', BusinessRevision::STATUS_REJECTED)
+            ->latest('created_at')
+            ->first();
+    }
+
     public function canEditIdentity(): bool
     {
         return in_array(
@@ -184,6 +194,7 @@ new #[Title('Profil usaha')] class extends Component {
         $canEdit = $this->canEditIdentity();
         $canSubmit = $canEdit || $this->canSubmitRevision();
         $pendingRevision = $this->pendingRevision;
+        $latestRejectedRevision = $this->latestRejectedRevision;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -228,6 +239,15 @@ new #[Title('Profil usaha')] class extends Component {
             @elseif ($business->status === 'rejected')
                 <div class="status-note mt-5">
                     Profil dapat diperbaiki. Menyimpan perubahan tidak mengubah status penolakan atau otomatis mengajukan ulang verifikasi.
+                </div>
+            @endif
+
+            @if (!$pendingRevision && $latestRejectedRevision)
+                <div class="status-note mt-5">
+                    <p class="font-bold">Revisi identitas sebelumnya ditolak</p>
+                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRejectedRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRejectedRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
+                    <p class="mt-2 text-xs leading-5">Data publik tetap menggunakan identitas yang disetujui. Perbaiki usulan lalu ajukan revisi baru.</p>
                 </div>
             @endif
 
