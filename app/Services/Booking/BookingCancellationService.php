@@ -9,13 +9,17 @@ use App\Models\Refund;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Payments\RefundService;
+use App\Services\Finance\LedgerService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class BookingCancellationService
 {
-    public function __construct(private readonly RefundService $refunds)
+    public function __construct(
+        private readonly RefundService $refunds,
+        private readonly LedgerService $ledger,
+    )
     {
     }
 
@@ -187,6 +191,33 @@ class BookingCancellationService
                     $reason,
                     'refund:booking:' . $lockedBooking->getKey() . ':owner_cancellation',
                 );
+            }
+
+            $remainingOwnerEntitlement = max(
+                0,
+                (int) $lockedBooking->snapshot_net_owner_entitlement
+                    - min($actualPaid, (int) $lockedBooking->snapshot_net_owner_entitlement),
+            );
+
+            if ($remainingOwnerEntitlement > 0) {
+                $this->ledger->postBalancedGroup([
+                    [
+                        'account_code' => 'owner_payable',
+                        'entry_type' => 'debit',
+                        'amount' => $remainingOwnerEntitlement,
+                        'reference_type' => 'booking',
+                        'reference_id' => $lockedBooking->getKey(),
+                        'description' => 'Remove remaining Owner payable after Owner cancellation and full customer refund obligation.',
+                    ],
+                    [
+                        'account_code' => 'escrow_liability',
+                        'entry_type' => 'credit',
+                        'amount' => $remainingOwnerEntitlement,
+                        'reference_type' => 'booking',
+                        'reference_id' => $lockedBooking->getKey(),
+                        'description' => 'Hold residual settlement balance pending separately approved accounting disposition.',
+                    ],
+                ]);
             }
 
             $lockedBooking->update([
