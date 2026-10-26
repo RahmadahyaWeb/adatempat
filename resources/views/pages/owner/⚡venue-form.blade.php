@@ -322,6 +322,9 @@ new #[Title('Data venue')] class extends Component {
             Gate::authorize('update', $venue);
         }
 
+        $this->customFields = array_values($this->customFields);
+        $this->customFieldValues = array_values($this->customFieldValues);
+
         $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
             [
