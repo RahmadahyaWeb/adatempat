@@ -6,8 +6,11 @@ use App\Contracts\Payments\PaymentGatewayContract;
 use App\Exceptions\Payments\PaymentGatewayException;
 use App\Models\AuditLog;
 use App\Models\Booking;
+use App\Models\Dispute;
 use App\Models\BookingHold;
 use App\Models\Payment;
+use App\Models\Payout;
+use App\Models\PayoutAccount;
 use App\Models\Refund;
 use App\Models\Venue;
 use Illuminate\Support\Facades\DB;
@@ -202,6 +205,57 @@ class RefundService
                     && $lockedBooking->slot_released_at === null
                 ) {
                     $lockedBooking->update(['slot_released_at' => now('UTC')]);
+                }
+
+                $dispute = Dispute::query()
+                    ->where('booking_id', $lockedBooking->getKey())
+                    ->where('status', Dispute::STATUS_RESOLVED_SPLIT)
+                    ->first();
+
+                if ($dispute) {
+                    $hasOpenRefunds = Refund::query()
+                        ->where('booking_id', $lockedBooking->getKey())
+                        ->whereIn('status', Refund::OPEN_STATUSES)
+                        ->exists();
+
+                    if (! $hasOpenRefunds) {
+                        $payout = Payout::query()
+                            ->where('booking_id', $lockedBooking->getKey())
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($payout && $payout->status === Payout::STATUS_ON_HOLD && $payout->net_amount > 0) {
+                            $account = PayoutAccount::query()
+                                ->where('owner_id', $payout->owner_id)
+                                ->where('verification_status', PayoutAccount::STATUS_VERIFIED)
+                                ->orderByDesc('verified_at')
+                                ->orderByDesc('id')
+                                ->first();
+
+                            $beforePayoutStatus = $payout->status;
+                            $payout->update([
+                                'payout_account_id' => $account?->getKey(),
+                                'status' => $account ? Payout::STATUS_ELIGIBLE : Payout::STATUS_HELD,
+                                'eligible_at' => now('UTC'),
+                            ]);
+
+                            AuditLog::query()->create([
+                                'actor_user_id' => null,
+                                'actor_role' => 'system',
+                                'action' => 'payout.released_after_dispute_refund',
+                                'auditable_type' => Payout::class,
+                                'auditable_id' => $payout->getKey(),
+                                'reason' => 'All refund obligations from the split dispute resolution are closed.',
+                                'before_state_json' => ['status' => $beforePayoutStatus],
+                                'after_state_json' => [
+                                    'status' => $payout->status,
+                                    'payout_account_id' => $payout->payout_account_id,
+                                ],
+                                'ip_hash' => null,
+                                'created_at' => now('UTC'),
+                            ]);
+                        }
+                    }
                 }
             }
 
