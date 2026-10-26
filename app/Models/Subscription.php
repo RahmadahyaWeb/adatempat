@@ -80,14 +80,14 @@ class Subscription extends Model
     {
         return $query
             ->where('starts_at', '<=', $at)
-            ->where(function (Builder $active): void {
-                $active->whereIn('status', [self::STATUS_TRIALING, self::STATUS_ACTIVE])
-                    ->where('ends_at', '>', now('UTC'));
-            })
-            ->orWhere(function (Builder $grace) use ($at): void {
-                $grace->where('status', self::STATUS_GRACE_PERIOD)
-                    ->where('starts_at', '<=', $at)
-                    ->where('grace_ends_at', '>=', $at);
+            ->where(function (Builder $eligible) use ($at): void {
+                $eligible->where(function (Builder $active) use ($at): void {
+                    $active->whereIn('status', [self::STATUS_TRIALING, self::STATUS_ACTIVE])
+                        ->where('ends_at', '>', $at);
+                })->orWhere(function (Builder $grace) use ($at): void {
+                    $grace->where('status', self::STATUS_GRACE_PERIOD)
+                        ->where('grace_ends_at', '>=', $at);
+                });
             });
     }
 
