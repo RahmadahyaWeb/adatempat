@@ -81,6 +81,11 @@ class Venue extends Model
         return $this->hasMany(OwnerCustomField::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function media(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VenueMedia::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query

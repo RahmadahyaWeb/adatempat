@@ -9,13 +9,16 @@ use App\Models\OwnerCustomField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Data venue')] class extends Component {
+    use WithFileUploads;
     public string $businessPublicId;
 
     public ?string $venuePublicId = null;
@@ -38,6 +41,14 @@ new #[Title('Data venue')] class extends Component {
 
     public array $customFieldValues = [];
 
+    public $mediaUpload = null;
+
+    public string $mediaAltText = '';
+
+    public bool $mediaIsCover = false;
+
+    public array $mediaAltTexts = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -53,7 +64,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -82,6 +93,9 @@ new #[Title('Data venue')] class extends Component {
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
             $this->loadCustomFieldsFromVenue($record);
+            foreach ($record->media as $media) {
+                $this->mediaAltTexts[$media->getKey()] = $media->alt_text;
+            }
         }
     }
 
@@ -103,7 +117,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -284,6 +298,199 @@ new #[Title('Data venue')] class extends Component {
 
         $this->customFieldValues[(int) $index] = $value === OwnerCustomField::TYPE_BOOLEAN ? false : '';
         $this->resetValidation("customFieldValues.{$index}");
+    }
+
+    public function uploadMedia(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+
+        if ($venue === null) {
+            $this->addError('mediaUpload', 'Simpan venue terlebih dahulu sebelum mengunggah foto.');
+
+            return;
+        }
+
+        Gate::authorize('update', $venue);
+
+        $validated = $this->validate([
+            'mediaUpload' => ['required', 'file', 'image', 'mimetypes:image/jpeg,image/png,image/webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'mediaAltText' => ['required', 'string', 'max:180'],
+            'mediaIsCover' => ['boolean'],
+        ], [
+            'mediaUpload.required' => 'Pilih foto yang akan diunggah.',
+            'mediaUpload.image' => 'File harus berupa gambar yang valid.',
+            'mediaUpload.mimetypes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
+            'mediaUpload.mimes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
+            'mediaUpload.max' => 'Ukuran foto maksimal 5 MB.',
+            'mediaAltText.required' => 'Deskripsi singkat foto wajib diisi.',
+            'mediaAltText.max' => 'Deskripsi singkat foto maksimal 180 karakter.',
+        ]);
+
+        $file = $validated['mediaUpload'];
+        $mimeType = $file->getMimeType();
+
+        if (! in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            $this->addError('mediaUpload', 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.');
+
+            return;
+        }
+
+        $disk = 'public';
+        $path = $file->storePublicly('venues/' . $venue->public_id, $disk);
+
+        if (! is_string($path) || $path === '') {
+            $this->addError('mediaUpload', 'Foto gagal disimpan. Silakan coba lagi.');
+
+            return;
+        }
+
+        $createdMediaId = null;
+
+        try {
+            DB::transaction(function () use ($venue, $file, $mimeType, $disk, $path, $validated, &$createdMediaId): void {
+                $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+                $isCover = (bool) $validated['mediaIsCover'] || ! $lockedVenue->media()->exists();
+
+                if ($isCover) {
+                    $lockedVenue->media()->update(['is_cover' => false]);
+                }
+
+                $sortOrder = ((int) $lockedVenue->media()->max('sort_order')) + 10;
+
+                $createdMedia = $lockedVenue->media()->create([
+                    'disk' => $disk,
+                    'file_path' => $path,
+                    'mime_type' => $mimeType,
+                    'file_size_bytes' => (int) $file->getSize(),
+                    'alt_text' => trim($validated['mediaAltText']),
+                    'is_cover' => $isCover,
+                    'sort_order' => $sortOrder,
+                ]);
+                $createdMediaId = $createdMedia->getKey();
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk($disk)->delete($path);
+
+            throw $exception;
+        }
+
+        $this->reset(['mediaUpload', 'mediaAltText', 'mediaIsCover']);
+        if ($createdMediaId !== null) {
+            $this->mediaAltTexts[$createdMediaId] = trim($validated['mediaAltText']);
+        }
+        unset($this->currentVenue);
+        session()->flash('status', 'Foto venue berhasil diunggah.');
+    }
+
+    public function updateMediaAltText(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $key = 'mediaAltTexts.' . $mediaId;
+        $this->validate([
+            $key => ['required', 'string', 'max:180'],
+        ], [
+            $key . '.required' => 'Deskripsi singkat foto wajib diisi.',
+            $key . '.max' => 'Deskripsi singkat foto maksimal 180 karakter.',
+        ]);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+        $media->update(['alt_text' => trim((string) $this->mediaAltTexts[$mediaId])]);
+
+        unset($this->currentVenue);
+        session()->flash('status', 'Deskripsi foto berhasil diperbarui.');
+    }
+
+    public function setMediaCover(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+
+        DB::transaction(function () use ($venue, $media): void {
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $lockedMedia = $lockedVenue->media()->whereKey($media->getKey())->firstOrFail();
+            $lockedVenue->media()->update(['is_cover' => false]);
+            $lockedMedia->update(['is_cover' => true]);
+        });
+
+        unset($this->currentVenue);
+        session()->flash('status', 'Foto sampul berhasil diperbarui.');
+    }
+
+    public function moveMedia(int $mediaId, string $direction): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+        abort_unless(in_array($direction, ['up', 'down'], true), 422);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        DB::transaction(function () use ($venue, $mediaId, $direction): void {
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $items = $lockedVenue->media()->orderBy('sort_order')->orderBy('id')->get()->all();
+            $ids = array_map(fn ($item) => (int) $item->getKey(), $items);
+            $index = array_search($mediaId, $ids, true);
+
+            if ($index === false) {
+                abort(404);
+            }
+
+            $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+
+            if (! isset($items[$targetIndex])) {
+                return;
+            }
+
+            $current = $items[$index];
+            $items[$index] = $items[$targetIndex];
+            $items[$targetIndex] = $current;
+
+            foreach ($items as $itemIndex => $item) {
+                $item->update(['sort_order' => ($itemIndex + 1) * 10]);
+            }
+        });
+
+        unset($this->currentVenue);
+    }
+
+    public function deleteMedia(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+        $disk = $media->disk;
+        $path = $media->file_path;
+        DB::transaction(function () use ($venue, $mediaId): void {
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $lockedMedia = $lockedVenue->media()->whereKey($mediaId)->firstOrFail();
+            $wasCover = $lockedMedia->is_cover;
+            $lockedMedia->delete();
+
+            if ($wasCover) {
+                $replacement = $lockedVenue->media()->orderBy('sort_order')->orderBy('id')->first();
+                $replacement?->update(['is_cover' => true]);
+            }
+        });
+
+        Storage::disk($disk)->delete($path);
+        unset($this->currentVenue, $this->mediaAltTexts[$mediaId]);
+        session()->flash('status', 'Foto venue berhasil dihapus.');
     }
 
     public function availableFacilities(): array
@@ -1021,6 +1228,81 @@ new #[Title('Data venue')] class extends Component {
                                 </article>
                             @endforeach
                         </div>
+                    @endif
+                </section>
+
+                <section aria-labelledby="venue-media-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-media-heading" class="text-base font-extrabold text-[var(--ink)]">Foto venue</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Unggah foto JPEG, PNG, atau WebP maksimal 5 MB per file. SVG tidak diperbolehkan. Tambahkan deskripsi foto untuk aksesibilitas.</p>
+                    </div>
+
+                    @if (!$isEditing)
+                        <p class="status-note mt-4">Simpan venue sebagai draft terlebih dahulu. Setelah venue memiliki ID, kamu dapat mengunggah dan mengatur foto.</p>
+                    @else
+                        <div class="mt-4 rounded-xl bg-[var(--surface-soft)] p-4">
+                            <div>
+                                <label for="media-upload" class="ui-label">Pilih foto</label>
+                                <input id="media-upload" type="file" wire:model="mediaUpload" accept="image/jpeg,image/png,image/webp" class="ui-input">
+                                @error('mediaUpload') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                <div wire:loading wire:target="mediaUpload" class="mt-2 text-xs font-semibold text-[var(--muted)]">Mengunggah file sementara...</div>
+                            </div>
+                            <div class="mt-3">
+                                <label for="media-alt-text" class="ui-label">Deskripsi singkat foto (alt text)</label>
+                                <input id="media-alt-text" type="text" wire:model="mediaAltText" maxlength="180" required class="ui-input" placeholder="Contoh: Tampak depan ruang acara dengan kursi tersusun">
+                                @error('mediaAltText') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <label class="mt-3 flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                <input type="checkbox" wire:model="mediaIsCover" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                <span>Jadikan foto sampul</span>
+                            </label>
+                            <button type="button" wire:click="uploadMedia" wire:loading.attr="disabled" class="btn btn-primary mt-4 w-full sm:w-auto">
+                                <span wire:loading.remove wire:target="uploadMedia">Unggah foto</span>
+                                <span wire:loading wire:target="uploadMedia">Menyimpan foto...</span>
+                            </button>
+                        </div>
+
+                        @if ($venue->media->isEmpty())
+                            <p class="mt-4 rounded-lg border border-dashed border-[var(--border-strong)] p-4 text-sm leading-6 text-[var(--muted)]">Belum ada foto venue. Foto pertama otomatis menjadi foto sampul.</p>
+                        @else
+                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                @foreach ($venue->media as $mediaItem)
+                                    <article wire:key="venue-media-{{ $mediaItem->id }}" class="min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                                        <div class="relative aspect-[4/3] bg-[var(--surface-soft)]">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($mediaItem->disk)->url($mediaItem->file_path) }}" alt="{{ $mediaItem->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
+                                            @if ($mediaItem->is_cover)
+                                                <span class="absolute left-3 top-3 rounded-md bg-[var(--brand-forest)] px-2.5 py-1 text-xs font-bold text-white">Foto sampul</span>
+                                            @endif
+                                        </div>
+                                        <div class="space-y-3 p-4">
+                                            <p class="text-xs text-[var(--muted)]">{{ strtoupper(str_replace('image/', '', $mediaItem->mime_type)) }} · {{ number_format($mediaItem->file_size_bytes / 1048576, 2) }} MB</p>
+                                            <div>
+                                                <label for="media-alt-{{ $mediaItem->id }}" class="ui-label">Deskripsi foto</label>
+                                                <input id="media-alt-{{ $mediaItem->id }}" type="text" wire:model="mediaAltTexts.{{ $mediaItem->id }}" maxlength="180" class="ui-input">
+                                                @error("mediaAltTexts.{$mediaItem->id}") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                                <button type="button" wire:click="updateMediaAltText({{ $mediaItem->id }})" class="btn btn-secondary mt-2 w-full sm:w-auto">Simpan deskripsi</button>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                @if (!$mediaItem->is_cover)
+                                                    <button type="button" wire:click="setMediaCover({{ $mediaItem->id }})" class="btn btn-secondary w-full">Jadikan sampul</button>
+                                                @else
+                                                    <span class="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--surface-soft)] px-3 text-center text-xs font-bold text-[var(--ink-soft)]">Sampul aktif</span>
+                                                @endif
+                                                <button type="button" wire:click="deleteMedia({{ $mediaItem->id }})" wire:confirm="Hapus foto ini dari venue?" class="btn btn-secondary w-full">Hapus foto</button>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                @if (!$loop->first)
+                                                    <button type="button" wire:click="moveMedia({{ $mediaItem->id }}, 'up')" class="btn btn-secondary min-h-9 flex-1 px-3 py-1.5">Geser ke kiri/atas</button>
+                                                @endif
+                                                @if (!$loop->last)
+                                                    <button type="button" wire:click="moveMedia({{ $mediaItem->id }}, 'down')" class="btn btn-secondary min-h-9 flex-1 px-3 py-1.5">Geser ke kanan/bawah</button>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        @endif
                     @endif
                 </section>
 

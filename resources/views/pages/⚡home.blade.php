@@ -36,7 +36,7 @@ new class extends Component {
 
         return Venue::query()
             ->published()
-            ->with(['business', 'category'])
+            ->with(['business', 'category', 'media'])
             ->when($keyword !== '', function (Builder $query) use ($keyword): void {
                 $query->where(function (Builder $searchQuery) use ($keyword): void {
                     $searchQuery
@@ -239,6 +239,10 @@ new class extends Component {
             <div class="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                 @forelse ($this->venues as $venue)
                     <article wire:key="venue-{{ $venue->id }}" class="venue-card">
+                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
+                        @if ($coverMedia)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="mb-4 aspect-[16/9] w-full rounded-xl object-cover">
+                        @endif
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
                             <span class="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Listing venue</span>

@@ -36,7 +36,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Alur pengajuan verifikasi usaha baru kini tersedia secara parsial: Owner melengkapi alamat, kota/provinsi, koordinat, dan minimal satu venue Draft lalu mengajukan verifikasi; Super Admin dapat menyetujui atau menolak dengan alasan wajib, dan tindakan dicatat ke `audit_logs`.
 - Status verifikasi dan status publikasi dipisahkan secara eksplisit. Persetujuan memberi status terverifikasi, tetapi `published_at` tetap null sampai siklus langganan serta alur publikasi venue memenuhi persyaratan PRD.
 - Fondasi template kategori dan field dinamis venue telah di-merge melalui PR #22: template awal untuk kategori Acara, Meeting, Foto, dan Outdoor, validasi server berdasarkan tipe, penyimpanan nilai bertipe, kapasitas/fasilitas, dan tampilan nilai pada profil publik. Test baru belum dijalankan.
-- UI Super Admin untuk template/field tersedia melalui PR #23. Custom field Owner sedang dikerjakan pada PR #24; pengujian tambahan belum dijalankan.
+- UI Super Admin untuk template/field tersedia melalui PR #23. Custom field Owner di-merge melalui PR #24; media venue sedang diintegrasikan dari PR #25. Pengujian tambahan belum dijalankan.
 - UI Super Admin untuk mengelola template/field dan custom field Owner belum tersedia.
 - Media/foto, harga, jam operasional, availability, blok waktu, dan promosi belum tersedia di formulir pengelolaan.
 - Pencarian tingkat lanjut menurut rentang harga, kapasitas, fasilitas, tanggal/jam, jarak, dan rating belum lengkap.

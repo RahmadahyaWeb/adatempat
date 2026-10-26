@@ -24,7 +24,7 @@ new #[Title('Profil usaha')] class extends Component {
             ->with([
                 'venues' => function ($query): void {
                     $query->published()
-                        ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField'])
+                        ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'media'])
                         ->orderBy('name');
                 },
             ])
@@ -81,12 +81,19 @@ new #[Title('Profil usaha')] class extends Component {
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($business->venues as $venue)
                     <article wire:key="public-venue-{{ $venue->id }}" class="min-w-0 overflow-hidden rounded-2xl bg-white">
-                        <div class="flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-[var(--surface-soft)] px-5 text-center">
-                            <span class="flex size-11 items-center justify-center rounded-xl bg-white text-[var(--brand-forest)]">
-                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>
-                            </span>
-                            <p class="text-xs font-semibold text-[var(--muted)]">Foto venue belum tersedia</p>
-                        </div>
+                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
+                        @if ($coverMedia)
+                            <div class="aspect-[4/3] overflow-hidden bg-[var(--surface-soft)]">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
+                            </div>
+                        @else
+                            <div class="flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-[var(--surface-soft)] px-5 text-center">
+                                <span class="flex size-11 items-center justify-center rounded-xl bg-white text-[var(--brand-forest)]">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>
+                                </span>
+                                <p class="text-xs font-semibold text-[var(--muted)]">Foto venue belum tersedia</p>
+                            </div>
+                        @endif
                         <div class="p-4 sm:p-5">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
                             <h3 class="mt-3 break-words text-lg font-extrabold leading-tight tracking-[-0.04em]">{{ $venue->name }}</h3>
