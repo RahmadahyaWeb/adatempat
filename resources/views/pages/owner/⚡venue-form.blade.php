@@ -1670,6 +1670,60 @@ new #[Title('Data venue')] class extends Component {
                     @error('availabilityRules') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
                 </section>
 
+                <section aria-labelledby="venue-blocks-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-blocks-heading" class="text-base font-extrabold text-[var(--ink)]">Blokir jadwal</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Tutup venue untuk perbaikan, acara internal, atau alasan operasional lain. Waktu yang dimasukkan mengikuti zona waktu usaha ({{ $business->timezone ?: 'Asia/Jakarta' }}). Blokir ini akan digunakan oleh availability engine pada tahap booking.</p>
+                    </div>
+
+                    @if (!$isEditing)
+                        <p class="status-note mt-4">Simpan venue sebagai draft terlebih dahulu sebelum menambahkan blokir jadwal.</p>
+                    @else
+                        <div class="mt-4 rounded-xl bg-[var(--surface-soft)] p-4">
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label for="block-starts-at" class="ui-label">Mulai blokir</label>
+                                    <input id="block-starts-at" type="datetime-local" wire:model="blockStartsAt" required class="ui-input">
+                                    @error('blockStartsAt') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="block-ends-at" class="ui-label">Selesai blokir</label>
+                                    <input id="block-ends-at" type="datetime-local" wire:model="blockEndsAt" required class="ui-input">
+                                    @error('blockEndsAt') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label for="block-reason" class="ui-label">Alasan blokir</label>
+                                    <input id="block-reason" type="text" wire:model="blockReason" maxlength="255" required class="ui-input" placeholder="Contoh: Perawatan AC dan pengecatan ruangan">
+                                    @error('blockReason') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                            <button type="button" wire:click="createVenueBlock" wire:loading.attr="disabled" class="btn btn-secondary mt-4 w-full sm:w-auto">
+                                <span wire:loading.remove wire:target="createVenueBlock">Tambah blokir jadwal</span>
+                                <span wire:loading wire:target="createVenueBlock">Menyimpan blokir...</span>
+                            </button>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            @forelse ($venue->blocks as $venueBlock)
+                                @php
+                                    $blockStartLocal = $venueBlock->starts_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
+                                    $blockEndLocal = $venueBlock->ends_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
+                                @endphp
+                                <article wire:key="venue-block-{{ $venueBlock->id }}" class="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-extrabold text-[var(--ink)]">{{ $venueBlock->reason }}</p>
+                                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">{{ $blockStartLocal->format('d/m/Y H:i') }} – {{ $blockEndLocal->format('d/m/Y H:i') }}</p>
+                                        <p class="mt-1 text-xs text-[var(--muted)]">{{ $business->timezone ?: 'Asia/Jakarta' }}</p>
+                                    </div>
+                                    <button type="button" wire:click="deleteVenueBlock({{ $venueBlock->id }})" wire:confirm="Hapus blokir jadwal ini?" class="btn btn-secondary w-full shrink-0 sm:w-auto">Hapus blokir</button>
+                                </article>
+                            @empty
+                                <p class="rounded-lg border border-dashed border-[var(--border-strong)] p-4 text-sm leading-6 text-[var(--muted)]">Belum ada blokir jadwal untuk venue ini.</p>
+                            @endforelse
+                        </div>
+                    @endif
+                </section>
+
                 <section aria-labelledby="venue-pricing-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
                     <div>
                         <h3 id="venue-pricing-heading" class="text-base font-extrabold text-[var(--ink)]">Harga venue</h3>
