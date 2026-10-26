@@ -41,6 +41,12 @@ new #[Title('Data venue')] class extends Component {
 
     public array $customFieldValues = [];
 
+    public array $availabilityRules = [];
+
+    public string $pricingUnit = '';
+
+    public array $priceRows = [];
+
     public $mediaUpload = null;
 
     public string $mediaAltText = '';
@@ -61,10 +67,12 @@ new #[Title('Data venue')] class extends Component {
         abort_unless($businessRecord->status !== Business::STATUS_SUSPENDED, 403);
 
         $this->businessPublicId = (string) $businessRecord->public_id;
+        $this->availabilityRules = $this->defaultAvailabilityRules();
+        $this->priceRows = [];
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -93,6 +101,31 @@ new #[Title('Data venue')] class extends Component {
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
             $this->loadCustomFieldsFromVenue($record);
+
+            foreach ($record->availabilityRules as $rule) {
+                $this->availabilityRules[(int) $rule->day_of_week] = [
+                    'day_of_week' => (int) $rule->day_of_week,
+                    'is_open' => (bool) $rule->is_open,
+                    'open_time' => substr((string) $rule->open_time, 0, 5),
+                    'close_time' => substr((string) $rule->close_time, 0, 5),
+                    'buffer_minutes' => (string) $rule->buffer_minutes,
+                ];
+            }
+            ksort($this->availabilityRules);
+
+            $activePrices = $record->prices->where('is_active', true)->sortBy('id')->values();
+            $this->pricingUnit = (string) ($activePrices->first()?->pricing_unit ?? '');
+            $this->priceRows = $activePrices->map(fn ($price) => [
+                'id' => $price->getKey(),
+                'session_name' => (string) ($price->session_name ?? ''),
+                'session_start_time' => $price->session_start_time !== null ? substr((string) $price->session_start_time, 0, 5) : '09:00',
+                'session_end_time' => $price->session_end_time !== null ? substr((string) $price->session_end_time, 0, 5) : '17:00',
+                'step_interval_minutes' => (string) $price->step_interval_minutes,
+                'min_duration_units' => (string) $price->min_duration_units,
+                'max_duration_units' => (string) $price->max_duration_units,
+                'price_amount' => (string) $price->price_amount,
+                'weekend_price_amount' => $price->weekend_price_amount !== null ? (string) $price->weekend_price_amount : '',
+            ])->all();
             foreach ($record->media as $media) {
                 $this->mediaAltTexts[$media->getKey()] = $media->alt_text;
             }
@@ -491,6 +524,95 @@ new #[Title('Data venue')] class extends Component {
         Storage::disk($disk)->delete($path);
         unset($this->currentVenue, $this->mediaAltTexts[$mediaId]);
         session()->flash('status', 'Foto venue berhasil dihapus.');
+    }
+
+    private function defaultAvailabilityRules(): array
+    {
+        $rules = [];
+
+        for ($day = 0; $day <= 6; $day++) {
+            $rules[$day] = [
+                'day_of_week' => $day,
+                'is_open' => false,
+                'open_time' => '09:00',
+                'close_time' => '17:00',
+                'buffer_minutes' => '0',
+            ];
+        }
+
+        return $rules;
+    }
+
+    private function blankPriceRow(): array
+    {
+        return [
+            'id' => null,
+            'session_name' => '',
+            'session_start_time' => '09:00',
+            'session_end_time' => '17:00',
+            'step_interval_minutes' => '60',
+            'min_duration_units' => '1',
+            'max_duration_units' => '24',
+            'price_amount' => '',
+            'weekend_price_amount' => '',
+        ];
+    }
+
+    public function updatedPricingUnit(): void
+    {
+        $this->resetValidation(['pricingUnit', 'priceRows']);
+
+        if ($this->pricingUnit === '') {
+            $this->priceRows = [];
+
+            return;
+        }
+
+        if ($this->pricingUnit === VenuePrice::UNIT_SESSION) {
+            if ($this->priceRows === [] || trim((string) ($this->priceRows[0]['session_name'] ?? '')) === '') {
+                $this->priceRows = [$this->blankPriceRow()];
+            }
+
+            return;
+        }
+
+        $this->priceRows = [$this->blankPriceRow()];
+    }
+
+    public function addSessionPrice(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if ($this->pricingUnit !== VenuePrice::UNIT_SESSION) {
+            return;
+        }
+
+        if (count($this->priceRows) >= 50) {
+            $this->addError('priceRows', 'Maksimal 50 sesi harga per venue.');
+
+            return;
+        }
+
+        $this->priceRows[] = $this->blankPriceRow();
+    }
+
+    public function removePriceRow(int $index): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if ($this->pricingUnit !== VenuePrice::UNIT_SESSION || ! array_key_exists($index, $this->priceRows)) {
+            return;
+        }
+
+        if (count($this->priceRows) <= 1) {
+            $this->addError('priceRows', 'Model harga sesi harus memiliki setidaknya satu sesi.');
+
+            return;
+        }
+
+        unset($this->priceRows[$index]);
+        $this->priceRows = array_values($this->priceRows);
+        $this->resetValidation('priceRows');
     }
 
     public function availableFacilities(): array
