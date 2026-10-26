@@ -206,6 +206,10 @@ class PayoutService
 
         $this->promoteHeldPayouts(max(1, min($limit, 500)));
 
+        $result['eligible'] = Payout::query()->where('status', Payout::STATUS_ELIGIBLE)->count();
+        $result['held'] = Payout::query()->where('status', Payout::STATUS_HELD)->count();
+        $result['cancelled'] = Payout::query()->where('status', Payout::STATUS_CANCELLED)->count();
+
         return $result;
     }
 
