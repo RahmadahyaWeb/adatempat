@@ -1543,6 +1543,144 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </section>
 
+                <section aria-labelledby="venue-hours-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-hours-heading" class="text-base font-extrabold text-[var(--ink)]">Jam operasional mingguan</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Atur jam buka per hari. Jam menggunakan zona waktu usaha ({{ $business->timezone ?? 'Asia/Jakarta' }}). Jam tutup lebih awal daripada jam buka berarti operasional berakhir keesokan hari; jam buka dan tutup tidak boleh sama.</p>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
+                        @foreach ($availabilityRules as $day => $rule)
+                            <article wire:key="availability-day-{{ $day }}" class="rounded-lg border border-[var(--border)] p-3 sm:p-4">
+                                <label class="flex cursor-pointer items-center gap-3">
+                                    <input type="checkbox" wire:model="availabilityRules.{{ $day }}.is_open" class="size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                    <span class="font-bold text-sm text-[var(--ink)]">{{ $dayLabels[$day] }}</span>
+                                    <span class="ml-auto text-xs font-semibold {{ $rule['is_open'] ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ $rule['is_open'] ? 'Buka' : 'Tutup' }}</span>
+                                </label>
+                                @if ($rule['is_open'])
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <label for="hours-open-{{ $day }}" class="ui-label">Jam buka</label>
+                                            <input id="hours-open-{{ $day }}" type="time" wire:model="availabilityRules.{{ $day }}.open_time" required class="ui-input">
+                                            @error("availabilityRules.{$day}.open_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="hours-close-{{ $day }}" class="ui-label">Jam tutup</label>
+                                            <input id="hours-close-{{ $day }}" type="time" wire:model="availabilityRules.{{ $day }}.close_time" required class="ui-input">
+                                            @error("availabilityRules.{$day}.close_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="hours-buffer-{{ $day }}" class="ui-label">Jeda persiapan (menit)</label>
+                                            <input id="hours-buffer-{{ $day }}" type="number" min="0" max="1440" step="1" wire:model="availabilityRules.{{ $day }}.buffer_minutes" required class="ui-input">
+                                            @error("availabilityRules.{$day}.buffer_minutes") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Venue tidak menerima jadwal baru pada hari ini.</p>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                    @error('availabilityRules') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
+                </section>
+
+                <section aria-labelledby="venue-pricing-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-pricing-heading" class="text-base font-extrabold text-[var(--ink)]">Harga venue</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Pilih satu model harga aktif. Harga disimpan dalam Rupiah penuh. Mengubah konfigurasi tidak mengubah snapshot harga booking yang sudah dibuat.</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="pricing-unit" class="ui-label">Model harga</label>
+                        <select id="pricing-unit" wire:model.live="pricingUnit" class="ui-input">
+                            <option value="">Belum diatur</option>
+                            <option value="hourly">Per jam</option>
+                            <option value="session">Per sesi tetap</option>
+                            <option value="daily">Per hari</option>
+                        </select>
+                        @error('pricingUnit') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if ($pricingUnit === '')
+                        <p class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted)]">Harga belum diatur. Venue tetap dapat disimpan sebagai draft, tetapi alur booking belum dapat menggunakan harga sampai konfigurasi tersedia.</p>
+                    @elseif ($pricingUnit === 'session')
+                        <div class="mt-4 space-y-4">
+                            @foreach ($priceRows as $index => $priceRow)
+                                <article wire:key="venue-price-session-{{ $index }}" class="rounded-lg border border-[var(--border)] p-4">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <h4 class="text-sm font-extrabold text-[var(--ink)]">Sesi {{ $index + 1 }}</h4>
+                                        @if (count($priceRows) > 1)
+                                            <button type="button" wire:click="removePriceRow({{ $index }})" class="btn btn-secondary min-h-9 px-3 py-1.5">Hapus sesi</button>
+                                        @endif
+                                    </div>
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label for="price-session-name-{{ $index }}" class="ui-label">Nama sesi</label>
+                                            <input id="price-session-name-{{ $index }}" type="text" wire:model="priceRows.{{ $index }}.session_name" maxlength="80" required class="ui-input" placeholder="Contoh: Sesi pagi">
+                                            @error("priceRows.{$index}.session_name") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-amount-{{ $index }}" class="ui-label">Harga sesi (Rp)</label>
+                                            <input id="price-session-amount-{{ $index }}" type="number" min="0" step="1" wire:model="priceRows.{{ $index }}.price_amount" required class="ui-input" placeholder="Contoh: 500000">
+                                            @error("priceRows.{$index}.price_amount") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-start-{{ $index }}" class="ui-label">Jam mulai</label>
+                                            <input id="price-session-start-{{ $index }}" type="time" wire:model="priceRows.{{ $index }}.session_start_time" required class="ui-input">
+                                            @error("priceRows.{$index}.session_start_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-end-{{ $index }}" class="ui-label">Jam selesai</label>
+                                            <input id="price-session-end-{{ $index }}" type="time" wire:model="priceRows.{{ $index }}.session_end_time" required class="ui-input">
+                                            @error("priceRows.{$index}.session_end_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label for="price-session-weekend-{{ $index }}" class="ui-label">Harga akhir pekan (Rp, opsional)</label>
+                                            <input id="price-session-weekend-{{ $index }}" type="number" min="0" step="1" wire:model="priceRows.{{ $index }}.weekend_price_amount" class="ui-input" placeholder="Kosongkan jika sama dengan harga dasar">
+                                            @error("priceRows.{$index}.weekend_price_amount") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                            @error('priceRows') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            <button type="button" wire:click="addSessionPrice" class="btn btn-secondary w-full sm:w-auto">Tambah sesi</button>
+                        </div>
+                    @else
+                        @php($priceRow = $priceRows[0] ?? $this->blankPriceRow())
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label for="price-amount" class="ui-label">{{ $pricingUnit === 'hourly' ? 'Harga per jam (Rp)' : 'Harga per hari (Rp)' }}</label>
+                                <input id="price-amount" type="number" min="0" step="1" wire:model="priceRows.0.price_amount" required class="ui-input" placeholder="Contoh: 250000">
+                                @error('priceRows.0.price_amount') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="price-weekend-amount" class="ui-label">Harga akhir pekan (Rp, opsional)</label>
+                                <input id="price-weekend-amount" type="number" min="0" step="1" wire:model="priceRows.0.weekend_price_amount" class="ui-input" placeholder="Kosongkan jika sama dengan harga dasar">
+                                @error('priceRows.0.weekend_price_amount') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            @if ($pricingUnit === 'hourly')
+                                <div>
+                                    <label for="price-step-interval" class="ui-label">Interval pemesanan (menit)</label>
+                                    <input id="price-step-interval" type="number" min="1" max="1440" step="1" wire:model="priceRows.0.step_interval_minutes" required class="ui-input">
+                                    @error('priceRows.0.step_interval_minutes') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            <div>
+                                <label for="price-min-duration" class="ui-label">Durasi minimum ({{ $pricingUnit === 'hourly' ? 'unit interval' : 'hari' }})</label>
+                                <input id="price-min-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.min_duration_units" required class="ui-input">
+                                @error('priceRows.0.min_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="price-max-duration" class="ui-label">Durasi maksimum ({{ $pricingUnit === 'hourly' ? 'unit interval' : 'hari' }})</label>
+                                <input id="price-max-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.max_duration_units" required class="ui-input">
+                                @error('priceRows.0.max_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            @error('priceRows') <p role="alert" class="ui-error sm:col-span-2">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+                </section>
+
                 <section aria-labelledby="venue-media-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
                     <div>
                         <h3 id="venue-media-heading" class="text-base font-extrabold text-[var(--ink)]">Foto venue</h3>
