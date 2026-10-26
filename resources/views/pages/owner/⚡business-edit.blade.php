@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Business;
+use App\Models\AuditLog;
 use App\Models\BusinessRevision;
+use App\Models\Venue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -16,6 +18,14 @@ new #[Title('Profil usaha')] class extends Component {
 
     public string $address = '';
 
+    public string $city = '';
+
+    public string $province = '';
+
+    public string $latitude = '';
+
+    public string $longitude = '';
+
     public function mount(string $business): void
     {
         $record = auth()->user()
@@ -28,6 +38,10 @@ new #[Title('Profil usaha')] class extends Component {
         $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
         $this->address = (string) ($record->address ?? '');
+        $this->city = (string) ($record->city ?? '');
+        $this->province = (string) ($record->province ?? '');
+        $this->latitude = (string) ($record->latitude ?? '');
+        $this->longitude = (string) ($record->longitude ?? '');
     }
 
     #[Computed]
@@ -35,7 +49,10 @@ new #[Title('Profil usaha')] class extends Component {
     {
         return auth()->user()
             ->businesses()
-            ->withCount('venues')
+            ->withCount([
+                'venues',
+                'venues as draft_venues_count' => fn ($query) => $query->where('status', Venue::STATUS_DRAFT),
+            ])
             ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
     }
@@ -75,6 +92,115 @@ new #[Title('Profil usaha')] class extends Component {
             && $this->pendingRevision === null;
     }
 
+    public function canSubmitVerification(): bool
+    {
+        return in_array($this->currentBusiness->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true);
+    }
+
+    public function submitForVerification(): void
+    {
+        $owner = auth()->user();
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $business = $owner->businesses()
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
+
+        Gate::authorize('update', $business);
+        abort_unless(in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true), 403);
+
+        $validated = $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:2000'],
+            'city' => ['required', 'string', 'max:100'],
+            'province' => ['required', 'string', 'max:100'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ], [
+            'name.required' => 'Nama usaha wajib diisi sebelum mengajukan verifikasi.',
+            'address.required' => 'Alamat lengkap wajib diisi sebelum mengajukan verifikasi.',
+            'city.required' => 'Kota atau kabupaten wajib diisi.',
+            'province.required' => 'Provinsi wajib diisi.',
+            'latitude.required' => 'Koordinat lintang wajib diisi.',
+            'latitude.between' => 'Koordinat lintang harus berada di antara -90 dan 90.',
+            'longitude.required' => 'Koordinat bujur wajib diisi.',
+            'longitude.between' => 'Koordinat bujur harus berada di antara -180 dan 180.',
+        ]);
+
+        $submitted = DB::transaction(function () use ($owner, $validated): bool {
+            $lockedBusiness = $owner->businesses()
+                ->where('public_id', $this->businessPublicId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(in_array($lockedBusiness->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true), 403);
+
+            if (! $lockedBusiness->venues()->where('status', Venue::STATUS_DRAFT)->exists()) {
+                return false;
+            }
+
+            $beforeState = [
+                'status' => $lockedBusiness->status,
+                'name' => $lockedBusiness->name,
+                'address' => $lockedBusiness->address,
+                'city' => $lockedBusiness->city,
+                'province' => $lockedBusiness->province,
+                'latitude' => $lockedBusiness->latitude,
+                'longitude' => $lockedBusiness->longitude,
+            ];
+
+            $lockedBusiness->fill([
+                'status' => Business::STATUS_PENDING_VERIFICATION,
+                'name' => trim($validated['name']),
+                'address' => trim($validated['address']),
+                'city' => trim($validated['city']),
+                'province' => trim($validated['province']),
+                'latitude' => (float) $validated['latitude'],
+                'longitude' => (float) $validated['longitude'],
+                'rejection_reason' => null,
+                'verification_submitted_at' => now(),
+                'verification_reviewed_at' => null,
+                'verification_reviewed_by' => null,
+                'verified_at' => null,
+                'verified_by' => null,
+                'published_at' => null,
+            ])->save();
+
+            AuditLog::create([
+                'actor_user_id' => $owner->getKey(),
+                'actor_role' => $owner->role,
+                'action' => 'business_verification.submitted',
+                'auditable_type' => Business::class,
+                'auditable_id' => $lockedBusiness->getKey(),
+                'reason' => null,
+                'before_state_json' => $beforeState,
+                'after_state_json' => [
+                    'status' => $lockedBusiness->status,
+                    'name' => $lockedBusiness->name,
+                    'address' => $lockedBusiness->address,
+                    'city' => $lockedBusiness->city,
+                    'province' => $lockedBusiness->province,
+                    'latitude' => $lockedBusiness->latitude,
+                    'longitude' => $lockedBusiness->longitude,
+                    'verification_submitted_at' => $lockedBusiness->verification_submitted_at?->toISOString(),
+                ],
+                'ip_hash' => hash_hmac('sha256', (string) request()->ip(), (string) config('app.key')),
+                'created_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        if (! $submitted) {
+            $this->addError('verification', 'Tambahkan setidaknya satu venue berstatus Draft sebelum mengajukan verifikasi.');
+            return;
+        }
+
+        $this->resetValidation();
+        unset($this->currentBusiness, $this->pendingRevision, $this->latestRevision);
+        session()->flash('status', 'Usaha berhasil diajukan untuk verifikasi. Profil belum akan tampil ke publik sampai persyaratan publikasi terpenuhi.');
+    }
+
     public function save(): void
     {
         $owner = auth()->user();
@@ -100,16 +226,28 @@ new #[Title('Profil usaha')] class extends Component {
             [
                 'name' => ['required', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:2000'],
+                'city' => ['nullable', 'string', 'max:100'],
+                'province' => ['nullable', 'string', 'max:100'],
+                'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+                'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             ],
             [
                 'name.required' => 'Nama usaha wajib diisi.',
                 'name.max' => 'Nama usaha maksimal 255 karakter.',
                 'address.max' => 'Alamat maksimal 2.000 karakter.',
+                'city.max' => 'Kota/kabupaten maksimal 100 karakter.',
+                'province.max' => 'Provinsi maksimal 100 karakter.',
+                'latitude.between' => 'Koordinat lintang harus berada di antara -90 dan 90.',
+                'longitude.between' => 'Koordinat bujur harus berada di antara -180 dan 180.',
             ],
         );
 
         $businessName = trim($validated['name']);
         $businessAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+        $businessCity = trim((string) ($validated['city'] ?? '')) ?: null;
+        $businessProvince = trim((string) ($validated['province'] ?? '')) ?: null;
+        $businessLatitude = trim((string) ($validated['latitude'] ?? '')) !== '' ? (float) $validated['latitude'] : null;
+        $businessLongitude = trim((string) ($validated['longitude'] ?? '')) !== '' ? (float) $validated['longitude'] : null;
 
         if ($business->status === Business::STATUS_ACTIVE) {
             $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress): ?BusinessRevision {
@@ -129,6 +267,10 @@ new #[Title('Profil usaha')] class extends Component {
                 if (
                     $businessName === $lockedBusiness->name
                     && $businessAddress === ($lockedBusiness->address ?: null)
+                    && $businessCity === ($lockedBusiness->city ?: null)
+                    && $businessProvince === ($lockedBusiness->province ?: null)
+                    && $businessLatitude === ($lockedBusiness->latitude !== null ? (float) $lockedBusiness->latitude : null)
+                    && $businessLongitude === ($lockedBusiness->longitude !== null ? (float) $lockedBusiness->longitude : null)
                 ) {
                     session()->flash('status', 'Tidak ada perubahan identitas untuk diajukan.');
 
@@ -139,8 +281,10 @@ new #[Title('Profil usaha')] class extends Component {
                     'submitted_by' => $owner->getKey(),
                     'proposed_name' => $businessName,
                     'proposed_address' => $businessAddress,
-                    'proposed_latitude' => $lockedBusiness->latitude,
-                    'proposed_longitude' => $lockedBusiness->longitude,
+                    'proposed_city' => $businessCity,
+                    'proposed_province' => $businessProvince,
+                    'proposed_latitude' => $businessLatitude,
+                    'proposed_longitude' => $businessLongitude,
                 ]);
             });
 
@@ -174,6 +318,10 @@ new #[Title('Profil usaha')] class extends Component {
             'name' => $businessName,
             'slug' => $slug,
             'address' => $businessAddress,
+            'city' => $businessCity,
+            'province' => $businessProvince,
+            'latitude' => $businessLatitude,
+            'longitude' => $businessLongitude,
         ])->save();
 
         $this->resetValidation();
