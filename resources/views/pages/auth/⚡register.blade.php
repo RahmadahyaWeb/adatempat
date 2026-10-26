@@ -123,125 +123,126 @@ new class extends Component {
     }
 };
 ?>
-<div class="site-container py-7 sm:py-10 lg:py-14">
-    <div class="mx-auto grid max-w-6xl items-start gap-8 lg:grid-cols-[minmax(0,0.75fr)_minmax(28rem,1fr)] lg:items-center lg:gap-14">
-        <aside class="hidden max-w-lg lg:block">
-            <p class="eyebrow"><span class="eyebrow-dot"></span> Temukan tempat yang tepat</p>
-            <h2 class="mt-5 text-3xl font-extrabold leading-tight tracking-[-0.055em] xl:text-4xl">Satu akun untuk mencari tempat atau memperkenalkan usahamu.</h2>
-            <p class="mt-4 max-w-md text-base leading-7 text-[var(--ink-soft)]">Pilih cara menggunakan Adatempat. Kamu bisa mulai sebagai pelanggan atau mendaftarkan diri sebagai pemilik usaha.</p>
-            <span aria-hidden="true" class="mt-7 block h-1 w-16 rounded-full bg-[var(--brand-lime)]"></span>
-        </aside>
+<div class="site-container py-8 sm:py-12 lg:py-16">
+    <section class="auth-shell auth-shell-wide">
+        <div class="mb-5 text-center sm:mb-6">
+            <p class="auth-page-kicker">Temukan tempat yang tepat</p>
+            <h1 class="auth-page-title">Buat akun Adatempat</h1>
+            <p class="auth-page-description mx-auto max-w-xl">Pilih tujuan penggunaan akunmu. Setelah itu, lengkapi data untuk memulai.</p>
+        </div>
 
-        <section class="mx-auto w-full max-w-2xl">
-            <div class="mb-5 lg:hidden">
-                <p class="eyebrow"><span class="eyebrow-dot"></span> Adatempat</p>
-                <p class="mt-1 text-sm font-semibold tracking-wide text-[var(--muted)]">TEMUKAN TEMPAT YANG TEPAT</p>
-            </div>
+        <div class="auth-card">
+            @error('legal')
+                <div role="alert" class="status-note mb-5">{{ $message }}</div>
+            @enderror
 
-            <div class="ui-panel p-5 sm:p-7 lg:p-8">
-                <p class="eyebrow"><span class="eyebrow-dot"></span> Buat akun</p>
-                <h1 class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.045em] sm:text-3xl">Buat akun Adatempat</h1>
-                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Pilih tujuan akunmu. Formulir akan disesuaikan dengan pilihan tersebut.</p>
-
-                @error('legal')
-                    <div role="alert" class="status-note mt-5">{{ $message }}</div>
-                @enderror
-
-                <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label="Tujuan penggunaan akun">
-                    <button type="button" wire:click="selectRegistrationType('customer')" aria-pressed="{{ $registrationType === 'customer' ? 'true' : 'false' }}" class="min-w-0 rounded-xl border p-4 text-left transition-colors focus-visible:outline-offset-2 {{ $registrationType === 'customer' ? 'border-[var(--brand-forest)] bg-[var(--surface-soft)] ring-2 ring-[var(--brand-forest)]/15' : 'border-[var(--border)] bg-white hover:border-[var(--border-strong)]' }}">
-                        <span class="flex size-10 items-center justify-center rounded-lg {{ $registrationType === 'customer' ? 'bg-[var(--brand-lime)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]' }}">
+            <fieldset class="min-w-0">
+                <legend class="mb-3 text-sm font-extrabold text-[var(--ink)]">Saya ingin...</legend>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label="Tujuan penggunaan akun">
+                    <button type="button" wire:click="selectRegistrationType('customer')" aria-pressed="{{ $registrationType === 'customer' ? 'true' : 'false' }}" class="auth-role-option">
+                        <span class="flex size-10 items-center justify-center rounded-xl {{ $registrationType === 'customer' ? 'bg-[var(--brand-lime)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]' }}">
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-5"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.5-3.6 2.8-5.5 7-5.5s6.5 1.9 7 5.5"/></svg>
                         </span>
-                        <span class="mt-3 block text-sm font-extrabold">Saya mencari tempat</span>
-                        <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Temukan pilihan sesuai kebutuhan, kategori, dan lokasi.</span>
+                        <span class="mt-3 block text-sm font-extrabold text-[var(--ink)]">Mencari tempat</span>
+                        <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Jelajahi pilihan untuk acara, pertemuan, produksi, dan kebutuhan lainnya.</span>
                     </button>
 
-                    <button type="button" wire:click="selectRegistrationType('owner')" aria-pressed="{{ $registrationType === 'owner' ? 'true' : 'false' }}" class="min-w-0 rounded-xl border p-4 text-left transition-colors focus-visible:outline-offset-2 {{ $registrationType === 'owner' ? 'border-[var(--brand-forest)] bg-[var(--surface-soft)] ring-2 ring-[var(--brand-forest)]/15' : 'border-[var(--border)] bg-white hover:border-[var(--border-strong)]' }}">
-                        <span class="flex size-10 items-center justify-center rounded-lg {{ $registrationType === 'owner' ? 'bg-[var(--brand-lime)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]' }}">
+                    <button type="button" wire:click="selectRegistrationType('owner')" aria-pressed="{{ $registrationType === 'owner' ? 'true' : 'false' }}" class="auth-role-option">
+                        <span class="flex size-10 items-center justify-center rounded-xl {{ $registrationType === 'owner' ? 'bg-[var(--brand-lime)] text-[var(--ink)]' : 'bg-[var(--surface-soft)] text-[var(--ink-soft)]' }}">
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-3h4v3"/></svg>
                         </span>
-                        <span class="mt-3 block text-sm font-extrabold">Saya mengelola usaha</span>
-                        <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Siapkan profil usaha dan kelola informasi tempatmu.</span>
+                        <span class="mt-3 block text-sm font-extrabold text-[var(--ink)]">Mengelola usaha</span>
+                        <span class="mt-1 block text-xs leading-5 text-[var(--muted)]">Perkenalkan tempatmu dan kelola informasi usaha di Adatempat.</span>
                     </button>
                 </div>
+            </fieldset>
 
-                @if ($registrationType === 'customer')
-                    <section class="mt-6 border-t border-[var(--border)] pt-6">
-                        <h2 class="text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Data akun pelanggan</h2>
-                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Isi data berikut untuk membuat akun.</p>
-                        <form wire:submit="registerCustomer" class="mt-5 space-y-4">
-                            <div>
-                                <label for="customer-name" class="ui-label">Nama lengkap</label>
-                                <input id="customer-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkap" aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
-                                @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="customer-email" class="ui-label">Alamat email</label>
-                                <input id="customer-email" type="email" wire:model="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required maxlength="255" class="ui-input" placeholder="nama@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
-                                @error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="customer-password" class="ui-label">Kata sandi</label>
-                                <input id="customer-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
-                                @error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="customer-password-confirmation" class="ui-label">Konfirmasi kata sandi</label>
-                                <input id="customer-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi">
-                            </div>
-                            <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--ink-soft)]">
-                                <input type="checkbox" wire:model="acceptedLegal" required class="mt-1 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
-                                <span>Saya menyetujui Syarat dan Ketentuan serta Kebijakan Privasi Adatempat.</span>
-                            </label>
-                            @error('acceptedLegal') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            <button type="submit" wire:loading.attr="disabled" wire:target="registerCustomer" class="btn btn-primary w-full">
-                                <span wire:loading.remove wire:target="registerCustomer">Buat akun pelanggan</span>
-                                <span wire:loading wire:target="registerCustomer">Menyiapkan akun...</span>
-                            </button>
-                        </form>
-                    </section>
-                @else
-                    <section class="mt-6 border-t border-[var(--border)] pt-6">
-                        <h2 class="text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Data akun pemilik usaha</h2>
-                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Gunakan alamat email aktif untuk menyelesaikan verifikasi akun.</p>
-                        <form wire:submit="registerOwner" class="mt-5 space-y-4">
-                            <div>
-                                <label for="owner-name" class="ui-label">Nama pemilik</label>
-                                <input id="owner-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkap" aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
-                                @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="owner-email" class="ui-label">Alamat email</label>
-                                <input id="owner-email" type="email" wire:model="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required maxlength="255" class="ui-input" placeholder="nama@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
-                                @error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="owner-password" class="ui-label">Kata sandi</label>
-                                <input id="owner-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
-                                @error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label for="owner-password-confirmation" class="ui-label">Konfirmasi kata sandi</label>
-                                <input id="owner-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi">
-                            </div>
-                            <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--ink-soft)]">
-                                <input type="checkbox" wire:model="acceptedLegal" required class="mt-1 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
-                                <span>Saya menyetujui Syarat dan Ketentuan serta Kebijakan Privasi Adatempat.</span>
-                            </label>
-                            @error('acceptedLegal') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                            <button type="submit" wire:loading.attr="disabled" wire:target="registerOwner" class="btn btn-primary w-full">
-                                <span wire:loading.remove wire:target="registerOwner">Buat akun pemilik usaha</span>
-                                <span wire:loading wire:target="registerOwner">Menyiapkan akun...</span>
-                            </button>
-                        </form>
-                    </section>
-                @endif
+            @if ($registrationType === 'customer')
+                <section class="mt-6 border-t border-[var(--border)] pt-6">
+                    <h2 class="text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Data akun pelanggan</h2>
+                    <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Gunakan email aktif agar kamu dapat menyelesaikan verifikasi akun.</p>
+                    <form wire:submit="registerCustomer" class="mt-5 space-y-4">
+                        <div>
+                            <label for="customer-name" class="ui-label">Nama lengkap</label>
+                            <input id="customer-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkap" aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
+                            @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
 
-                <p class="mt-6 border-t border-[var(--border)] pt-5 text-center text-sm leading-6 text-[var(--ink-soft)]">
-                    Sudah punya akun?
-                    <a href="{{ route('login') }}" class="font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">Masuk</a>
-                </p>
-            </div>
-        </section>
-    </div>
+                        <div>
+                            <label for="customer-email" class="ui-label">Alamat email</label>
+                            <input id="customer-email" type="email" wire:model="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required maxlength="255" class="ui-input" placeholder="nama@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
+                            @error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="customer-password" class="ui-label">Kata sandi</label>
+                            <input id="customer-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
+                            @error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="customer-password-confirmation" class="ui-label">Konfirmasi kata sandi</label>
+                            <input id="customer-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi">
+                        </div>
+
+                        <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--ink-soft)]">
+                            <input type="checkbox" wire:model="acceptedLegal" required class="mt-1 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                            <span>Saya menyetujui Syarat dan Ketentuan serta Kebijakan Privasi Adatempat.</span>
+                        </label>
+                        @error('acceptedLegal') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+
+                        <button type="submit" wire:loading.attr="disabled" wire:target="registerCustomer" class="btn btn-primary w-full">
+                            <span wire:loading.remove wire:target="registerCustomer">Buat akun pelanggan</span>
+                            <span wire:loading wire:target="registerCustomer">Menyiapkan akun...</span>
+                        </button>
+                    </form>
+                </section>
+            @else
+                <section class="mt-6 border-t border-[var(--border)] pt-6">
+                    <h2 class="text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Data akun pemilik usaha</h2>
+                    <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Setelah akun dibuat, verifikasi email diperlukan sebelum mengelola usaha.</p>
+                    <form wire:submit="registerOwner" class="mt-5 space-y-4">
+                        <div>
+                            <label for="owner-name" class="ui-label">Nama pemilik</label>
+                            <input id="owner-name" type="text" wire:model="name" autocomplete="name" required maxlength="255" class="ui-input" placeholder="Nama lengkap" aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
+                            @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="owner-email" class="ui-label">Alamat email</label>
+                            <input id="owner-email" type="email" wire:model="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required maxlength="255" class="ui-input" placeholder="nama@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
+                            @error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="owner-password" class="ui-label">Kata sandi</label>
+                            <input id="owner-password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
+                            @error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label for="owner-password-confirmation" class="ui-label">Konfirmasi kata sandi</label>
+                            <input id="owner-password-confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi">
+                        </div>
+
+                        <label class="flex cursor-pointer items-start gap-3 text-xs leading-5 text-[var(--ink-soft)]">
+                            <input type="checkbox" wire:model="acceptedLegal" required class="mt-1 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                            <span>Saya menyetujui Syarat dan Ketentuan serta Kebijakan Privasi Adatempat.</span>
+                        </label>
+                        @error('acceptedLegal') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+
+                        <button type="submit" wire:loading.attr="disabled" wire:target="registerOwner" class="btn btn-primary w-full">
+                            <span wire:loading.remove wire:target="registerOwner">Buat akun pemilik usaha</span>
+                            <span wire:loading wire:target="registerOwner">Menyiapkan akun...</span>
+                        </button>
+                    </form>
+                </section>
+            @endif
+
+            <p class="mt-6 border-t border-[var(--border)] pt-5 text-center text-sm leading-6 text-[var(--ink-soft)]">
+                Sudah punya akun?
+                <a href="{{ route('login') }}" class="font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">Masuk</a>
+            </p>
+        </div>
+    </section>
 </div>
