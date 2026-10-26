@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Contracts\Payments\PaymentGatewayContract;
 use App\Models\Business;
 use App\Models\Venue;
 use App\Policies\BusinessPolicy;
 use App\Policies\VenuePolicy;
+use App\Services\Payments\Gateways\MockPaymentGateway;
+use RuntimeException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -16,7 +19,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PaymentGatewayContract::class, function (): PaymentGatewayContract {
+            $driver = (string) config('services.payment_gateway.driver', 'mock');
+
+            if ($driver === 'mock' && ! app()->environment('production')) {
+                return new MockPaymentGateway();
+            }
+
+            throw new RuntimeException('No safe payment gateway adapter is configured for driver [' . $driver . '].');
+        });
     }
 
     /**
