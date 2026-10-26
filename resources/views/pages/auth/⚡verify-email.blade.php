@@ -31,7 +31,7 @@ new class extends Component {
 
         $user->sendEmailVerificationNotification();
 
-        session()->flash('status', 'Tautan verifikasi baru telah dikirim ke email Anda.');
+        session()->flash('status', 'Tautan verifikasi baru sudah dikirim ke emailmu.');
     }
 };
 ?>
