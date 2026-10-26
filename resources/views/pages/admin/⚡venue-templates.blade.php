@@ -395,7 +395,17 @@ new #[Title('Template venue')] class extends Component {
         $actor = $this->requireSuperAdmin();
         $template = VenueTemplate::query()->with('fields')->whereKey($templateId)->firstOrFail();
 
-        abort_if($template->venues()->exists(), 422, 'Template yang sudah dipakai venue tidak dapat dihapus. Nonaktifkan atau buat versi baru.');
+        if ($template->is_active) {
+            $this->addError('templateDelete', 'Nonaktifkan template aktif dengan membuat versi baru sebelum menghapusnya.');
+
+            return;
+        }
+
+        if ($template->venues()->exists()) {
+            $this->addError('templateDelete', 'Template yang sudah dipakai venue tidak dapat dihapus. Buat versi baru untuk mengubah definisinya.');
+
+            return;
+        }
 
         DB::transaction(function () use ($actor, $template): void {
             $before = [
@@ -444,6 +454,9 @@ new #[Title('Template venue')] class extends Component {
     @if (session('status'))
         <div role="status" class="status-note status-success mt-6">{{ session('status') }}</div>
     @endif
+    @error('templateDelete')
+        <div role="alert" class="status-note mt-4">{{ $message }}</div>
+    @enderror
 
     @if ($showForm)
         <section aria-labelledby="template-form-heading" class="mt-7 rounded-2xl bg-white p-5 sm:p-7">
