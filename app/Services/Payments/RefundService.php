@@ -13,6 +13,7 @@ use App\Models\Payout;
 use App\Models\PayoutAccount;
 use App\Models\Refund;
 use App\Models\Venue;
+use App\Services\Finance\LedgerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +21,10 @@ use Throwable;
 
 class RefundService
 {
-    public function __construct(private readonly PaymentGatewayContract $gateway)
+    public function __construct(
+        private readonly PaymentGatewayContract $gateway,
+        private readonly LedgerService $ledger,
+    )
     {
     }
 
@@ -79,7 +83,7 @@ class RefundService
             ]);
         }
 
-        return Refund::query()->create([
+        $refund = Refund::query()->create([
             'reference_code' => 'RFD-' . now('UTC')->format('Ymd') . '-' . Str::upper(Str::random(8)),
             'booking_id' => $booking->getKey(),
             'ad_booking_id' => null,
@@ -95,6 +99,45 @@ class RefundService
             'processed_by' => $processedBy,
             'succeeded_at' => null,
         ]);
+
+        $ownerFunding = min($amount, max(0, (int) $booking->snapshot_net_owner_entitlement));
+        $platformFunding = $amount - $ownerFunding;
+        $entries = [];
+
+        if ($ownerFunding > 0) {
+            $entries[] = [
+                'account_code' => 'owner_payable',
+                'entry_type' => 'debit',
+                'amount' => $ownerFunding,
+                'reference_type' => 'refund',
+                'reference_id' => $refund->getKey(),
+                'description' => 'Reclassify Owner payable to a customer refund obligation.',
+            ];
+        }
+
+        if ($platformFunding > 0) {
+            $entries[] = [
+                'account_code' => 'platform_subsidy_expense',
+                'entry_type' => 'debit',
+                'amount' => $platformFunding,
+                'reference_type' => 'refund',
+                'reference_id' => $refund->getKey(),
+                'description' => 'Platform funds the refund amount that exceeds net Owner entitlement so gateway fees never reduce customer refund.',
+            ];
+        }
+
+        $entries[] = [
+            'account_code' => 'refund_payable',
+            'entry_type' => 'credit',
+            'amount' => $amount,
+            'reference_type' => 'refund',
+            'reference_id' => $refund->getKey(),
+            'description' => 'Recognize the approved customer refund obligation.',
+        ];
+
+        $this->ledger->postBalancedGroup($entries);
+
+        return $refund;
     }
 
     /**
