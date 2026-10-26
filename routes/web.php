@@ -103,6 +103,9 @@ Route::prefix('admin')
         Route::livewire('/business-revisions', 'pages::admin.business-revisions')
             ->name('business-revisions.index');
 
+        Route::livewire('/venue-templates', 'pages::admin.venue-templates')
+            ->name('venue-templates.index');
+
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
          * di dalam grup ini saat fitur tersebut dibuat.
