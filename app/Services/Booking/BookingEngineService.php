@@ -72,7 +72,7 @@ class BookingEngineService
         }
 
         try {
-            return DB::transaction(function () use (
+            $result = DB::transaction(function () use (
                 $customer,
                 $venue,
                 $startsAtUtc,
@@ -227,6 +227,14 @@ class BookingEngineService
 
             throw $exception;
         }
+
+        if (! $result['idempotent_replay'] && $result['payment'] instanceof Payment) {
+            $result['payment'] = $this->payments->initializeBookingPayment($result['payment']);
+            $result['booking']->refresh();
+            $result['hold']->refresh();
+        }
+
+        return $result;
     }
 
     private function replayOrReject(
