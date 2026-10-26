@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Business;
 use App\Models\Category;
-use App\Models\TemplateField;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueFieldValue;
@@ -170,7 +169,7 @@ class VenueTemplateDynamicFieldsTest extends TestCase
     {
         return $owner->businesses()->create([
             'name' => 'Studio Dinamis Uji',
-            'slug' => 'studio-dinamis-' . strtolower($status) . '-' . str()->random(8),
+            'slug' => 'studio-dinamis-' . strtolower($status),
             'address' => 'Jalan Contoh Nomor 10',
             'status' => $status,
             'published_at' => null,
