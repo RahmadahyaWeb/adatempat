@@ -5,6 +5,7 @@ use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
+use App\Models\OwnerCustomField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,10 @@ new #[Title('Data venue')] class extends Component {
 
     public array $templateValues = [];
 
+    public array $ownerCustomFields = [];
+
+    public array $ownerCustomValues = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -48,7 +53,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields.values'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -76,6 +81,7 @@ new #[Title('Data venue')] class extends Component {
 
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
+            $this->loadCustomFieldsFromVenue($record);
         }
     }
 
@@ -204,6 +210,108 @@ new #[Title('Data venue')] class extends Component {
                 default => (string) ($fieldValue->value_text ?? ''),
             };
         }
+    }
+
+    private function loadCustomFieldsFromVenue(Venue $venue): void
+    {
+        foreach ($venue->ownerCustomFields->where('moderation_status', OwnerCustomField::STATUS_ACTIVE)->sortBy('sort_order')->values() as $field) {
+            $value = $field->values->first();
+
+            $this->ownerCustomFields[] = [
+                'id' => (string) $field->getKey(),
+                'field_key' => $field->field_key,
+                'label' => $field->label,
+                'input_type' => $field->input_type,
+                'options_text' => implode("\n", $field->options_json ?? []),
+                'sort_order' => $field->sort_order,
+                'has_values' => $field->values->isNotEmpty(),
+            ];
+
+            $this->ownerCustomValues[$field->field_key] = match ($field->input_type) {
+                OwnerCustomField::TYPE_BOOLEAN => (bool) ($value?->value_boolean ?? false),
+                OwnerCustomField::TYPE_NUMBER => $value?->value_number !== null ? (string) $value->value_number : '',
+                default => (string) ($value?->value_text ?? ''),
+            };
+        }
+    }
+
+    private function blankOwnerCustomField(int $sortOrder): array
+    {
+        return [
+            'id' => '',
+            'field_key' => '',
+            'label' => '',
+            'input_type' => OwnerCustomField::TYPE_TEXT,
+            'options_text' => '',
+            'sort_order' => $sortOrder,
+            'has_values' => false,
+        ];
+    }
+
+    public function addOwnerCustomField(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $this->ownerCustomFields[] = $this->blankOwnerCustomField((count($this->ownerCustomFields) + 1) * 10);
+    }
+
+    public function removeOwnerCustomField(int $index): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $field = $this->ownerCustomFields[$index] ?? null;
+
+        if (! is_array($field)) {
+            return;
+        }
+
+        $fieldId = trim((string) ($field['id'] ?? ''));
+
+        if ($fieldId !== '') {
+            $venue = $this->currentVenue;
+
+            abort_unless($venue !== null, 404);
+
+            $record = $venue->ownerCustomFields()
+                ->whereKey((int) $fieldId)
+                ->where('moderation_status', OwnerCustomField::STATUS_ACTIVE)
+                ->firstOrFail();
+
+            if ($record->values()->exists()) {
+                $this->addError('ownerCustomFields', 'Field ini sudah memiliki data venue dan tidak dapat dihapus. Ubah label atau opsinya, atau biarkan field tetap tersedia.');
+
+                return;
+            }
+        }
+
+        unset($this->ownerCustomFields[$index]);
+
+        $this->ownerCustomFields = array_values($this->ownerCustomFields);
+        $this->resetValidation('ownerCustomFields');
+    }
+
+    public function updatedOwnerCustomFields(mixed $value, ?string $key = null): void
+    {
+        if ($key === null) {
+            return;
+        }
+
+        $parts = explode('.', $key);
+
+        if (count($parts) < 2 || $parts[1] !== 'input_type') {
+            return;
+        }
+
+        $field = $this->ownerCustomFields[(int) $parts[0]] ?? null;
+
+        if (! is_array($field) || ! isset($field['field_key'])) {
+            return;
+        }
+
+        $this->ownerCustomValues[$field['field_key']] = match ($field['input_type']) {
+            OwnerCustomField::TYPE_BOOLEAN => false,
+            default => '',
+        };
     }
 
     public function availableFacilities(): array
