@@ -64,6 +64,18 @@ new #[Title('Data venue')] class extends Component {
             $this->venueTemplateId = (string) ($record->venue_template_id ?? '');
             $this->capacityPersons = (string) ($record->capacity_persons ?? '');
             $this->facilities = array_values($record->facilities_json ?? []);
+
+            if ($this->venueTemplateId === '') {
+                $defaultTemplateId = VenueTemplate::query()
+                    ->where('category_id', $record->category_id)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->value('id');
+
+                $this->venueTemplateId = $defaultTemplateId !== null ? (string) $defaultTemplateId : '';
+            }
+
+            $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
         }
     }
@@ -86,7 +98,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with('category')
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -489,6 +501,9 @@ new #[Title('Data venue')] class extends Component {
         $business = $this->currentBusiness;
         $venue = $this->currentVenue;
         $categories = $this->categories;
+        $templates = $this->templates;
+        $selectedTemplate = $templates->firstWhere('id', ctype_digit($this->venueTemplateId) ? (int) $this->venueTemplateId : 0);
+        $facilityOptions = $this->availableFacilities();
         $isEditing = $venue !== null;
         $statusMeta = [
             'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
