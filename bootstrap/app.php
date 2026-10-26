@@ -3,6 +3,7 @@
 
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureAdminMfaIsVerified;
+use App\Http\Middleware\EnsureOwnerMfaIsVerified;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureUserHasRole::class,
             'account.active' => EnsureAccountIsActive::class,
             'admin.mfa' => EnsureAdminMfaIsVerified::class,
+            'owner.mfa' => EnsureOwnerMfaIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
