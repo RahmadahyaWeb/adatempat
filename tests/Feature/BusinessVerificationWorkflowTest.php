@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\Business;
+use App\Models\BusinessRevision;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Venue;
@@ -158,6 +159,41 @@ class BusinessVerificationWorkflowTest extends TestCase
             ->assertSee('Usaha perlu diperbaiki')
             ->assertSee('Titik lokasi tidak sesuai dengan alamat.')
             ->assertSee('Ajukan verifikasi');
+    }
+
+    public function test_identity_revision_approval_applies_city_province_and_coordinates_without_changing_slug(): void
+    {
+        $owner = $this->createUser(User::ROLE_OWNER);
+        $admin = $this->createUser(User::ROLE_SUPER_ADMIN);
+        $business = $this->createBusiness($owner, Business::STATUS_ACTIVE);
+        $business->forceFill(['published_at' => now()])->save();
+        $originalSlug = $business->slug;
+
+        $revision = $business->revisions()->create([
+            'submitted_by' => $owner->getKey(),
+            'proposed_name' => 'Studio Nama Baru',
+            'proposed_address' => 'Jalan Baru Nomor 15',
+            'proposed_city' => 'Martapura',
+            'proposed_province' => 'Kalimantan Selatan',
+            'proposed_latitude' => -3.4100,
+            'proposed_longitude' => 114.8500,
+            'status' => BusinessRevision::STATUS_PENDING,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test('pages::admin.business-revisions')
+            ->assertSee('Studio Uji Verifikasi')
+            ->call('approve', $revision->public_id)
+            ->assertHasNoErrors();
+
+        $business->refresh();
+
+        $this->assertSame('Studio Nama Baru', $business->name);
+        $this->assertSame('Martapura', $business->city);
+        $this->assertSame('Kalimantan Selatan', $business->province);
+        $this->assertSame($originalSlug, $business->slug);
+        $this->assertEquals(-3.4100, (float) $business->latitude);
+        $this->assertEquals(114.8500, (float) $business->longitude);
     }
 
     private function createUser(string $role): User
