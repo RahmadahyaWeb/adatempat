@@ -57,6 +57,40 @@ class SubscriptionBillingServiceTest extends TestCase
         ]);
     }
 
+    public function test_upgrade_prorates_remaining_days_without_changing_subscription_end_date_before_payment(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $starter = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $business = SubscriptionPlan::query()->where('slug', 'business')->firstOrFail();
+        $startsAt = now('UTC')->subDays(15)->startOfMinute();
+        $endsAt = now('UTC')->addDays(15)->startOfMinute();
+        $subscription = Subscription::query()->create([
+            'owner_id' => $owner->getKey(),
+            'plan_id' => $starter->getKey(),
+            'is_trial' => false,
+            'status' => Subscription::STATUS_ACTIVE,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'grace_ends_at' => $endsAt->copy()->addHours(24),
+        ]);
+
+        $result = app(SubscriptionBillingService::class)->checkoutPlan(
+            $owner,
+            $business,
+            'subscription-upgrade-prorata-001',
+        );
+
+        $this->assertSame(Invoice::TYPE_SUBSCRIPTION_UPGRADE, $result['invoice']->invoice_type);
+        $this->assertSame(150000, (int) $result['invoice']->total_amount);
+        $this->assertSame(Subscription::STATUS_ACTIVE, $subscription->fresh()->status);
+        $this->assertSame($endsAt->timestamp, $subscription->fresh()->ends_at->timestamp);
+        $this->assertSame($starter->getKey(), $subscription->fresh()->plan_id);
+    }
+
     public function test_verified_paid_webhook_activates_subscription_and_pays_invoice(): void
     {
         $owner = User::factory()->create([
