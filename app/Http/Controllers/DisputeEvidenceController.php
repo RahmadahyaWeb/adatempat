@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\DisputeEvidence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DisputeEvidenceController
 {
@@ -20,6 +19,21 @@ class DisputeEvidenceController
         $isAdmin = $user->isSuperAdmin();
 
         abort_unless($isParticipant || $isAdmin, 404);
+
+        if ($isAdmin) {
+            $verifiedUserId = $request->session()->get('admin_mfa_verified_user_id');
+            $verifiedAt = $request->session()->get('admin_mfa_verified_at');
+            $now = now()->timestamp;
+
+            abort_unless(
+                is_scalar($verifiedUserId)
+                && (string) $verifiedUserId === (string) $user->getKey()
+                && is_numeric($verifiedAt)
+                && (int) $verifiedAt <= $now
+                && (int) $verifiedAt >= $now - 600,
+                403,
+            );
+        }
         abort_unless(Storage::disk('local')->exists($evidence->file_path), 404);
 
         return Storage::disk('local')->download(
