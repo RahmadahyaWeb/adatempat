@@ -1,6 +1,7 @@
 
 <?php
 
+use App\Http\Controllers\DisputeEvidenceController;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
