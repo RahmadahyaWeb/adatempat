@@ -89,7 +89,7 @@ new #[Title('Kelola usaha')] class extends Component {
     @php
         $businesses = $this->businesses;
         $draftCount = $businesses->where('status', 'draft')->count();
-        $activeCount = $businesses->where('status', 'active')->count();
+        $publishedCount = $businesses->filter(fn (Business $business) => $business->status === Business::STATUS_ACTIVE && $business->published_at !== null)->count();
         $venueCount = $businesses->sum('venues_count');
     @endphp
 
@@ -121,8 +121,8 @@ new #[Title('Kelola usaha')] class extends Component {
             <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $businesses->count() }}</p>
         </div>
         <div>
-            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Usaha aktif</p>
-            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $activeCount }}</p>
+            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Tayang di publik</p>
+            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $publishedCount }}</p>
         </div>
         <div class="col-span-2 sm:col-span-1">
             <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Total venue</p>
@@ -195,7 +195,9 @@ new #[Title('Kelola usaha')] class extends Component {
                         $statusMeta = match ($business->status) {
                             \App\Models\Business::STATUS_DRAFT => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
                             \App\Models\Business::STATUS_PENDING_VERIFICATION => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
-                            \App\Models\Business::STATUS_ACTIVE => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
+                            \App\Models\Business::STATUS_ACTIVE => $business->published_at
+                                ? ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]']
+                                : ['Terverifikasi · Belum tayang', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
                             \App\Models\Business::STATUS_SUSPENDED => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
                             \App\Models\Business::STATUS_REJECTED => ['Perlu perbaikan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
                             default => ['Status belum dikenali', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
@@ -204,8 +206,8 @@ new #[Title('Kelola usaha')] class extends Component {
                             \App\Models\Business::STATUS_DRAFT => 'Lengkapi profil dasar terlebih dahulu. Usaha draft belum tampil di katalog publik.',
                             \App\Models\Business::STATUS_PENDING_VERIFICATION => 'Profil sedang menunggu verifikasi. Identitas tidak dapat diubah selama proses ini.',
                             \App\Models\Business::STATUS_ACTIVE => $business->published_at
-                                ? 'Usaha aktif. Perubahan nama atau alamat perlu disetujui sebelum mengganti informasi publik.'
-                                : 'Status usaha aktif, tetapi waktu publikasi belum tercatat.',
+                                ? 'Usaha sudah terverifikasi dan tampil di publik. Perubahan identitas utama harus ditinjau sebelum diterapkan.'
+                                : 'Usaha telah terverifikasi, tetapi belum tayang. Publikasi menunggu persyaratan langganan dan kesiapan venue.',
                             \App\Models\Business::STATUS_REJECTED => 'Periksa kembali informasi profil. Menyimpan perubahan belum mengajukan ulang proses verifikasi.',
                             \App\Models\Business::STATUS_SUSPENDED => 'Pengelolaan dibatasi selama usaha ditangguhkan.',
                             default => 'Periksa status usaha ini sebelum melanjutkan.',
