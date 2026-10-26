@@ -29,7 +29,7 @@ return new class extends Migration
                 ->nullable()
                 ->after('template_field_id')
                 ->constrained('owner_custom_fields')
-                ->restrictOnDelete();
+                ->cascadeOnDelete();
 
             $table->unique(['venue_id', 'owner_custom_field_id'], 'venue_field_values_venue_owner_field_unique');
         });
