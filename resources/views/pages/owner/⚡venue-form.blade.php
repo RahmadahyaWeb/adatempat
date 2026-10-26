@@ -9,13 +9,16 @@ use App\Models\OwnerCustomField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new #[Title('Data venue')] class extends Component {
+    use WithFileUploads;
     public string $businessPublicId;
 
     public ?string $venuePublicId = null;
@@ -38,6 +41,14 @@ new #[Title('Data venue')] class extends Component {
 
     public array $customFieldValues = [];
 
+    public $mediaUpload = null;
+
+    public string $mediaAltText = '';
+
+    public bool $mediaIsCover = false;
+
+    public array $mediaAltTexts = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -53,7 +64,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -82,6 +93,9 @@ new #[Title('Data venue')] class extends Component {
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
             $this->loadCustomFieldsFromVenue($record);
+            foreach ($record->media as $media) {
+                $this->mediaAltTexts[$media->getKey()] = $media->alt_text;
+            }
         }
     }
 
@@ -284,6 +298,181 @@ new #[Title('Data venue')] class extends Component {
 
         $this->customFieldValues[(int) $index] = $value === OwnerCustomField::TYPE_BOOLEAN ? false : '';
         $this->resetValidation("customFieldValues.{$index}");
+    }
+
+    public function uploadMedia(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+
+        if ($venue === null) {
+            $this->addError('mediaUpload', 'Simpan venue terlebih dahulu sebelum mengunggah foto.');
+
+            return;
+        }
+
+        Gate::authorize('update', $venue);
+
+        $validated = $this->validate([
+            'mediaUpload' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'mediaAltText' => ['required', 'string', 'max:180'],
+            'mediaIsCover' => ['boolean'],
+        ], [
+            'mediaUpload.required' => 'Pilih foto yang akan diunggah.',
+            'mediaUpload.mimetypes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
+            'mediaUpload.mimes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
+            'mediaUpload.max' => 'Ukuran foto maksimal 5 MB.',
+            'mediaAltText.required' => 'Deskripsi singkat foto wajib diisi.',
+            'mediaAltText.max' => 'Deskripsi singkat foto maksimal 180 karakter.',
+        ]);
+
+        $file = $validated['mediaUpload'];
+        $mimeType = $file->getMimeType();
+
+        if (! in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            $this->addError('mediaUpload', 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.');
+
+            return;
+        }
+
+        $disk = 'public';
+        $path = $file->storePublicly('venues/' . $venue->public_id, $disk);
+
+        try {
+            DB::transaction(function () use ($venue, $file, $mimeType, $disk, $path, $validated): void {
+                $isCover = (bool) $validated['mediaIsCover'] || ! $venue->media()->exists();
+
+                if ($isCover) {
+                    $venue->media()->update(['is_cover' => false]);
+                }
+
+                $sortOrder = ((int) $venue->media()->max('sort_order')) + 10;
+
+                $venue->media()->create([
+                    'disk' => $disk,
+                    'file_path' => $path,
+                    'mime_type' => $mimeType,
+                    'file_size_bytes' => (int) $file->getSize(),
+                    'alt_text' => trim($validated['mediaAltText']),
+                    'is_cover' => $isCover,
+                    'sort_order' => $sortOrder,
+                ]);
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk($disk)->delete($path);
+
+            throw $exception;
+        }
+
+        $this->reset(['mediaUpload', 'mediaAltText', 'mediaIsCover']);
+        unset($this->currentVenue);
+        session()->flash('status', 'Foto venue berhasil diunggah.');
+    }
+
+    public function updateMediaAltText(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $key = 'mediaAltTexts.' . $mediaId;
+        $this->validate([
+            $key => ['required', 'string', 'max:180'],
+        ], [
+            $key . '.required' => 'Deskripsi singkat foto wajib diisi.',
+            $key . '.max' => 'Deskripsi singkat foto maksimal 180 karakter.',
+        ]);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+        $media->update(['alt_text' => trim((string) $this->mediaAltTexts[$mediaId])]);
+
+        unset($this->currentVenue);
+        session()->flash('status', 'Deskripsi foto berhasil diperbarui.');
+    }
+
+    public function setMediaCover(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+
+        DB::transaction(function () use ($venue, $media): void {
+            $venue->media()->update(['is_cover' => false]);
+            $media->update(['is_cover' => true]);
+        });
+
+        unset($this->currentVenue);
+        session()->flash('status', 'Foto sampul berhasil diperbarui.');
+    }
+
+    public function moveMedia(int $mediaId, string $direction): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+        abort_unless(in_array($direction, ['up', 'down'], true), 422);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $items = $venue->media()->orderBy('sort_order')->orderBy('id')->get()->all();
+        $ids = array_map(fn ($item) => (int) $item->getKey(), $items);
+        $index = array_search($mediaId, $ids, true);
+
+        if ($index === false) {
+            abort(404);
+        }
+
+        $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+
+        if (! isset($items[$targetIndex])) {
+            return;
+        }
+
+        $current = $items[$index];
+        $items[$index] = $items[$targetIndex];
+        $items[$targetIndex] = $current;
+
+        DB::transaction(function () use ($items): void {
+            foreach ($items as $index => $item) {
+                $item->update(['sort_order' => ($index + 1) * 10]);
+            }
+        });
+
+        unset($this->currentVenue);
+    }
+
+    public function deleteMedia(int $mediaId): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $media = $venue->media()->whereKey($mediaId)->firstOrFail();
+        $disk = $media->disk;
+        $path = $media->file_path;
+        $wasCover = $media->is_cover;
+
+        DB::transaction(function () use ($venue, $media, $wasCover): void {
+            $media->delete();
+
+            if ($wasCover) {
+                $replacement = $venue->media()->orderBy('sort_order')->orderBy('id')->first();
+                $replacement?->update(['is_cover' => true]);
+            }
+        });
+
+        Storage::disk($disk)->delete($path);
+        unset($this->currentVenue, $this->mediaAltTexts[$mediaId]);
+        session()->flash('status', 'Foto venue berhasil dihapus.');
     }
 
     public function availableFacilities(): array
