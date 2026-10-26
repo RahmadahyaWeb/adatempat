@@ -70,6 +70,11 @@ class Business extends Model
         return $this->hasMany(BusinessRevision::class);
     }
 
+    public function adBookings(): HasMany
+    {
+        return $this->hasMany(AdBooking::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);

@@ -116,4 +116,14 @@ class Booking extends Model
     {
         return $this->hasMany(Payment::class, 'payable_id')->where('payable_type', Payment::TYPE_BOOKING);
     }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    public function payout(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Payout::class);
+    }
 }

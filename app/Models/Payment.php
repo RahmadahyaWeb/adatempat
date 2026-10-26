@@ -67,6 +67,17 @@ class Payment extends Model
             ->where('payable_type', self::TYPE_SUBSCRIPTION);
     }
 
+    public function adBooking(): BelongsTo
+    {
+        return $this->belongsTo(AdBooking::class, 'payable_id')
+            ->where('payable_type', self::TYPE_AD_BOOKING);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     public function webhookEvents(): HasMany
     {
         return $this->hasMany(PaymentWebhookEvent::class);
