@@ -221,6 +221,7 @@ new #[Title('Booking venue')] class extends Component {
                         <p class="mt-2 text-sm">Pelanggan: {{ $booking->customer?->name }} · {{ $booking->customer?->email }}</p>
                         <p class="mt-1 text-sm text-[var(--ink-soft)]">Hak bersih Owner normal: Rp{{ number_format($booking->snapshot_net_owner_entitlement, 0, ',', '.') }}</p>
                         @if ($booking->dispute)
+                            <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="mt-2 inline-block text-sm font-semibold underline">Lihat tanggapan dan bukti sengketa</a>
                             <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                                 <p class="font-semibold text-amber-950">Sengketa {{ $booking->dispute->reference_code }} · {{ str($booking->dispute->status)->replace('_', ' ')->title() }}</p>
                                 <p class="mt-1 text-sm text-amber-900">{{ $booking->dispute->category }} — {{ $booking->dispute->description }}</p>

@@ -154,6 +154,7 @@ new #[Title('Booking saya')] class extends Component {
                         <p class="mt-1 text-sm">{{ $booking->booking_start?->timezone('Asia/Jakarta')->format('d M Y H:i') }} – {{ $booking->booking_end?->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
                         <p class="mt-2 text-sm text-[var(--ink-soft)]">Dibayar: Rp{{ number_format($booking->snapshot_actual_paid_amount, 0, ',', '.') }}</p>
                         @if ($booking->dispute)
+                            <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="mt-2 inline-block text-sm font-semibold underline">Lihat tanggapan dan bukti sengketa</a>
                             <p class="mt-3 text-sm font-semibold text-red-800">Sengketa {{ $booking->dispute->reference_code }} · {{ str($booking->dispute->status)->replace('_', ' ')->title() }}</p>
                         @endif
                     </div>

@@ -245,6 +245,13 @@ Route::prefix('owner')
 |
 */
 
+Route::middleware(['auth', 'account.active', 'verified', 'throttle:30,1'])->group(function () {
+    Route::livewire('/disputes/{dispute}/evidence', 'pages::disputes.evidence')
+        ->whereNumber('dispute')->name('disputes.evidence');
+    Route::get('/disputes/evidence/{evidence}/download', [\App\Http\Controllers\DisputeEvidenceController::class, 'download'])
+        ->whereNumber('evidence')->name('disputes.evidence.download');
+});
+
 Route::livewire('/{businessSlug}', 'pages::business')
     ->where('businessSlug', '[a-z0-9-]+')
     ->name('business.public');
