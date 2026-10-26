@@ -121,6 +121,8 @@ Route::prefix('admin')
             ->where('evidence', '[0-9]+')
             ->name('disputes.evidence.download-admin');
 
+        Route::livewire('/disputes', 'pages::admin.disputes')->name('disputes.index');
+
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
          * di dalam grup ini saat fitur tersebut dibuat.
