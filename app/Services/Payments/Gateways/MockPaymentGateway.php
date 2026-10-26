@@ -76,6 +76,31 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
         return hash_equals(hash_hmac('sha256', $rawBody, $secret), $provided);
     }
 
+    public function normalizeRefundWebhookPayload(array $payload): array
+    {
+        $eventId = $payload['event_id'] ?? null;
+        $refundId = $payload['gateway_refund_id'] ?? null;
+        $status = $payload['status'] ?? null;
+
+        if (
+            ! is_string($eventId) || trim($eventId) === '' || mb_strlen($eventId) > 140
+            || ! is_string($refundId) || trim($refundId) === '' || mb_strlen($refundId) > 120
+            || ! in_array($status, [
+                \App\Models\Refund::STATUS_PROCESSING,
+                \App\Models\Refund::STATUS_SUCCEEDED,
+                \App\Models\Refund::STATUS_FAILED,
+            ], true)
+        ) {
+            throw new InvalidArgumentException('Webhook payload does not match the mock refund event schema.');
+        }
+
+        return [
+            'event_id' => trim($eventId),
+            'gateway_refund_id' => trim($refundId),
+            'status' => $status,
+        ];
+    }
+
     public function normalizeWebhookPayload(array $payload): array
     {
         $eventId = $payload['event_id'] ?? null;
