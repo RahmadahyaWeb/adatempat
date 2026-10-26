@@ -62,6 +62,7 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
         $transactionId = $payload['gateway_transaction_id'] ?? null;
         $status = $payload['status'] ?? null;
         $fee = $payload['gateway_fee_amount'] ?? 0;
+        $amount = $payload['amount'] ?? null;
         $paidAt = $payload['paid_at'] ?? null;
 
         if (
@@ -69,6 +70,7 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
             || ! is_string($transactionId) || trim($transactionId) === '' || mb_strlen($transactionId) > 120
             || ! in_array($status, [Payment::STATUS_PAID, Payment::STATUS_FAILED, Payment::STATUS_EXPIRED], true)
             || ! is_numeric($fee) || (int) $fee < 0
+            || ! is_numeric($amount) || (int) $amount < 0
         ) {
             throw new InvalidArgumentException('Webhook payload does not match the mock gateway event schema.');
         }
@@ -93,6 +95,7 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
             'status' => $status,
             'paid_at' => $paidAt,
             'gateway_fee_amount' => (int) $fee,
+            'amount' => (int) $amount,
         ];
     }
 }
