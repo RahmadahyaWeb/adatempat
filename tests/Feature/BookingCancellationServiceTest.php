@@ -20,6 +20,7 @@ use App\Services\Booking\BookingEngineService;
 use App\Services\Payments\PaymentWebhookProcessor;
 use App\Services\Payments\RefundService;
 use App\Services\Payments\RefundWebhookProcessor;
+use App\Services\Payments\RefundReconciliationService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -138,6 +139,25 @@ class BookingCancellationServiceTest extends TestCase
             'duplicate_delivery_count' => 1,
         ]);
         $this->assertSame(1, \App\Models\Refund::query()->where('payment_id', $refund->payment_id)->where('status', 'succeeded')->count());
+    }
+
+    public function test_refund_reconciliation_retries_failed_refund_with_same_idempotency_key(): void
+    {
+        [$owner, $customer, $booking] = $this->createConfirmedBooking('refund-retry-001');
+        $cancelled = app(BookingCancellationService::class)->cancelByCustomer($customer, $booking);
+        $refund = $cancelled['refund'];
+        $refund->update(['status' => 'failed']);
+
+        $result = app(RefundReconciliationService::class)->reconcile();
+
+        $this->assertSame(1, $result['scanned']);
+        $this->assertSame(1, $result['processing']);
+        $this->assertDatabaseHas('refunds', [
+            'id' => $refund->getKey(),
+            'status' => 'processing',
+            'idempotency_key' => $refund->idempotency_key,
+        ]);
+        $this->assertNull($booking->fresh()->slot_released_at);
     }
 
     public function test_customer_cancellation_with_zero_percent_refund_releases_slot_without_refund(): void
