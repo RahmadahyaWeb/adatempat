@@ -36,7 +36,7 @@ new class extends Component {
 
         return Venue::query()
             ->published()
-            ->with(['business', 'category', 'media'])
+            ->with(['business', 'category', 'media', 'prices'])
             ->when($keyword !== '', function (Builder $query) use ($keyword): void {
                 $query->where(function (Builder $searchQuery) use ($keyword): void {
                     $searchQuery
@@ -249,6 +249,14 @@ new class extends Component {
                         </div>
                         <h3 class="mt-4 break-words text-lg font-extrabold leading-tight tracking-[-0.04em] sm:text-xl">{{ $venue->name }}</h3>
                         <p class="mt-1.5 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
+                        @php($activePrices = $venue->prices->where('is_active', true)->values())
+                        @if ($activePrices->isNotEmpty())
+                            @php($displayPrice = $activePrices->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])->filter(fn ($amount) => $amount !== null)->min())
+                            <p class="mt-2 text-sm font-extrabold text-[var(--brand-forest)]">
+                                Mulai Rp {{ number_format((int) $displayPrice, 0, ',', '.') }}
+                                / {{ match ($activePrices->first()->pricing_unit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' } }}
+                            </p>
+                        @endif
                         <p class="mt-3 flex items-start gap-2 text-sm leading-6 text-[var(--muted)]">
                             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 size-4 shrink-0 text-[var(--brand-forest)]"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
                             <span>{{ $venue->business?->address ?: 'Lokasi belum dicantumkan' }}</span>

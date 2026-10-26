@@ -6,6 +6,7 @@ use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
 use App\Models\OwnerCustomField;
+use App\Models\VenuePrice;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -41,6 +42,12 @@ new #[Title('Data venue')] class extends Component {
 
     public array $customFieldValues = [];
 
+    public array $availabilityRules = [];
+
+    public string $pricingUnit = '';
+
+    public array $priceRows = [];
+
     public $mediaUpload = null;
 
     public string $mediaAltText = '';
@@ -61,10 +68,12 @@ new #[Title('Data venue')] class extends Component {
         abort_unless($businessRecord->status !== Business::STATUS_SUSPENDED, 403);
 
         $this->businessPublicId = (string) $businessRecord->public_id;
+        $this->availabilityRules = $this->defaultAvailabilityRules();
+        $this->priceRows = [];
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -93,6 +102,31 @@ new #[Title('Data venue')] class extends Component {
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
             $this->loadCustomFieldsFromVenue($record);
+
+            foreach ($record->availabilityRules as $rule) {
+                $this->availabilityRules[(int) $rule->day_of_week] = [
+                    'day_of_week' => (int) $rule->day_of_week,
+                    'is_open' => (bool) $rule->is_open,
+                    'open_time' => substr((string) $rule->open_time, 0, 5),
+                    'close_time' => substr((string) $rule->close_time, 0, 5),
+                    'buffer_minutes' => (string) $rule->buffer_minutes,
+                ];
+            }
+            ksort($this->availabilityRules);
+
+            $activePrices = $record->prices->where('is_active', true)->sortBy('id')->values();
+            $this->pricingUnit = (string) ($activePrices->first()?->pricing_unit ?? '');
+            $this->priceRows = $activePrices->map(fn ($price) => [
+                'id' => $price->getKey(),
+                'session_name' => (string) ($price->session_name ?? ''),
+                'session_start_time' => $price->session_start_time !== null ? substr((string) $price->session_start_time, 0, 5) : '09:00',
+                'session_end_time' => $price->session_end_time !== null ? substr((string) $price->session_end_time, 0, 5) : '17:00',
+                'step_interval_minutes' => (string) $price->step_interval_minutes,
+                'min_duration_units' => (string) $price->min_duration_units,
+                'max_duration_units' => (string) $price->max_duration_units,
+                'price_amount' => (string) $price->price_amount,
+                'weekend_price_amount' => $price->weekend_price_amount !== null ? (string) $price->weekend_price_amount : '',
+            ])->all();
             foreach ($record->media as $media) {
                 $this->mediaAltTexts[$media->getKey()] = $media->alt_text;
             }
@@ -117,7 +151,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -493,6 +527,96 @@ new #[Title('Data venue')] class extends Component {
         session()->flash('status', 'Foto venue berhasil dihapus.');
     }
 
+    private function defaultAvailabilityRules(): array
+    {
+        $rules = [];
+
+        for ($day = 0; $day <= 6; $day++) {
+            $rules[$day] = [
+                'day_of_week' => $day,
+                'is_open' => false,
+                'open_time' => '09:00',
+                'close_time' => '17:00',
+                'buffer_minutes' => '0',
+            ];
+        }
+
+        return $rules;
+    }
+
+    private function blankPriceRow(): array
+    {
+        return [
+            'id' => null,
+            'session_name' => '',
+            'session_start_time' => '09:00',
+            'session_end_time' => '17:00',
+            'step_interval_minutes' => '60',
+            'min_duration_units' => '1',
+            'max_duration_units' => '24',
+            'price_amount' => '',
+            'weekend_price_amount' => '',
+        ];
+    }
+
+    public function updatedPricingUnit(): void
+    {
+        $this->resetValidation('pricingUnit');
+        $this->resetValidation('priceRows');
+
+        if ($this->pricingUnit === '') {
+            $this->priceRows = [];
+
+            return;
+        }
+
+        if ($this->pricingUnit === VenuePrice::UNIT_SESSION) {
+            if ($this->priceRows === [] || trim((string) ($this->priceRows[0]['session_name'] ?? '')) === '') {
+                $this->priceRows = [$this->blankPriceRow()];
+            }
+
+            return;
+        }
+
+        $this->priceRows = [$this->blankPriceRow()];
+    }
+
+    public function addSessionPrice(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if ($this->pricingUnit !== VenuePrice::UNIT_SESSION) {
+            return;
+        }
+
+        if (count($this->priceRows) >= 50) {
+            $this->addError('priceRows', 'Maksimal 50 sesi harga per venue.');
+
+            return;
+        }
+
+        $this->priceRows[] = $this->blankPriceRow();
+    }
+
+    public function removePriceRow(int $index): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if ($this->pricingUnit !== VenuePrice::UNIT_SESSION || ! array_key_exists($index, $this->priceRows)) {
+            return;
+        }
+
+        if (count($this->priceRows) <= 1) {
+            $this->addError('priceRows', 'Model harga sesi harus memiliki setidaknya satu sesi.');
+
+            return;
+        }
+
+        unset($this->priceRows[$index]);
+        $this->priceRows = array_values($this->priceRows);
+        $this->resetValidation('priceRows');
+    }
+
     public function availableFacilities(): array
     {
         return [
@@ -532,6 +656,15 @@ new #[Title('Data venue')] class extends Component {
         $this->customFields = array_values($this->customFields);
         $this->customFieldValues = array_values($this->customFieldValues);
 
+        $this->availabilityRules = array_values($this->availabilityRules);
+        $this->priceRows = array_values($this->priceRows);
+
+        foreach ($this->priceRows as $index => $priceRow) {
+            if (trim((string) ($priceRow['weekend_price_amount'] ?? '')) === '') {
+                $this->priceRows[$index]['weekend_price_amount'] = null;
+            }
+        }
+
         $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
             [
@@ -551,6 +684,23 @@ new #[Title('Data venue')] class extends Component {
                 'customFields.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
                 'customFieldValues' => ['array'],
                 'customFieldValues.*' => ['nullable'],
+                'availabilityRules' => ['required', 'array', 'size:7'],
+                'availabilityRules.*.day_of_week' => ['required', 'integer', 'min:0', 'max:6', 'distinct'],
+                'availabilityRules.*.is_open' => ['required', 'boolean'],
+                'availabilityRules.*.open_time' => ['required', 'date_format:H:i'],
+                'availabilityRules.*.close_time' => ['required', 'date_format:H:i'],
+                'availabilityRules.*.buffer_minutes' => ['required', 'integer', 'min:0', 'max:1440'],
+                'pricingUnit' => ['nullable', 'string'],
+                'priceRows' => ['array', 'max:50'],
+                'priceRows.*.id' => ['nullable', 'integer'],
+                'priceRows.*.session_name' => ['nullable', 'string', 'max:80'],
+                'priceRows.*.session_start_time' => ['nullable', 'date_format:H:i'],
+                'priceRows.*.session_end_time' => ['nullable', 'date_format:H:i'],
+                'priceRows.*.step_interval_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+                'priceRows.*.min_duration_units' => ['required', 'integer', 'min:1', 'max:65535'],
+                'priceRows.*.max_duration_units' => ['required', 'integer', 'min:1', 'max:65535'],
+                'priceRows.*.price_amount' => ['required', 'integer', 'min:0'],
+                'priceRows.*.weekend_price_amount' => ['nullable', 'integer', 'min:0'],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -569,6 +719,20 @@ new #[Title('Data venue')] class extends Component {
                 'customFields.*.label.max' => 'Label custom field maksimal 120 karakter.',
                 'customFields.*.input_type.in' => 'Tipe custom field tidak didukung.',
                 'customFields.*.options_text.max' => 'Daftar pilihan terlalu panjang.',
+                'availabilityRules.size' => 'Jadwal harus memuat seluruh tujuh hari dalam seminggu.',
+                'availabilityRules.*.day_of_week.distinct' => 'Setiap hari hanya boleh memiliki satu jadwal.',
+                'availabilityRules.*.open_time.date_format' => 'Format jam buka tidak valid.',
+                'availabilityRules.*.close_time.date_format' => 'Format jam tutup tidak valid.',
+                'availabilityRules.*.buffer_minutes.integer' => 'Waktu jeda harus berupa menit.',
+                'availabilityRules.*.buffer_minutes.min' => 'Waktu jeda tidak boleh negatif.',
+                'availabilityRules.*.buffer_minutes.max' => 'Waktu jeda maksimal 1.440 menit.',
+                'priceRows.max' => 'Maksimal 50 baris harga per venue.',
+                'priceRows.*.session_name.max' => 'Nama sesi maksimal 80 karakter.',
+                'priceRows.*.price_amount.required' => 'Harga wajib diisi.',
+                'priceRows.*.price_amount.integer' => 'Harga harus berupa angka Rupiah bulat.',
+                'priceRows.*.price_amount.min' => 'Harga tidak boleh negatif.',
+                'priceRows.*.weekend_price_amount.integer' => 'Harga akhir pekan harus berupa angka Rupiah bulat.',
+                'priceRows.*.weekend_price_amount.min' => 'Harga akhir pekan tidak boleh negatif.',
             ],
         );
 
@@ -579,6 +743,78 @@ new #[Title('Data venue')] class extends Component {
 
             if ($fieldId !== null && ! in_array((int) $fieldId, $existingCustomFieldIds, true)) {
                 $this->addError("customFields.{$index}.id", 'Custom field tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
+
+        $existingPriceIds = array_map('intval', $venue?->prices()->pluck('id')->all() ?? []);
+
+        foreach ($validated['priceRows'] ?? [] as $index => $priceRow) {
+            $priceId = $priceRow['id'] ?? null;
+
+            if ($priceId !== null && ! in_array((int) $priceId, $existingPriceIds, true)) {
+                $this->addError("priceRows.{$index}.id", 'Baris harga tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
+
+        if (! in_array($validated['pricingUnit'] ?? '', ['', VenuePrice::UNIT_HOURLY, VenuePrice::UNIT_SESSION, VenuePrice::UNIT_DAILY], true)) {
+            $this->addError('pricingUnit', 'Pilih model harga yang didukung.');
+
+            return;
+        }
+
+        foreach ($validated['availabilityRules'] as $index => $rule) {
+            if ((bool) $rule['is_open'] && $rule['open_time'] === $rule['close_time']) {
+                $this->addError("availabilityRules.{$index}.close_time", 'Jam tutup tidak boleh sama dengan jam buka. Gunakan jam tutup yang lebih awal untuk operasional lintas tengah malam.');
+
+                return;
+            }
+        }
+
+        $pricingUnit = (string) ($validated['pricingUnit'] ?? '');
+
+        if ($pricingUnit !== '' && ($validated['priceRows'] ?? []) === []) {
+            $this->addError('priceRows', 'Tambahkan setidaknya satu baris harga.');
+
+            return;
+        }
+
+        if ($pricingUnit !== VenuePrice::UNIT_SESSION && $pricingUnit !== '' && count($validated['priceRows'] ?? []) !== 1) {
+            $this->addError('priceRows', 'Model harga per jam atau per hari harus memiliki tepat satu konfigurasi harga.');
+
+            return;
+        }
+
+        $priceRowRules = [];
+        $priceRowMessages = [];
+
+        if ($pricingUnit === VenuePrice::UNIT_SESSION) {
+            foreach ($validated['priceRows'] as $index => $priceRow) {
+                $priceRowRules["priceRows.{$index}.session_name"] = ['required', 'string', 'max:80'];
+                $priceRowRules["priceRows.{$index}.session_start_time"] = ['required', 'date_format:H:i'];
+                $priceRowRules["priceRows.{$index}.session_end_time"] = ['required', 'date_format:H:i'];
+                $priceRowMessages["priceRows.{$index}.session_name.required"] = 'Nama sesi wajib diisi.';
+                $priceRowMessages["priceRows.{$index}.session_start_time.required"] = 'Jam mulai sesi wajib diisi.';
+                $priceRowMessages["priceRows.{$index}.session_end_time.required"] = 'Jam selesai sesi wajib diisi.';
+
+                if (($priceRow['session_start_time'] ?? null) === ($priceRow['session_end_time'] ?? null)) {
+                    $this->addError("priceRows.{$index}.session_end_time", 'Jam selesai sesi tidak boleh sama dengan jam mulai.');
+
+                    return;
+                }
+            }
+        }
+
+        if ($priceRowRules !== []) {
+            $this->validate($priceRowRules, $priceRowMessages);
+        }
+
+        foreach ($validated['priceRows'] ?? [] as $index => $priceRow) {
+            if ((int) $priceRow['max_duration_units'] < (int) $priceRow['min_duration_units']) {
+                $this->addError("priceRows.{$index}.max_duration_units", 'Durasi maksimum harus lebih besar atau sama dengan durasi minimum.');
 
                 return;
             }
@@ -765,6 +1001,39 @@ new #[Title('Data venue')] class extends Component {
             $this->validate($customFieldRules, $customFieldMessages);
         }
 
+        $normalisedAvailabilityRules = collect($validated['availabilityRules'])
+            ->sortBy('day_of_week')
+            ->map(fn (array $rule): array => [
+                'day_of_week' => (int) $rule['day_of_week'],
+                'is_open' => (bool) $rule['is_open'],
+                'open_time' => $rule['open_time'],
+                'close_time' => $rule['close_time'],
+                'buffer_minutes' => (int) $rule['buffer_minutes'],
+            ])
+            ->values()
+            ->all();
+
+        $normalisedPriceRows = [];
+
+        if ($pricingUnit !== '') {
+            foreach ($validated['priceRows'] as $priceRow) {
+                $normalisedPriceRows[] = [
+                    'id' => isset($priceRow['id']) && $priceRow['id'] !== '' ? (int) $priceRow['id'] : null,
+                    'pricing_unit' => $pricingUnit,
+                    'session_name' => $pricingUnit === VenuePrice::UNIT_SESSION ? trim($priceRow['session_name']) : null,
+                    'session_start_time' => $pricingUnit === VenuePrice::UNIT_SESSION ? $priceRow['session_start_time'] : null,
+                    'session_end_time' => $pricingUnit === VenuePrice::UNIT_SESSION ? $priceRow['session_end_time'] : null,
+                    'step_interval_minutes' => (int) $priceRow['step_interval_minutes'],
+                    'min_duration_units' => (int) $priceRow['min_duration_units'],
+                    'max_duration_units' => (int) $priceRow['max_duration_units'],
+                    'price_amount' => (int) $priceRow['price_amount'],
+                    'weekend_price_amount' => trim((string) ($priceRow['weekend_price_amount'] ?? '')) !== ''
+                        ? (int) $priceRow['weekend_price_amount']
+                        : null,
+                ];
+            }
+        }
+
         $venueName = trim($validated['name']);
         $slugBase = Str::slug($venueName) ?: 'venue';
         $slug = $slugBase;
@@ -791,15 +1060,18 @@ new #[Title('Data venue')] class extends Component {
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues): Venue {
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues, $normalisedAvailabilityRules, $normalisedPriceRows, $pricingUnit): Venue {
             if ($venue === null) {
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
                     'published_at' => null,
                 ]);
             } else {
-                $venue->fill($attributes)->save();
-                $savedVenue = $venue;
+                $savedVenue = $business->venues()
+                    ->whereKey($venue->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $savedVenue->fill($attributes)->save();
             }
 
             $templateFieldIds = $template?->fields->modelKeys() ?? [];
@@ -923,6 +1195,59 @@ new #[Title('Data venue')] class extends Component {
             if ($staleCustomFieldIds !== []) {
                 $savedVenue->fieldValues()->whereIn('owner_custom_field_id', $staleCustomFieldIds)->delete();
                 $savedVenue->ownerCustomFields()->whereIn('id', $staleCustomFieldIds)->delete();
+            }
+
+            foreach ($normalisedAvailabilityRules as $rule) {
+                $savedVenue->availabilityRules()->updateOrCreate(
+                    ['day_of_week' => $rule['day_of_week']],
+                    [
+                        'is_open' => $rule['is_open'],
+                        'open_time' => $rule['open_time'],
+                        'close_time' => $rule['close_time'],
+                        'buffer_minutes' => $rule['buffer_minutes'],
+                    ],
+                );
+            }
+
+            $activePrices = $savedVenue->prices()->where('is_active', true)->orderBy('id')->get();
+
+            if ($pricingUnit === '') {
+                $savedVenue->prices()->where('is_active', true)->update(['is_active' => false]);
+            } else {
+                $activeUnit = $activePrices->first()?->pricing_unit;
+
+                if ($activeUnit !== $pricingUnit) {
+                    $savedVenue->prices()->where('is_active', true)->update(['is_active' => false]);
+                    $activePrices = collect();
+                }
+
+                $keptPriceIds = [];
+
+                foreach ($normalisedPriceRows as $priceData) {
+                    $priceId = $priceData['id'];
+                    unset($priceData['id']);
+
+                    $existingPrice = $priceId !== null
+                        ? $activePrices->firstWhere('id', $priceId)
+                        : null;
+
+                    if ($existingPrice !== null) {
+                        $existingPrice->fill($priceData + ['is_active' => true])->save();
+                        $savedPrice = $existingPrice;
+                    } else {
+                        $savedPrice = $savedVenue->prices()->create($priceData + ['is_active' => true]);
+                    }
+
+                    $keptPriceIds[] = $savedPrice->getKey();
+                }
+
+                $stalePrices = $savedVenue->prices()->where('is_active', true);
+
+                if ($keptPriceIds !== []) {
+                    $stalePrices->whereNotIn('id', $keptPriceIds);
+                }
+
+                $stalePrices->update(['is_active' => false]);
             }
 
             return $savedVenue;
@@ -1227,6 +1552,143 @@ new #[Title('Data venue')] class extends Component {
                                     </div>
                                 </article>
                             @endforeach
+                        </div>
+                    @endif
+                </section>
+
+                <section aria-labelledby="venue-hours-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-hours-heading" class="text-base font-extrabold text-[var(--ink)]">Jam operasional mingguan</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Atur jam buka per hari. Jam menggunakan zona waktu usaha ({{ $business->timezone ?? 'Asia/Jakarta' }}). Jam tutup lebih awal daripada jam buka berarti operasional berakhir keesokan hari; jam buka dan tutup tidak boleh sama.</p>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
+                        @foreach ($availabilityRules as $day => $rule)
+                            <article wire:key="availability-day-{{ $day }}" class="rounded-lg border border-[var(--border)] p-3 sm:p-4">
+                                <label class="flex cursor-pointer items-center gap-3">
+                                    <input type="checkbox" wire:model="availabilityRules.{{ $day }}.is_open" class="size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                    <span class="font-bold text-sm text-[var(--ink)]">{{ $dayLabels[$day] }}</span>
+                                    <span class="ml-auto text-xs font-semibold {{ $rule['is_open'] ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ $rule['is_open'] ? 'Buka' : 'Tutup' }}</span>
+                                </label>
+                                @if ($rule['is_open'])
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <label for="hours-open-{{ $day }}" class="ui-label">Jam buka</label>
+                                            <input id="hours-open-{{ $day }}" type="time" wire:model="availabilityRules.{{ $day }}.open_time" required class="ui-input">
+                                            @error("availabilityRules.{$day}.open_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="hours-close-{{ $day }}" class="ui-label">Jam tutup</label>
+                                            <input id="hours-close-{{ $day }}" type="time" wire:model="availabilityRules.{{ $day }}.close_time" required class="ui-input">
+                                            @error("availabilityRules.{$day}.close_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="hours-buffer-{{ $day }}" class="ui-label">Jeda persiapan (menit)</label>
+                                            <input id="hours-buffer-{{ $day }}" type="number" min="0" max="1440" step="1" wire:model="availabilityRules.{{ $day }}.buffer_minutes" required class="ui-input">
+                                            @error("availabilityRules.{$day}.buffer_minutes") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                @else
+                                    <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Venue tidak menerima jadwal baru pada hari ini.</p>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                    @error('availabilityRules') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
+                </section>
+
+                <section aria-labelledby="venue-pricing-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-pricing-heading" class="text-base font-extrabold text-[var(--ink)]">Harga venue</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Pilih satu model harga aktif. Harga disimpan dalam Rupiah penuh. Untuk harga per jam, interval mengatur kelipatan waktu pemesanan, sedangkan tarif tetap dihitung per jam. Mengubah konfigurasi tidak mengubah snapshot harga booking yang sudah dibuat.</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="pricing-unit" class="ui-label">Model harga</label>
+                        <select id="pricing-unit" wire:model.live="pricingUnit" class="ui-input">
+                            <option value="">Belum diatur</option>
+                            <option value="hourly">Per jam</option>
+                            <option value="session">Per sesi tetap</option>
+                            <option value="daily">Per hari</option>
+                        </select>
+                        @error('pricingUnit') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if ($pricingUnit === '')
+                        <p class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted)]">Harga belum diatur. Venue tetap dapat disimpan sebagai draft, tetapi alur booking belum dapat menggunakan harga sampai konfigurasi tersedia.</p>
+                    @elseif ($pricingUnit === 'session')
+                        <div class="mt-4 space-y-4">
+                            @foreach ($priceRows as $index => $priceRow)
+                                <article wire:key="venue-price-session-{{ $index }}" class="rounded-lg border border-[var(--border)] p-4">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <h4 class="text-sm font-extrabold text-[var(--ink)]">Sesi {{ $index + 1 }}</h4>
+                                        @if (count($priceRows) > 1)
+                                            <button type="button" wire:click="removePriceRow({{ $index }})" class="btn btn-secondary min-h-9 px-3 py-1.5">Hapus sesi</button>
+                                        @endif
+                                    </div>
+                                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label for="price-session-name-{{ $index }}" class="ui-label">Nama sesi</label>
+                                            <input id="price-session-name-{{ $index }}" type="text" wire:model="priceRows.{{ $index }}.session_name" maxlength="80" required class="ui-input" placeholder="Contoh: Sesi pagi">
+                                            @error("priceRows.{$index}.session_name") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-amount-{{ $index }}" class="ui-label">Harga sesi (Rp)</label>
+                                            <input id="price-session-amount-{{ $index }}" type="number" min="0" step="1" wire:model="priceRows.{{ $index }}.price_amount" required class="ui-input" placeholder="Contoh: 500000">
+                                            @error("priceRows.{$index}.price_amount") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-start-{{ $index }}" class="ui-label">Jam mulai</label>
+                                            <input id="price-session-start-{{ $index }}" type="time" wire:model="priceRows.{{ $index }}.session_start_time" required class="ui-input">
+                                            @error("priceRows.{$index}.session_start_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="price-session-end-{{ $index }}" class="ui-label">Jam selesai</label>
+                                            <input id="price-session-end-{{ $index }}" type="time" wire:model="priceRows.{{ $index }}.session_end_time" required class="ui-input">
+                                            @error("priceRows.{$index}.session_end_time") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label for="price-session-weekend-{{ $index }}" class="ui-label">Harga akhir pekan (Rp, opsional)</label>
+                                            <input id="price-session-weekend-{{ $index }}" type="number" min="0" step="1" wire:model="priceRows.{{ $index }}.weekend_price_amount" class="ui-input" placeholder="Kosongkan jika sama dengan harga dasar">
+                                            @error("priceRows.{$index}.weekend_price_amount") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                </article>
+                            @endforeach
+                            @error('priceRows') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            <button type="button" wire:click="addSessionPrice" class="btn btn-secondary w-full sm:w-auto">Tambah sesi</button>
+                        </div>
+                    @else
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label for="price-amount" class="ui-label">{{ $pricingUnit === 'hourly' ? 'Harga per jam (Rp)' : 'Harga per hari (Rp)' }}</label>
+                                <input id="price-amount" type="number" min="0" step="1" wire:model="priceRows.0.price_amount" required class="ui-input" placeholder="Contoh: 250000">
+                                @error('priceRows.0.price_amount') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="price-weekend-amount" class="ui-label">Harga akhir pekan (Rp, opsional)</label>
+                                <input id="price-weekend-amount" type="number" min="0" step="1" wire:model="priceRows.0.weekend_price_amount" class="ui-input" placeholder="Kosongkan jika sama dengan harga dasar">
+                                @error('priceRows.0.weekend_price_amount') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            @if ($pricingUnit === 'hourly')
+                                <div>
+                                    <label for="price-step-interval" class="ui-label">Interval pemesanan (menit)</label>
+                                    <input id="price-step-interval" type="number" min="1" max="1440" step="1" wire:model="priceRows.0.step_interval_minutes" required class="ui-input">
+                                    @error('priceRows.0.step_interval_minutes') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            <div>
+                                <label for="price-min-duration" class="ui-label">Durasi minimum ({{ $pricingUnit === 'hourly' ? 'jam' : 'hari' }})</label>
+                                <input id="price-min-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.min_duration_units" required class="ui-input">
+                                @error('priceRows.0.min_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="price-max-duration" class="ui-label">Durasi maksimum ({{ $pricingUnit === 'hourly' ? 'jam' : 'hari' }})</label>
+                                <input id="price-max-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.max_duration_units" required class="ui-input">
+                                @error('priceRows.0.max_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            @error('priceRows') <p role="alert" class="ui-error sm:col-span-2">{{ $message }}</p> @enderror
                         </div>
                     @endif
                 </section>
