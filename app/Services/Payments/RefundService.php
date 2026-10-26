@@ -65,6 +65,17 @@ class RefundService
             return $existing;
         }
 
+        $committedRefundAmount = (int) Refund::query()
+            ->where('payment_id', $payment->getKey())
+            ->whereNot('status', Refund::STATUS_REJECTED)
+            ->sum('amount');
+
+        if ($committedRefundAmount + $amount > (int) $payment->amount) {
+            throw ValidationException::withMessages([
+                'refund' => 'Total kewajiban refund tidak boleh melebihi nominal pembayaran pelanggan.',
+            ]);
+        }
+
         return Refund::query()->create([
             'reference_code' => 'RFD-' . now('UTC')->format('Ymd') . '-' . Str::upper(Str::random(8)),
             'booking_id' => $booking->getKey(),
