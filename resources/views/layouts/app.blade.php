@@ -50,7 +50,7 @@
                             ['label' => 'Template venue', 'href' => route('venue-templates.index')],
                             ['label' => 'Payout & rekening', 'href' => route('payouts.index')],
                             ['label' => 'Refund & rekonsiliasi', 'href' => route('refunds.index')],
-                            ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Langganan Owner', 'href' => route('subscriptions.index')],
                             ['label' => 'Pengaturan platform', 'placeholder' => 'Segera hadir'],
                         ],
                     ],
