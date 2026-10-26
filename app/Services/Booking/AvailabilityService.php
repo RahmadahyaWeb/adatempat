@@ -22,6 +22,7 @@ class AvailabilityService
         CarbonImmutable $startsAtUtc,
         CarbonImmutable $endsAtUtc,
         ?int $ignoreHoldId = null,
+        ?int $ignoreBookingId = null,
     ): bool {
         $startsAtUtc = $startsAtUtc->utc();
         $endsAtUtc = $endsAtUtc->utc();
@@ -66,8 +67,9 @@ class AvailabilityService
         CarbonImmutable $startsAtUtc,
         CarbonImmutable $endsAtUtc,
         ?int $ignoreHoldId = null,
+        ?int $ignoreBookingId = null,
     ): void {
-        if (! $this->isAvailable($venue, $startsAtUtc, $endsAtUtc, $ignoreHoldId)) {
+        if (! $this->isAvailable($venue, $startsAtUtc, $endsAtUtc, $ignoreHoldId, $ignoreBookingId)) {
             throw ValidationException::withMessages([
                 'bookingStart' => 'Jadwal tidak tersedia. Pilih waktu lain atau periksa jam operasional venue.',
             ]);
@@ -160,6 +162,7 @@ class AvailabilityService
         Venue $venue,
         CarbonImmutable $startsAtUtc,
         CarbonImmutable $endsAtUtc,
+        ?int $ignoreBookingId = null,
     ): bool {
         return Booking::query()
             ->where('venue_id', $venue->getKey())
@@ -170,6 +173,7 @@ class AvailabilityService
                             ->whereNull('slot_released_at');
                     });
             })
+            ->when($ignoreBookingId !== null, fn ($query) => $query->where('id', '!=', $ignoreBookingId))
             ->where('booking_start', '<', $endsAtUtc)
             ->where('booking_end', '>', $startsAtUtc)
             ->exists();
