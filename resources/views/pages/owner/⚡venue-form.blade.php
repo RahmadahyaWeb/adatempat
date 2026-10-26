@@ -4,6 +4,7 @@ use App\Models\Business;
 use App\Models\Category;
 use App\Models\Venue;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -28,6 +29,8 @@ new #[Title('Data venue')] class extends Component {
             ->where('public_id', $business)
             ->firstOrFail();
 
+        Gate::authorize('view', $businessRecord);
+
         abort_unless($businessRecord->status !== Business::STATUS_SUSPENDED, 403);
 
         $this->businessPublicId = (string) $businessRecord->public_id;
@@ -37,6 +40,8 @@ new #[Title('Data venue')] class extends Component {
                 ->with('category')
                 ->where('public_id', $venue)
                 ->firstOrFail();
+
+            Gate::authorize('view', $record);
 
             abort_unless($record->status !== Venue::STATUS_ARCHIVED, 403);
 
@@ -88,15 +93,15 @@ new #[Title('Data venue')] class extends Component {
         $business = $user->businesses()->where('public_id', $this->businessPublicId)
             ->firstOrFail();
 
-        abort_unless($business->status !== Business::STATUS_SUSPENDED, 403);
-
         $venue = $this->venuePublicId === null
             ? null
             : $business->venues()->where('public_id', $this->venuePublicId)
             ->firstOrFail();
 
-        if ($venue !== null) {
-            abort_unless($venue->status !== Venue::STATUS_ARCHIVED, 403);
+        if ($venue === null) {
+            Gate::authorize('create', [Venue::class, $business]);
+        } else {
+            Gate::authorize('update', $venue);
         }
 
         $validated = $this->validate(
