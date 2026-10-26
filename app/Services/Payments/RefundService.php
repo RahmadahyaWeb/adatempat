@@ -240,6 +240,25 @@ class RefundService
                     : Payment::STATUS_PARTIALLY_REFUNDED,
             ]);
 
+            $this->ledger->postBalancedGroup([
+                [
+                    'account_code' => 'refund_payable',
+                    'entry_type' => 'debit',
+                    'amount' => (int) $lockedRefund->amount,
+                    'reference_type' => 'refund',
+                    'reference_id' => $lockedRefund->getKey(),
+                    'description' => 'Clear customer refund liability after successful refund settlement.',
+                ],
+                [
+                    'account_code' => 'customer_cash',
+                    'entry_type' => 'credit',
+                    'amount' => (int) $lockedRefund->amount,
+                    'reference_type' => 'refund',
+                    'reference_id' => $lockedRefund->getKey(),
+                    'description' => 'Record cash outflow for successful customer refund.',
+                ],
+            ]);
+
             if ($lockedRefund->booking_id !== null) {
                 $lockedBooking = Booking::query()->whereKey($lockedRefund->booking_id)->lockForUpdate()->firstOrFail();
 
