@@ -15,7 +15,8 @@ interface PaymentWebhookContract
      *   gateway_transaction_id:string,
      *   status:string,
      *   paid_at:?string,
-     *   gateway_fee_amount:int
+     *   gateway_fee_amount:int,
+     *   amount:int
      * }
      */
     public function normalizeWebhookPayload(array $payload): array;
