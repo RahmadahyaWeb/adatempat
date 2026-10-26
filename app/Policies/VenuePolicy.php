@@ -17,8 +17,10 @@ class VenuePolicy
 
     public function view(User $user, Venue $venue): bool
     {
+        $venue->loadMissing('business');
+
         return $user->isOwner()
-            && (int) $venue->business?->owner_id === (int) $user->getKey();
+            && (int) ($venue->business?->owner_id ?? 0) === (int) $user->getKey();
     }
 
     public function create(User $user, Business $business): bool
@@ -33,7 +35,7 @@ class VenuePolicy
         $venue->loadMissing('business');
 
         return $user->isOwner()
-            && (int) $venue->business?->owner_id === (int) $user->getKey()
+            && (int) ($venue->business?->owner_id ?? 0) === (int) $user->getKey()
             && $venue->business?->status !== Business::STATUS_SUSPENDED
             && $venue->status !== Venue::STATUS_ARCHIVED;
     }
