@@ -160,6 +160,20 @@ Route::livewire('/reset-password/{token}', 'pages::auth.reset-password')
 |
 */
 
+Route::prefix('account')
+    ->name('customer.')
+    ->middleware([
+        'auth',
+        'account.active',
+        'verified',
+        'role:customer',
+    ])
+    ->group(function () {
+        Route::livewire('/bookings', 'pages::customer.bookings')
+            ->name('bookings.index');
+    });
+
+
 Route::prefix('owner')
     ->name('owner.')
     ->middleware([
