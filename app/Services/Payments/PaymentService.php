@@ -144,9 +144,9 @@ class PaymentService
         $subscription = Subscription::query()->findOrFail($payment->payable_id);
         $invoice = Invoice::query()
             ->where('reference_id', $subscription->getKey())
+            ->whereJsonContains('line_items_json->payment_idempotency_key', $payment->idempotency_key)
             ->whereIn('invoice_type', [Invoice::TYPE_SUBSCRIPTION, Invoice::TYPE_SUBSCRIPTION_UPGRADE])
             ->where('status', Invoice::STATUS_UNPAID)
-            ->latest('id')
             ->firstOrFail();
         $deadline = $payment->expires_at
             ? CarbonImmutable::instance($payment->expires_at)->utc()
