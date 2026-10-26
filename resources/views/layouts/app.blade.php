@@ -89,7 +89,7 @@
                     <span class="sm:hidden">Beranda</span>
                 </a>
             @else
-                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-0.5 lg:flex">
+                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-0.5 xl:flex">
                     @foreach ($navigationItems as $item)
                         @if (isset($item['href']))
                             <a href="{{ $item['href'] }}" class="site-nav-link whitespace-nowrap">{{ $item['label'] }}</a>
@@ -102,7 +102,7 @@
                     @endforeach
                 </nav>
 
-                <div class="hidden shrink-0 items-center gap-3 lg:flex">
+                <div class="hidden shrink-0 items-center gap-3 xl:flex">
                     @auth
                         <div class="max-w-44 text-right">
                             <span class="block max-w-44 truncate text-sm font-bold text-[var(--ink)]">{{ $currentUser->name }}</span>
@@ -118,7 +118,7 @@
                     @endauth
                 </div>
 
-                <details class="mobile-menu lg:hidden">
+                <details class="mobile-menu xl:hidden">
                     <summary aria-label="Buka menu navigasi" aria-controls="menu-navigasi-seluler">
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                     </summary>
