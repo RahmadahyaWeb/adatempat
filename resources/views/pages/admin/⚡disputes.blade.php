@@ -3,6 +3,7 @@
 use App\Models\AuditLog;
 use App\Models\Dispute;
 use App\Models\User;
+use App\Services\Booking\DisputeResolutionService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -12,6 +13,16 @@ new #[Title('Sengketa booking')] class extends Component {
     public string $search = '';
 
     public string $statusFilter = '';
+
+    public string $selectedDisputeId = '';
+
+    public string $decision = 'resolved_to_owner';
+
+    public string $refundAmount = '0';
+
+    public string $payoutAmount = '0';
+
+    public string $resolutionNotes = '';
 
     #[Computed]
     public function disputes()
@@ -53,6 +64,64 @@ new #[Title('Sengketa booking')] class extends Component {
         return $user;
     }
 
+    public function startResolution(int $disputeId): void
+    {
+        $this->requireSuperAdmin();
+        $dispute = Dispute::query()->with('booking')->whereKey($disputeId)->firstOrFail();
+
+        abort_unless(in_array($dispute->status, Dispute::OPEN_STATUSES, true), 403);
+
+        $this->selectedDisputeId = (string) $dispute->getKey();
+        $this->decision = Dispute::STATUS_RESOLVED_TO_OWNER;
+        $this->refundAmount = (string) ((int) $dispute->booking->snapshot_actual_paid_amount);
+        $this->payoutAmount = (string) ((int) $dispute->booking->snapshot_net_owner_entitlement);
+        $this->resolutionNotes = '';
+        $this->resetErrorBag();
+    }
+
+    public function cancelResolution(): void
+    {
+        $this->requireSuperAdmin();
+        $this->selectedDisputeId = '';
+        $this->resolutionNotes = '';
+        $this->resetErrorBag();
+    }
+
+    public function resolveDispute(DisputeResolutionService $resolution): void
+    {
+        $admin = $this->requireSuperAdmin();
+
+        $data = $this->validate([
+            'selectedDisputeId' => ['required', 'integer', 'exists:disputes,id'],
+            'decision' => ['required', 'in:resolved_to_customer,resolved_to_owner,resolved_split'],
+            'refundAmount' => ['required', 'integer', 'min:0'],
+            'payoutAmount' => ['required', 'integer', 'min:0'],
+            'resolutionNotes' => ['required', 'string', 'min:20', 'max:5000'],
+        ], [
+            'decision.required' => 'Pilih keputusan akhir.',
+            'refundAmount.integer' => 'Nominal refund harus berupa bilangan rupiah.',
+            'payoutAmount.integer' => 'Nominal payout harus berupa bilangan rupiah.',
+            'resolutionNotes.required' => 'Alasan keputusan wajib diisi.',
+            'resolutionNotes.min' => 'Alasan keputusan minimal 20 karakter.',
+            'resolutionNotes.max' => 'Alasan keputusan maksimal 5.000 karakter.',
+        ]);
+
+        $dispute = Dispute::query()->findOrFail((int) $data['selectedDisputeId']);
+        $result = $resolution->resolve(
+            $admin,
+            $dispute,
+            $data['decision'],
+            (int) $data['refundAmount'],
+            (int) $data['payoutAmount'],
+            trim($data['resolutionNotes']),
+        );
+
+        $this->selectedDisputeId = '';
+        $this->resolutionNotes = '';
+        unset($this->disputes);
+        session()->flash('status', 'Sengketa ' . $result['dispute']->reference_code . ' diselesaikan. Status refund: ' . ($result['refund']?->status ?? 'tidak diperlukan') . '; payout: ' . $result['payout']->status . '.');
+    }
+
     public function startReview(int $disputeId): void
     {
         $admin = $this->requireSuperAdmin();
@@ -91,6 +160,11 @@ new #[Title('Sengketa booking')] class extends Component {
         <h1 class="mt-3 text-3xl font-extrabold tracking-[-0.05em] sm:text-4xl">Sengketa booking</h1>
         <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Sengketa menghentikan auto-completion dan menahan payout. Tinjau laporan serta riwayat transaksi sebelum mengambil keputusan akhir.</p>
     </header>
+
+    @if (session()->has('status'))
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('status') }}</div>
+    @endif
+    @error('resolution') <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ $message }}</div> @enderror
 
     <section class="ui-panel p-4 sm:p-6">
         <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
@@ -137,7 +211,41 @@ new #[Title('Sengketa booking')] class extends Component {
                             <p class="mt-2 text-xs text-[var(--ink-soft)]">Hak normal Owner</p>
                             <p class="font-bold">Rp{{ number_format($dispute->booking?->snapshot_net_owner_entitlement ?? 0, 0, ',', '.') }}</p>
                             @if ($dispute->status === 'open')
-                                <button type="button" wire:click="startReview({{ $dispute->id }})" class="btn btn-primary mt-3 w-full sm:w-auto">Mulai peninjauan</button>
+                                <button type="button" wire:click="startReview({{ $dispute->id }})" class="btn btn-secondary mt-3 w-full sm:w-auto">Mulai peninjauan</button>
+                            @endif
+                            @if (in_array($dispute->status, ['open', 'under_review'], true))
+                                <button type="button" wire:click="startResolution({{ $dispute->id }})" class="btn btn-primary mt-2 w-full sm:w-auto">Putuskan sengketa</button>
+                            @endif
+                            @if ($selectedDisputeId === (string) $dispute->id)
+                                <form wire:submit="resolveDispute" class="mt-4 rounded-xl bg-[var(--surface-soft)] p-4 text-left">
+                                    <h3 class="font-bold">Keputusan akhir</h3>
+                                    <label class="ui-label mt-3" for="resolution-decision-{{ $dispute->id }}">Hasil resolusi</label>
+                                    <select id="resolution-decision-{{ $dispute->id }}" wire:model="decision" class="ui-input w-full" required>
+                                        <option value="resolved_to_owner">Penyelesaian penuh untuk Owner</option>
+                                        <option value="resolved_to_customer">Refund penuh untuk pelanggan</option>
+                                        <option value="resolved_split">Pembagian parsial</option>
+                                    </select>
+                                    @error('decision') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    @if ($decision === 'resolved_split')
+                                        <label class="ui-label mt-3" for="resolution-refund-{{ $dispute->id }}">Refund pelanggan (Rp)</label>
+                                        <input id="resolution-refund-{{ $dispute->id }}" type="number" min="0" step="1" wire:model="refundAmount" class="ui-input w-full" required>
+                                        @error('refundAmount') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                        <label class="ui-label mt-3" for="resolution-payout-{{ $dispute->id }}">Payout Owner (Rp)</label>
+                                        <input id="resolution-payout-{{ $dispute->id }}" type="number" min="0" step="1" wire:model="payoutAmount" class="ui-input w-full" required>
+                                        @error('payoutAmount') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    @endif
+                                    <label class="ui-label mt-3" for="resolution-notes-{{ $dispute->id }}">Dasar keputusan dan bukti</label>
+                                    <textarea id="resolution-notes-{{ $dispute->id }}" wire:model="resolutionNotes" class="ui-input w-full" rows="4" minlength="20" maxlength="5000" required></textarea>
+                                    @error('resolutionNotes') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    @error('payment') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    @error('payout') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    @error('dispute') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                                    <div class="mt-4 flex flex-wrap gap-2">
+                                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Simpan keputusan</button>
+                                        <button type="button" wire:click="cancelResolution" class="btn btn-secondary">Batal</button>
+                                    </div>
+                                    <p class="mt-3 text-xs leading-5 text-[var(--ink-soft)]">Keputusan final mengubah status booking, mencatat award refund/payout, dan memulai refund jika ada. Pastikan nominal parsial sesuai bukti; biaya gateway tidak boleh mengurangi refund pelanggan.</p>
+                                </form>
                             @endif
                         </div>
                     </div>
