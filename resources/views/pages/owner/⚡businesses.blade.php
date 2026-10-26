@@ -2,6 +2,7 @@
 
 use App\Models\Business;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -17,6 +18,8 @@ new #[Title('Kelola usaha')] class extends Component {
     #[Computed]
     public function businesses(): Collection
     {
+        Gate::authorize('viewAny', Business::class);
+
         return auth()->user()
             ->businesses()
             ->withCount('venues')
@@ -40,7 +43,7 @@ new #[Title('Kelola usaha')] class extends Component {
     {
         $user = auth()->user();
 
-        abort_unless($user && $user->isOwner(), 403);
+        Gate::authorize('create', Business::class);
 
         $validated = $this->validate(
             [
