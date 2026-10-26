@@ -674,6 +674,23 @@ new #[Title('Data venue')] class extends Component {
                 'customFields.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
                 'customFieldValues' => ['array'],
                 'customFieldValues.*' => ['nullable'],
+                'availabilityRules' => ['required', 'array', 'size:7'],
+                'availabilityRules.*.day_of_week' => ['required', 'integer', 'min:0', 'max:6', 'distinct'],
+                'availabilityRules.*.is_open' => ['required', 'boolean'],
+                'availabilityRules.*.open_time' => ['required', 'date_format:H:i'],
+                'availabilityRules.*.close_time' => ['required', 'date_format:H:i'],
+                'availabilityRules.*.buffer_minutes' => ['required', 'integer', 'min:0', 'max:1440'],
+                'pricingUnit' => ['nullable', 'string'],
+                'priceRows' => ['array', 'max:50'],
+                'priceRows.*.id' => ['nullable', 'integer'],
+                'priceRows.*.session_name' => ['nullable', 'string', 'max:80'],
+                'priceRows.*.session_start_time' => ['nullable', 'date_format:H:i'],
+                'priceRows.*.session_end_time' => ['nullable', 'date_format:H:i'],
+                'priceRows.*.step_interval_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+                'priceRows.*.min_duration_units' => ['required', 'integer', 'min:1', 'max:65535'],
+                'priceRows.*.max_duration_units' => ['required', 'integer', 'min:1', 'max:65535'],
+                'priceRows.*.price_amount' => ['required', 'integer', 'min:0'],
+                'priceRows.*.weekend_price_amount' => ['nullable', 'integer', 'min:0'],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -692,6 +709,20 @@ new #[Title('Data venue')] class extends Component {
                 'customFields.*.label.max' => 'Label custom field maksimal 120 karakter.',
                 'customFields.*.input_type.in' => 'Tipe custom field tidak didukung.',
                 'customFields.*.options_text.max' => 'Daftar pilihan terlalu panjang.',
+                'availabilityRules.size' => 'Jadwal harus memuat seluruh tujuh hari dalam seminggu.',
+                'availabilityRules.*.day_of_week.distinct' => 'Setiap hari hanya boleh memiliki satu jadwal.',
+                'availabilityRules.*.open_time.date_format' => 'Format jam buka tidak valid.',
+                'availabilityRules.*.close_time.date_format' => 'Format jam tutup tidak valid.',
+                'availabilityRules.*.buffer_minutes.integer' => 'Waktu jeda harus berupa menit.',
+                'availabilityRules.*.buffer_minutes.min' => 'Waktu jeda tidak boleh negatif.',
+                'availabilityRules.*.buffer_minutes.max' => 'Waktu jeda maksimal 1.440 menit.',
+                'priceRows.max' => 'Maksimal 50 baris harga per venue.',
+                'priceRows.*.session_name.max' => 'Nama sesi maksimal 80 karakter.',
+                'priceRows.*.price_amount.required' => 'Harga wajib diisi.',
+                'priceRows.*.price_amount.integer' => 'Harga harus berupa angka Rupiah bulat.',
+                'priceRows.*.price_amount.min' => 'Harga tidak boleh negatif.',
+                'priceRows.*.weekend_price_amount.integer' => 'Harga akhir pekan harus berupa angka Rupiah bulat.',
+                'priceRows.*.weekend_price_amount.min' => 'Harga akhir pekan tidak boleh negatif.',
             ],
         );
 
@@ -702,6 +733,78 @@ new #[Title('Data venue')] class extends Component {
 
             if ($fieldId !== null && ! in_array((int) $fieldId, $existingCustomFieldIds, true)) {
                 $this->addError("customFields.{$index}.id", 'Custom field tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
+
+        $existingPriceIds = array_map('intval', $venue?->prices()->pluck('id')->all() ?? []);
+
+        foreach ($validated['priceRows'] ?? [] as $index => $priceRow) {
+            $priceId = $priceRow['id'] ?? null;
+
+            if ($priceId !== null && ! in_array((int) $priceId, $existingPriceIds, true)) {
+                $this->addError("priceRows.{$index}.id", 'Baris harga tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
+
+        if (! in_array($validated['pricingUnit'] ?? '', ['', VenuePrice::UNIT_HOURLY, VenuePrice::UNIT_SESSION, VenuePrice::UNIT_DAILY], true)) {
+            $this->addError('pricingUnit', 'Pilih model harga yang didukung.');
+
+            return;
+        }
+
+        foreach ($validated['availabilityRules'] as $index => $rule) {
+            if ((bool) $rule['is_open'] && $rule['open_time'] === $rule['close_time']) {
+                $this->addError("availabilityRules.{$index}.close_time", 'Jam tutup tidak boleh sama dengan jam buka. Gunakan jam tutup yang lebih awal untuk operasional lintas tengah malam.');
+
+                return;
+            }
+        }
+
+        $pricingUnit = (string) ($validated['pricingUnit'] ?? '');
+
+        if ($pricingUnit !== '' && ($validated['priceRows'] ?? []) === []) {
+            $this->addError('priceRows', 'Tambahkan setidaknya satu baris harga.');
+
+            return;
+        }
+
+        if ($pricingUnit !== VenuePrice::UNIT_SESSION && $pricingUnit !== '' && count($validated['priceRows'] ?? []) !== 1) {
+            $this->addError('priceRows', 'Model harga per jam atau per hari harus memiliki tepat satu konfigurasi harga.');
+
+            return;
+        }
+
+        $priceRowRules = [];
+        $priceRowMessages = [];
+
+        if ($pricingUnit === VenuePrice::UNIT_SESSION) {
+            foreach ($validated['priceRows'] as $index => $priceRow) {
+                $priceRowRules["priceRows.{$index}.session_name"] = ['required', 'string', 'max:80'];
+                $priceRowRules["priceRows.{$index}.session_start_time"] = ['required', 'date_format:H:i'];
+                $priceRowRules["priceRows.{$index}.session_end_time"] = ['required', 'date_format:H:i'];
+                $priceRowMessages["priceRows.{$index}.session_name.required"] = 'Nama sesi wajib diisi.';
+                $priceRowMessages["priceRows.{$index}.session_start_time.required"] = 'Jam mulai sesi wajib diisi.';
+                $priceRowMessages["priceRows.{$index}.session_end_time.required"] = 'Jam selesai sesi wajib diisi.';
+
+                if (($priceRow['session_start_time'] ?? null) === ($priceRow['session_end_time'] ?? null)) {
+                    $this->addError("priceRows.{$index}.session_end_time", 'Jam selesai sesi tidak boleh sama dengan jam mulai.');
+
+                    return;
+                }
+            }
+        }
+
+        if ($priceRowRules !== []) {
+            $this->validate($priceRowRules, $priceRowMessages);
+        }
+
+        foreach ($validated['priceRows'] ?? [] as $index => $priceRow) {
+            if ((int) $priceRow['max_duration_units'] < (int) $priceRow['min_duration_units']) {
+                $this->addError("priceRows.{$index}.max_duration_units", 'Durasi maksimum harus lebih besar atau sama dengan durasi minimum.');
 
                 return;
             }
