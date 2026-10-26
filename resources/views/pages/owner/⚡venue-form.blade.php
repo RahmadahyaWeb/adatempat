@@ -679,7 +679,7 @@ new #[Title('Data venue')] class extends Component {
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template): Venue {
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues): Venue {
             if ($venue === null) {
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
@@ -738,6 +738,79 @@ new #[Title('Data venue')] class extends Component {
                         $typedValue,
                     );
                 }
+            }
+
+            $keptCustomFieldIds = [];
+
+            foreach ($normalisedCustomFields as $index => $fieldData) {
+                $fieldId = $fieldData['id'];
+                $fieldAttributes = [
+                    'label' => $fieldData['label'],
+                    'input_type' => $fieldData['input_type'],
+                    'options_json' => $fieldData['options_json'],
+                    'sort_order' => $fieldData['sort_order'],
+                ];
+
+                if ($fieldId !== null) {
+                    $customField = $savedVenue->ownerCustomFields()->whereKey($fieldId)->firstOrFail();
+                    $customField->fill($fieldAttributes)->save();
+                } else {
+                    $baseKey = substr(Str::slug($fieldData['label'], '_') ?: 'field', 0, 70);
+                    $fieldKey = $baseKey;
+                    $suffix = 2;
+
+                    while ($savedVenue->ownerCustomFields()->where('field_key', $fieldKey)->exists()) {
+                        $fieldKey = substr($baseKey, 0, 75) . '_' . $suffix;
+                        $suffix++;
+                    }
+
+                    $customField = $savedVenue->ownerCustomFields()->create($fieldAttributes + [
+                        'field_key' => $fieldKey,
+                        'moderation_status' => OwnerCustomField::STATUS_ACTIVE,
+                        'moderation_reason' => null,
+                    ]);
+                }
+
+                $keptCustomFieldIds[] = $customField->getKey();
+                $rawValue = $normalisedCustomValues[$index] ?? null;
+                $typedValue = [
+                    'template_field_id' => null,
+                    'value_text' => null,
+                    'value_number' => null,
+                    'value_boolean' => null,
+                    'value_json' => null,
+                ];
+
+                switch ($customField->input_type) {
+                    case OwnerCustomField::TYPE_TEXT:
+                    case OwnerCustomField::TYPE_SELECT:
+                        $typedValue['value_text'] = is_string($rawValue) && trim($rawValue) !== '' ? trim($rawValue) : null;
+                        break;
+                    case OwnerCustomField::TYPE_NUMBER:
+                        $typedValue['value_number'] = $rawValue !== null && $rawValue !== '' ? (float) $rawValue : null;
+                        break;
+                    case OwnerCustomField::TYPE_BOOLEAN:
+                        $typedValue['value_boolean'] = (bool) $rawValue;
+                        break;
+                }
+
+                $savedVenue->fieldValues()->updateOrCreate(
+                    ['owner_custom_field_id' => $customField->getKey()],
+                    $typedValue,
+                );
+            }
+
+            $staleCustomFields = $savedVenue->ownerCustomFields();
+
+            if ($keptCustomFieldIds !== []) {
+                $staleCustomFields->whereNotIn('id', $keptCustomFieldIds);
+            }
+
+            $staleCustomFieldIds = $staleCustomFields->pluck('id')->all();
+
+            if ($staleCustomFieldIds !== []) {
+                $savedVenue->fieldValues()->whereIn('owner_custom_field_id', $staleCustomFieldIds)->delete();
+                $savedVenue->ownerCustomFields()->whereIn('id', $staleCustomFieldIds)->delete();
             }
 
             return $savedVenue;
