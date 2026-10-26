@@ -87,15 +87,14 @@ class BookingCompletionAndPayoutTest extends TestCase
     {
         [$owner, $customer, $booking] = $this->createConfirmedBooking('payout-auto-complete-001');
         $booking->update([
-            'booking_start' => now('UTC')->subHours(2),
-            'booking_end' => now('UTC')->subHour(),
+            'booking_start' => now('UTC')->subHours(26),
+            'booking_end' => now('UTC')->subHours(25),
         ]);
 
         $completion = app(BookingCompletionService::class);
         $completion->startByOwner($owner, $booking->fresh());
-        $completion->requestCompletionByOwner($owner, $booking->fresh());
-        $deadline = now('UTC')->subMinute();
-        $booking->update(['completion_window_ends_at' => $deadline]);
+        $this->assertSame(1, $completion->advanceEndedBookings());
+        $deadline = $booking->fresh()->completion_window_ends_at;
 
         $this->assertSame(1, $completion->autoCompleteExpired());
 
