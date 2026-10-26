@@ -69,3 +69,11 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test sudah mencakup
 - Integrasi PR #28: promosi venue oleh Owner; pengujian belum dijalankan.
 
 - Integrasi PR #29: booking hold dan availability; pengujian belum dijalankan.
+
+## Status integrasi PR — 26 Oktober 2026
+
+- PR #19–#41 dan PR #45–#48 telah di-merge ke `main` (27 PR). PR #42 tidak termasuk daftar PR terbuka yang diperiksa.
+- PR #43 dan PR #44 masih terbuka. Keduanya memakai skema/layanan sengketa alternatif yang tidak kompatibel langsung dengan implementasi sengketa PR #45. Jangan merge migrasi `2026_10_26_000022_create_dispute_tables.php` dari PR #43 bersama migrasi `2026_10_26_000022_create_disputes_table.php` dari PR #45 tanpa rekonsiliasi.
+- Modul rekening payout Owner dari PR #41 menggunakan MFA; tautan Owner diarahkan ke `owner.payout-accounts.index`. Rute lama `owner.payout-account` tidak diaktifkan untuk mencegah akses tanpa alur MFA tersebut.
+- Konflik Git diselesaikan pada integrasi bertumpuk, tetapi test otomatis, migrasi, audit keamanan, dan uji end-to-end **belum dijalankan**. Status merge bukan bukti kelulusan pengujian atau kesiapan produksi.
+- Fitur pesan/bukti privat sengketa yang terdapat pada PR #43 masih memerlukan porting ke model sengketa PR #45. Penyelesaian sengketa versi PR #44 tidak boleh menggantikan resolusi finansial PR #45 tanpa kajian kesetaraan aturan bisnis.
