@@ -69,7 +69,7 @@ class BookingCompletionService
 
             $now = CarbonImmutable::now('UTC');
             $before = $locked->status;
-            $deadline = $now->addHours(24);
+            $deadline = CarbonImmutable::instance($locked->booking_end)->utc()->addHours(24);
             $locked->update([
                 'status' => Booking::STATUS_AWAITING_COMPLETION,
                 'completion_window_ends_at' => $deadline,
@@ -120,6 +120,55 @@ class BookingCompletionService
 
             return $locked->refresh();
         }, attempts: 3);
+    }
+
+    public function advanceEndedBookings(int $limit = 100): int
+    {
+        $bookingIds = Booking::query()
+            ->whereIn('status', [Booking::STATUS_CONFIRMED, Booking::STATUS_IN_PROGRESS])
+            ->where('booking_end', '<=', now('UTC'))
+            ->orderBy('booking_end')
+            ->limit(max(1, min($limit, 500)))
+            ->pluck('id');
+
+        $advanced = 0;
+
+        foreach ($bookingIds as $bookingId) {
+            $initial = Booking::query()->find($bookingId);
+
+            if (! $initial) {
+                continue;
+            }
+
+            $didAdvance = DB::transaction(function () use ($initial): bool {
+                Venue::query()->whereKey($initial->venue_id)->lockForUpdate()->firstOrFail();
+                $booking = Booking::query()->whereKey($initial->getKey())->lockForUpdate()->firstOrFail();
+
+                if (
+                    ! in_array($booking->status, [Booking::STATUS_CONFIRMED, Booking::STATUS_IN_PROGRESS], true)
+                    || $booking->booking_end->isFuture()
+                ) {
+                    return false;
+                }
+
+                $before = $booking->status;
+                $deadline = CarbonImmutable::instance($booking->booking_end)->utc()->addHours(24);
+                $booking->update([
+                    'status' => Booking::STATUS_AWAITING_COMPLETION,
+                    'completion_window_ends_at' => $deadline,
+                ]);
+
+                $this->audit(null, $booking, 'booking.awaiting_completion_auto', $before, Booking::STATUS_AWAITING_COMPLETION, 'Waktu booking berakhir; jendela konfirmasi 24 jam dimulai dari booking_end.');
+
+                return true;
+            }, attempts: 3);
+
+            if ($didAdvance) {
+                $advanced++;
+            }
+        }
+
+        return $advanced;
     }
 
     public function autoCompleteExpired(int $limit = 100): int
