@@ -24,7 +24,7 @@ new #[Title('Profil usaha')] class extends Component {
             ->with([
                 'venues' => function ($query): void {
                     $query->published()
-                        ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
+                        ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField'])
                         ->orderBy('name');
                 },
             ])
@@ -139,6 +139,36 @@ new #[Title('Profil usaha')] class extends Component {
                             @if ($displayTemplateValues->isNotEmpty())
                                 <dl class="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
                                     @foreach ($displayTemplateValues as $item)
+                                        <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
+                                            <dt class="text-xs font-semibold text-[var(--muted)]">{{ $item['label'] }}</dt>
+                                            <dd class="break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-right">{{ $item['value'] }}</dd>
+                                        </div>
+                                    @endforeach
+                                </dl>
+                            @endif
+
+                            @php
+                                $displayCustomValues = $venue->fieldValues
+                                    ->filter(fn ($fieldValue) => $fieldValue->ownerCustomField !== null && $fieldValue->ownerCustomField->moderation_status === \\App\\Models\\OwnerCustomField::STATUS_ACTIVE)
+                                    ->map(function ($fieldValue) {
+                                        $field = $fieldValue->ownerCustomField;
+                                        $value = match ($field->input_type) {
+                                            'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
+                                            'number' => $fieldValue->value_number !== null
+                                                ? number_format((float) $fieldValue->value_number, fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2, ',', '.')
+                                                : '',
+                                            default => (string) ($fieldValue->value_text ?? ''),
+                                        };
+
+                                        return ['label' => $field->label, 'value' => $value];
+                                    })
+                                    ->filter(fn ($item) => $item['value'] !== '')
+                                    ->values();
+                            @endphp
+
+                            @if ($displayCustomValues->isNotEmpty())
+                                <dl class="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
+                                    @foreach ($displayCustomValues as $item)
                                         <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
                                             <dt class="text-xs font-semibold text-[var(--muted)]">{{ $item['label'] }}</dt>
                                             <dd class="break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-right">{{ $item['value'] }}</dd>
