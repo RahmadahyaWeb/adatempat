@@ -19,6 +19,7 @@ use App\Services\Booking\BookingCancellationService;
 use App\Services\Booking\BookingEngineService;
 use App\Services\Payments\PaymentWebhookProcessor;
 use App\Services\Payments\RefundService;
+use App\Services\Payments\RefundWebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +72,72 @@ class BookingCancellationServiceTest extends TestCase
         $this->assertSame(100000, $result['refund_amount']);
         $this->assertSame('processing', $result['refund']->status);
         $this->assertNotNull($result['booking']->slot_released_at);
+    }
+
+    public function test_successful_refund_webhook_releases_customer_cancelled_slot(): void
+    {
+        [$owner, $customer, $booking] = $this->createConfirmedBooking('refund-webhook-success-001');
+        $cancelled = app(BookingCancellationService::class)->cancelByCustomer($customer, $booking);
+        $refund = $cancelled['refund'];
+
+        $result = app(RefundWebhookProcessor::class)->process('mock', [
+            'event_id' => 'evt-refund-success-001',
+            'gateway_refund_id' => $refund->gateway_refund_id,
+            'status' => 'succeeded',
+        ]);
+
+        $this->assertSame('processed', $result['status']);
+        $this->assertDatabaseHas('refunds', [
+            'id' => $refund->getKey(),
+            'status' => 'succeeded',
+        ]);
+        $this->assertNotNull($booking->fresh()->slot_released_at);
+        $this->assertDatabaseHas('payments', [
+            'payable_id' => $booking->getKey(),
+            'status' => Payment::STATUS_REFUNDED,
+        ]);
+    }
+
+    public function test_failed_refund_webhook_keeps_customer_cancelled_slot_blocked(): void
+    {
+        [$owner, $customer, $booking] = $this->createConfirmedBooking('refund-webhook-failed-001');
+        $cancelled = app(BookingCancellationService::class)->cancelByCustomer($customer, $booking);
+        $refund = $cancelled['refund'];
+
+        app(RefundWebhookProcessor::class)->process('mock', [
+            'event_id' => 'evt-refund-failed-001',
+            'gateway_refund_id' => $refund->gateway_refund_id,
+            'status' => 'failed',
+        ]);
+
+        $this->assertDatabaseHas('refunds', [
+            'id' => $refund->getKey(),
+            'status' => 'failed',
+        ]);
+        $this->assertNull($booking->fresh()->slot_released_at);
+    }
+
+    public function test_duplicate_refund_webhook_does_not_apply_refund_twice(): void
+    {
+        [$owner, $customer, $booking] = $this->createConfirmedBooking('refund-webhook-duplicate-001');
+        $cancelled = app(BookingCancellationService::class)->cancelByCustomer($customer, $booking);
+        $refund = $cancelled['refund'];
+        $event = [
+            'event_id' => 'evt-refund-duplicate-001',
+            'gateway_refund_id' => $refund->gateway_refund_id,
+            'status' => 'succeeded',
+        ];
+
+        app(RefundWebhookProcessor::class)->process('mock', $event);
+        $second = app(RefundWebhookProcessor::class)->process('mock', $event);
+
+        $this->assertTrue($second['duplicate']);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'gateway_provider' => 'mock',
+            'gateway_event_id' => 'evt-refund-duplicate-001',
+            'duplicate_delivery_count' => 1,
+        ]);
+        $this->assertSame(1, \App\Models\Refund::query()->where('payment_id', $refund->payment_id)->where('status', 'succeeded')->count());
     }
 
     public function test_customer_cancellation_with_zero_percent_refund_releases_slot_without_refund(): void
