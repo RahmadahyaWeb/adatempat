@@ -174,7 +174,7 @@ class PricingAndPromoService
 
         $price = $prices->first();
         $interval = max(1, (int) $price->step_interval_minutes);
-        $durationMinutes = $startsLocal->diffInMinutes($endsLocal);
+        $durationMinutes = (int) $startsLocal->diffInMinutes($endsLocal);
 
         if ($durationMinutes % $interval !== 0) {
             throw ValidationException::withMessages([
