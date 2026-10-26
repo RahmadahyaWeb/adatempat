@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\Payments\PaymentGatewayContract;
+use App\Contracts\Payments\PaymentWebhookContract;
 use App\Models\Business;
 use App\Models\Venue;
 use App\Policies\BusinessPolicy;
@@ -27,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
             }
 
             throw new RuntimeException('No safe payment gateway adapter is configured for driver [' . $driver . '].');
+        });
+
+        $this->app->bind(PaymentWebhookContract::class, function (): PaymentWebhookContract {
+            $driver = (string) config('services.payment_gateway.driver', 'mock');
+
+            if ($driver === 'mock' && ! app()->environment('production')) {
+                return new MockPaymentGateway();
+            }
+
+            throw new RuntimeException('No safe webhook adapter is configured for driver [' . $driver . '].');
         });
     }
 
