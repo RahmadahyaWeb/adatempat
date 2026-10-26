@@ -17,7 +17,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Kerangka setup dan challenge MFA TOTP Super Admin; pengujian manualnya dilewati atas permintaan pengguna.
 
 ### Belum lengkap
-- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi saat ini masih mencakup sebagian kecil skema tersebut; branch ini menambahkan tabel `subscription_plans` dan `platform_settings`.
+- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi di `main` saat ini masih mencakup sebagian kecil skema tersebut; tabel `subscription_plans` dan `platform_settings` sudah tersedia, tetapi alur langganannya belum dibangun.
 - Laravel Policies untuk seluruh domain belum lengkap. BusinessPolicy dan VenuePolicy kini dibuat serta dihubungkan ke aksi daftar, lihat, buat, dan ubah owner; policy untuk domain lain masih harus ditambahkan.
 - Google OAuth belum tersedia di alur login/registrasi dan laravel/socialite tidak tercantum pada dependensi.
 - Seeder paket Starter/Business dan nilai awal `platform_settings` tersedia. UI pengaturan Super Admin dan alur siklus langganan belum tersedia.
@@ -50,7 +50,7 @@ Belum diimplementasikan sebagai alur produk. Termasuk subscription lifecycle, in
 
 ## Tahap 5 — Chat, ulasan, iklan, moderasi, dan pengujian otomatis
 
-Belum diimplementasikan sebagai alur produk lengkap. Test suite saat ini masih berupa kerangka Laravel dasar; pengujian otomatis Feature/Concurrency Tests yang diminta PRD belum dibangun.
+Belum diimplementasikan sebagai alur produk lengkap. Feature Test sudah mencakup regresi revisi identitas dan proses verifikasi usaha pada perubahan terbaru; eksekusi test pada branch ini belum dikonfirmasi. Test concurrency untuk booking/payment, serta test domain refund, payout, langganan, chat, review, iklan, dan moderasi belum tersedia sebagai suite lengkap.
 
 ## Urutan pengembangan berikutnya
 
