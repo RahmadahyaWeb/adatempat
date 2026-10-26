@@ -106,6 +106,9 @@ Route::prefix('admin')
         Route::livewire('/payouts', 'pages::admin.payouts')
             ->name('payouts.index');
 
+        Route::livewire('/refunds', 'pages::admin.refunds')
+            ->name('refunds.index');
+
         Route::livewire('/disputes', 'pages::admin.disputes')
             ->name('disputes.index');
 
