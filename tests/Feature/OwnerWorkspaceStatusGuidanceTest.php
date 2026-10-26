@@ -36,7 +36,7 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
             ->test('pages::owner.businesses')
             ->assertSee('Kelola venue')
             ->assertSee('Kelola data')
-            ->assertSee('Perubahan nama atau alamat perlu disetujui sebelum mengganti informasi publik.');
+            ->assertSee('Perubahan identitas utama harus ditinjau sebelum diterapkan.');
     }
 
     public function test_venue_empty_search_has_clear_filters_action_and_can_recover_the_list(): void
