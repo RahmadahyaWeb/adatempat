@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Business;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentWebhookEvent;
@@ -13,6 +14,7 @@ use App\Services\Payments\PaymentWebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class SubscriptionBillingServiceTest extends TestCase
@@ -55,6 +57,52 @@ class SubscriptionBillingServiceTest extends TestCase
             'auditable_id' => $result['subscription']->getKey(),
             'action' => 'subscription.purchase_started',
         ]);
+    }
+
+    public function test_downgrade_to_starter_is_scheduled_and_records_the_retained_business(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $businesses = collect(['Satu', 'Dua'])->map(function (string $name) use ($owner): Business {
+            return $owner->businesses()->create([
+                'name' => 'Usaha ' . $name,
+                'slug' => 'usaha-' . strtolower($name) . '-' . strtolower((string) Str::ulid()),
+                'address' => 'Alamat pengujian',
+                'timezone' => 'Asia/Jakarta',
+                'status' => Business::STATUS_ACTIVE,
+                'published_at' => now(),
+            ]);
+        });
+        $starter = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $businessPlan = SubscriptionPlan::query()->where('slug', 'business')->firstOrFail();
+        $endsAt = now('UTC')->addDays(10);
+        $subscription = Subscription::query()->create([
+            'owner_id' => $owner->getKey(),
+            'plan_id' => $businessPlan->getKey(),
+            'is_trial' => false,
+            'status' => Subscription::STATUS_ACTIVE,
+            'starts_at' => now('UTC')->subDays(20),
+            'ends_at' => $endsAt,
+            'grace_ends_at' => $endsAt->copy()->addHours(24),
+        ]);
+
+        $result = app(SubscriptionBillingService::class)->checkoutPlan(
+            $owner,
+            $starter,
+            'subscription-downgrade-001',
+            $businesses->first()->getKey(),
+        );
+
+        $this->assertTrue($result['scheduled']);
+        $this->assertNull($result['invoice']);
+        $this->assertNull($result['payment']);
+        $this->assertSame($starter->getKey(), $subscription->fresh()->scheduled_plan_id);
+        $this->assertSame($businesses->first()->getKey(), $subscription->fresh()->retained_business_id);
+        $this->assertSame($endsAt->timestamp, $subscription->fresh()->ends_at->timestamp);
+        $this->assertSame(Business::STATUS_ACTIVE, $businesses->last()->fresh()->status);
     }
 
     public function test_upgrade_prorates_remaining_days_without_changing_subscription_end_date_before_payment(): void
