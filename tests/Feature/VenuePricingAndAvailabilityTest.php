@@ -10,6 +10,7 @@ use App\Models\VenuePrice;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\VenueTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -30,7 +31,7 @@ class VenuePricingAndAvailabilityTest extends TestCase
         $owner = $this->createOwner();
         $business = $this->createBusiness($owner);
         $category = Category::query()->where('slug', 'acara')->firstOrFail();
-        $template = $category->templates()->where('is_active', true)->firstOrFail();
+        $template = $category->venueTemplates()->where('is_active', true)->firstOrFail();
         $rules = $this->defaultAvailabilityRules();
         $rules[1]['is_open'] = true;
         $rules[1]['open_time'] = '08:00';
@@ -211,7 +212,7 @@ class VenuePricingAndAvailabilityTest extends TestCase
     {
         return $owner->businesses()->create([
             'name' => 'Usaha Venue Uji',
-            'slug' => 'usaha-venue-uji-' . strtolower((string) str()->ulid()),
+            'slug' => 'usaha-venue-uji-' . strtolower((string) Str::ulid()),
             'address' => 'Jalan Contoh Nomor 10',
             'status' => Business::STATUS_DRAFT,
             'published_at' => null,
