@@ -19,6 +19,7 @@ class Business extends Model
     public const STATUS_SUSPENDED = 'suspended';
 
     public const STATUS_REJECTED = 'rejected';
+    public const STATUS_ARCHIVED_BY_DOWNGRADE = 'archived_by_downgrade';
 
     protected static function booted(): void
     {
