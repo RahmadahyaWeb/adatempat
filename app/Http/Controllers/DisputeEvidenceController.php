@@ -29,8 +29,7 @@ class DisputeEvidenceController
                 is_scalar($verifiedUserId)
                 && (string) $verifiedUserId === (string) $user->getKey()
                 && is_numeric($verifiedAt)
-                && (int) $verifiedAt <= $now
-                && (int) $verifiedAt >= $now - 600,
+                && (int) $verifiedAt <= $now,
                 403,
             );
         }
