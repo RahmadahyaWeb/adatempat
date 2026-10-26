@@ -106,6 +106,9 @@ Route::prefix('admin')
         Route::livewire('/payouts', 'pages::admin.payouts')
             ->name('payouts.index');
 
+        Route::livewire('/disputes', 'pages::admin.disputes')
+            ->name('disputes.index');
+
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
          * di dalam grup ini saat fitur tersebut dibuat.
