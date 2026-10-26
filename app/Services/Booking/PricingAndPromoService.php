@@ -2,6 +2,8 @@
 
 namespace App\Services\Booking;
 
+use App\Models\Booking;
+use App\Models\BookingHold;
 use App\Models\Venue;
 use App\Models\VenuePrice;
 use App\Models\VenuePromotion;
@@ -35,6 +37,7 @@ class PricingAndPromoService
         CarbonImmutable $startsAtUtc,
         CarbonImmutable $endsAtUtc,
         array $sessionPriceIds = [],
+        bool $lockPromotions = false,
     ): array {
         $startsAtUtc = $startsAtUtc->utc();
         $endsAtUtc = $endsAtUtc->utc();
@@ -102,7 +105,10 @@ class PricingAndPromoService
                     ->orWhereColumn('used_count', '<', 'max_quota');
             })
             ->orderBy('id')
-            ->get();
+            ->when($lockPromotions, fn ($query) => $query->lockForUpdate())
+            ->get()
+            ->filter(fn (VenuePromotion $promotion): bool => $this->hasAvailableQuota($promotion))
+            ->values();
 
         $ownerPromotions = $eligiblePromotions
             ->where('funded_by', VenuePromotion::FUNDED_BY_OWNER)
@@ -299,6 +305,37 @@ class PricingAndPromoService
         return $isWeekend && $price->weekend_price_amount !== null
             ? (int) $price->weekend_price_amount
             : (int) $price->price_amount;
+    }
+
+    private function hasAvailableQuota(VenuePromotion $promotion): bool
+    {
+        if ($promotion->max_quota === null) {
+            return true;
+        }
+
+        $reservedCount = Booking::query()
+            ->where(function ($query) use ($promotion): void {
+                $query->where('owner_promotion_id', $promotion->getKey())
+                    ->orWhere('platform_promotion_id', $promotion->getKey());
+            })
+            ->whereIn('status', [
+                Booking::STATUS_PENDING_PAYMENT,
+                Booking::STATUS_PAYMENT_VERIFYING,
+                Booking::STATUS_RECONCILIATION_REQUIRED,
+            ])
+            ->whereHas('holds', function ($query): void {
+                $query->whereIn('status', [BookingHold::STATUS_ACTIVE, BookingHold::STATUS_RECONCILING])
+                    ->where(function ($holdQuery): void {
+                        $holdQuery->where('status', BookingHold::STATUS_RECONCILING)
+                            ->orWhere(function ($activeQuery): void {
+                                $activeQuery->where('status', BookingHold::STATUS_ACTIVE)
+                                    ->where('expires_at', '>', now('UTC'));
+                            });
+                    });
+            })
+            ->count();
+
+        return $promotion->used_count + $reservedCount < $promotion->max_quota;
     }
 
     private function discountAmount(VenuePromotion $promotion, int $amount): int
