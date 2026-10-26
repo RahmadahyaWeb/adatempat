@@ -17,6 +17,9 @@ use App\Models\VenueAvailabilityRule;
 use App\Services\Booking\BookingCompletionService;
 use App\Services\Booking\BookingEngineService;
 use App\Services\Disputes\DisputeService;
+use App\Services\Disputes\DisputeResolutionService;
+use App\Services\Finance\PayoutService;
+use App\Services\Payments\RefundService;
 use App\Services\Payments\PaymentWebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
@@ -88,6 +91,114 @@ class DisputeServiceTest extends TestCase
             'id' => $evidence->getKey(),
             'dispute_id' => $dispute->getKey(),
             'uploaded_by' => $customer->getKey(),
+        ]);
+    }
+
+    public function test_super_admin_can_resolve_dispute_for_full_owner_payout(): void
+    {
+        [$owner, $customer, $booking] = $this->createAwaitingCompletionBooking('dispute-owner-resolution-001');
+        $dispute = app(DisputeService::class)->open(
+            $customer,
+            $booking,
+            Dispute::REASON_OTHER,
+            'Perlu ditinjau oleh Super Admin.',
+        );
+        $admin = User::factory()->create([
+            'role' => User::ROLE_SUPER_ADMIN,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+
+        $resolved = app(DisputeResolutionService::class)->resolve(
+            $dispute,
+            $admin,
+            Dispute::RESOLUTION_FULL_OWNER_PAYOUT,
+            0,
+            0,
+            'Bukti menunjukkan layanan sudah diberikan.',
+        );
+
+        $this->assertSame(Dispute::STATUS_RESOLVED, $resolved->status);
+        $this->assertSame(100000, $resolved->owner_payout_amount);
+        $this->assertSame(Booking::STATUS_COMPLETED, $booking->fresh()->status);
+        $this->assertDatabaseHas('payouts', [
+            'booking_id' => $booking->getKey(),
+            'status' => 'held',
+            'net_amount' => 100000,
+        ]);
+    }
+
+    public function test_super_admin_can_resolve_dispute_for_full_customer_refund(): void
+    {
+        [$owner, $customer, $booking] = $this->createAwaitingCompletionBooking('dispute-refund-resolution-001');
+        $dispute = app(DisputeService::class)->open(
+            $customer,
+            $booking,
+            Dispute::REASON_SERVICE_NOT_PROVIDED,
+            'Layanan tidak diberikan.',
+        );
+        $admin = User::factory()->create([
+            'role' => User::ROLE_SUPER_ADMIN,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+
+        $resolved = app(DisputeResolutionService::class)->resolve(
+            $dispute,
+            $admin,
+            Dispute::RESOLUTION_FULL_CUSTOMER_REFUND,
+            0,
+            0,
+            'Bukti mendukung refund penuh.',
+        );
+
+        $this->assertSame(100000, $resolved->customer_refund_amount);
+        $this->assertSame(Booking::STATUS_CANCELLED_BY_ADMIN, $booking->fresh()->status);
+        $this->assertNotNull($booking->fresh()->slot_released_at);
+        $this->assertDatabaseHas('refunds', [
+            'booking_id' => $booking->getKey(),
+            'status' => 'processing',
+            'amount' => 100000,
+            'reason_type' => 'dispute_resolution',
+        ]);
+    }
+
+    public function test_partial_dispute_split_creates_refund_and_respects_owner_payout_amount(): void
+    {
+        [$owner, $customer, $booking] = $this->createAwaitingCompletionBooking('dispute-partial-resolution-001');
+        $dispute = app(DisputeService::class)->open(
+            $customer,
+            $booking,
+            Dispute::REASON_BOOKING_MISMATCH,
+            'Sebagian layanan tidak sesuai.',
+        );
+        $admin = User::factory()->create([
+            'role' => User::ROLE_SUPER_ADMIN,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+
+        $resolved = app(DisputeResolutionService::class)->resolve(
+            $dispute,
+            $admin,
+            Dispute::RESOLUTION_PARTIAL_SPLIT,
+            20000,
+            50000,
+            'Refund sebagian dan payout sebagian sesuai bukti.',
+        );
+
+        $this->assertSame(20000, $resolved->customer_refund_amount);
+        $this->assertSame(50000, $resolved->owner_payout_amount);
+        $this->assertDatabaseCount('payouts', 0);
+
+        $refund = \App\Models\Refund::query()->where('booking_id', $booking->getKey())->firstOrFail();
+        app(RefundService::class)->markSucceeded($refund, 'MOCK-PARTIAL-REFUND');
+        app(PayoutService::class)->prepareEligiblePayouts();
+
+        $this->assertDatabaseHas('payouts', [
+            'booking_id' => $booking->getKey(),
+            'status' => 'held',
+            'net_amount' => 50000,
         ]);
     }
 
