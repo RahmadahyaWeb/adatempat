@@ -40,7 +40,7 @@ new #[Title('Langganan Owner')] class extends Component {
     {
         $this->requireSuperAdmin();
 
-        return SubscriptionPlan::query()->where('is_active', true)->orderBy('monthly_price')->get();
+        return SubscriptionPlan::query()->where('is_active', true)->where('slug', 'starter')->orderBy('monthly_price')->get();
     }
 
     #[Computed]
@@ -104,7 +104,7 @@ new #[Title('Langganan Owner')] class extends Component {
     <header>
         <p class="eyebrow"><span class="eyebrow-dot"></span> Platform / Langganan</p>
         <h1 class="mt-3 text-3xl font-extrabold tracking-[-0.05em] sm:text-4xl">Langganan Owner</h1>
-        <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Kelola status langganan dan berikan trial manual kepada Owner hasil akuisisi. Trial memerlukan alasan, tercatat di audit log, dan tidak dapat ditumpuk dengan langganan yang masih berjalan.</p>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Kelola status langganan dan berikan trial manual kepada Owner hasil akuisisi. Trial gratis berlaku 30 hari dengan kuota Starter, memerlukan alasan, tercatat di audit log, dan tidak dapat ditumpuk dengan langganan yang masih berjalan.</p>
     </header>
 
     @if (session()->has('status'))
@@ -125,7 +125,7 @@ new #[Title('Langganan Owner')] class extends Component {
                 @error('ownerId') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="ui-label" for="trial-plan">Paket trial</label>
+                <label class="ui-label" for="trial-plan">Paket trial (Starter)</label>
                 <select id="trial-plan" wire:model="planId" class="ui-input w-full" required>
                     <option value="">Pilih paket</option>
                     @foreach ($this->plans as $plan)

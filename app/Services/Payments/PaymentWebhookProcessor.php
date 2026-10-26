@@ -5,6 +5,7 @@ namespace App\Services\Payments;
 use App\Models\AuditLog;
 use App\Services\Finance\LedgerService;
 use App\Services\Finance\PayoutService;
+use App\Services\Subscriptions\SubscriptionBillingService;
 use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\Payment;
@@ -25,6 +26,7 @@ class PaymentWebhookProcessor
         private readonly SubscriptionEligibilityService $subscriptions,
         private readonly LedgerService $ledger,
         private readonly PayoutService $payouts,
+        private readonly SubscriptionBillingService $subscriptionBilling,
     ) {
     }
 
@@ -48,6 +50,12 @@ class PaymentWebhookProcessor
                 ->where('gateway_provider', $provider)
                 ->where('gateway_transaction_id', $event['gateway_transaction_id'])
                 ->first();
+
+            if ($payment && $payment->payable_type === Payment::TYPE_SUBSCRIPTION) {
+                $status = $this->subscriptionBilling->processWebhook($payment, $eventRecord, $event);
+
+                return ['status' => $status, 'duplicate' => false];
+            }
 
             if (! $payment || $payment->payable_type !== Payment::TYPE_BOOKING) {
                 $eventRecord->update([
