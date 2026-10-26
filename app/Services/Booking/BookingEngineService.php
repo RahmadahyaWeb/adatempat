@@ -42,8 +42,8 @@ class BookingEngineService
         string $idempotencyKey,
         array $sessionPriceIds = [],
     ): array {
-        if (! $customer->isCustomer()) {
-            abort(403, 'Hanya pelanggan yang dapat membuat booking.');
+        if (! $customer->isCustomer() || $customer->status !== 'active' || $customer->email_verified_at === null) {
+            abort(403, 'Hanya pelanggan aktif dengan email terverifikasi yang dapat membuat booking.');
         }
 
         $idempotencyKey = trim($idempotencyKey);
