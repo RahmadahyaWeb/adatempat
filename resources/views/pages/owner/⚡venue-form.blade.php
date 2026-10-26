@@ -332,6 +332,15 @@ new #[Title('Data venue')] class extends Component {
                 'capacityPersons' => ['nullable', 'integer', 'min:1', 'max:100000'],
                 'facilities' => ['array'],
                 'facilities.*' => [Rule::in($facilityOptions)],
+                'customFields' => ['array', 'max:30'],
+                'customFields.*.id' => ['nullable', 'integer'],
+                'customFields.*.field_key' => ['nullable', 'string', 'max:80'],
+                'customFields.*.label' => ['required', 'string', 'max:120'],
+                'customFields.*.input_type' => ['required', Rule::in([OwnerCustomField::TYPE_TEXT, OwnerCustomField::TYPE_NUMBER, OwnerCustomField::TYPE_BOOLEAN, OwnerCustomField::TYPE_SELECT])],
+                'customFields.*.options_text' => ['nullable', 'string', 'max:4000'],
+                'customFields.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+                'customFieldValues' => ['array'],
+                'customFieldValues.*' => ['nullable'],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -345,8 +354,25 @@ new #[Title('Data venue')] class extends Component {
                 'capacityPersons.min' => 'Kapasitas minimal 1 orang.',
                 'capacityPersons.max' => 'Kapasitas maksimal 100.000 orang.',
                 'facilities.*.in' => 'Pilih fasilitas dari daftar yang tersedia.',
+                'customFields.max' => 'Maksimal 30 custom field untuk satu venue.',
+                'customFields.*.label.required' => 'Label custom field wajib diisi.',
+                'customFields.*.label.max' => 'Label custom field maksimal 120 karakter.',
+                'customFields.*.input_type.in' => 'Tipe custom field tidak didukung.',
+                'customFields.*.options_text.max' => 'Daftar pilihan terlalu panjang.',
             ],
         );
+
+        $existingCustomFieldIds = array_map('intval', $venue?->ownerCustomFields()->pluck('id')->all() ?? []);
+
+        foreach ($validated['customFields'] ?? [] as $index => $customField) {
+            $fieldId = $customField['id'] ?? null;
+
+            if ($fieldId !== null && ! in_array((int) $fieldId, $existingCustomFieldIds, true)) {
+                $this->addError("customFields.{$index}.id", 'Custom field tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
 
         $category = Category::query()->findOrFail($validated['categoryId']);
 
@@ -469,6 +495,66 @@ new #[Title('Data venue')] class extends Component {
             $this->validate($templateRules, $templateMessages);
         }
 
+        $normalisedCustomFields = [];
+        $normalisedCustomValues = [];
+        $customFieldRules = [];
+        $customFieldMessages = [];
+        $customFieldDefinitionErrors = false;
+
+        foreach ($validated['customFields'] ?? [] as $index => $field) {
+            $options = collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($field['options_text'] ?? '')) ?: [])
+                ->map(fn (string $option): string => trim($option))
+                ->filter(fn (string $option): bool => $option !== '')
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($field['input_type'] === OwnerCustomField::TYPE_SELECT && $options === []) {
+                $this->addError("customFields.{$index}.options_text", 'Tambahkan minimal satu pilihan untuk custom field bertipe pilihan.');
+                $customFieldDefinitionErrors = true;
+                continue;
+            }
+
+            $value = $this->customFieldValues[$index] ?? null;
+
+            if ($field['input_type'] !== OwnerCustomField::TYPE_BOOLEAN && is_string($value) && trim($value) === '') {
+                $value = null;
+            }
+
+            $valueKey = "customFieldValues.{$index}";
+            $customFieldRules[$valueKey] = match ($field['input_type']) {
+                OwnerCustomField::TYPE_TEXT => ['nullable', 'string', 'max:2000'],
+                OwnerCustomField::TYPE_NUMBER => ['nullable', 'numeric'],
+                OwnerCustomField::TYPE_BOOLEAN => ['boolean'],
+                OwnerCustomField::TYPE_SELECT => ['nullable', 'string', Rule::in($options)],
+                default => ['prohibited'],
+            };
+            $customFieldMessages[$valueKey . '.string'] = $field['label'] . ' harus berupa teks.';
+            $customFieldMessages[$valueKey . '.numeric'] = $field['label'] . ' harus berupa angka.';
+            $customFieldMessages[$valueKey . '.boolean'] = $field['label'] . ' harus berupa pilihan ya/tidak.';
+            $customFieldMessages[$valueKey . '.in'] = 'Pilihan untuk ' . $field['label'] . ' tidak valid.';
+            $customFieldMessages[$valueKey . '.max'] = $field['label'] . ' maksimal 2.000 karakter.';
+
+            $normalisedCustomFields[] = [
+                'id' => isset($field['id']) && $field['id'] !== '' ? (int) $field['id'] : null,
+                'label' => trim($field['label']),
+                'input_type' => $field['input_type'],
+                'options_json' => $field['input_type'] === OwnerCustomField::TYPE_SELECT ? $options : null,
+                'sort_order' => (int) $field['sort_order'],
+            ];
+            $normalisedCustomValues[] = $value;
+        }
+
+        if ($customFieldDefinitionErrors) {
+            return;
+        }
+
+        $this->customFieldValues = $normalisedCustomValues;
+
+        if ($customFieldRules !== []) {
+            $this->validate($customFieldRules, $customFieldMessages);
+        }
+
         $venueName = trim($validated['name']);
         $slugBase = Str::slug($venueName) ?: 'venue';
         $slug = $slugBase;
@@ -495,7 +581,7 @@ new #[Title('Data venue')] class extends Component {
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template): Venue {
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues): Venue {
             if ($venue === null) {
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
@@ -554,6 +640,79 @@ new #[Title('Data venue')] class extends Component {
                         $typedValue,
                     );
                 }
+            }
+
+            $keptCustomFieldIds = [];
+
+            foreach ($normalisedCustomFields as $index => $fieldData) {
+                $fieldId = $fieldData['id'];
+                $fieldAttributes = [
+                    'label' => $fieldData['label'],
+                    'input_type' => $fieldData['input_type'],
+                    'options_json' => $fieldData['options_json'],
+                    'sort_order' => $fieldData['sort_order'],
+                ];
+
+                if ($fieldId !== null) {
+                    $customField = $savedVenue->ownerCustomFields()->whereKey($fieldId)->firstOrFail();
+                    $customField->fill($fieldAttributes)->save();
+                } else {
+                    $baseKey = substr(Str::slug($fieldData['label'], '_') ?: 'field', 0, 70);
+                    $fieldKey = $baseKey;
+                    $suffix = 2;
+
+                    while ($savedVenue->ownerCustomFields()->where('field_key', $fieldKey)->exists()) {
+                        $fieldKey = substr($baseKey, 0, 75) . '_' . $suffix;
+                        $suffix++;
+                    }
+
+                    $customField = $savedVenue->ownerCustomFields()->create($fieldAttributes + [
+                        'field_key' => $fieldKey,
+                        'moderation_status' => OwnerCustomField::STATUS_ACTIVE,
+                        'moderation_reason' => null,
+                    ]);
+                }
+
+                $keptCustomFieldIds[] = $customField->getKey();
+                $rawValue = $normalisedCustomValues[$index] ?? null;
+                $typedValue = [
+                    'template_field_id' => null,
+                    'value_text' => null,
+                    'value_number' => null,
+                    'value_boolean' => null,
+                    'value_json' => null,
+                ];
+
+                switch ($customField->input_type) {
+                    case OwnerCustomField::TYPE_TEXT:
+                    case OwnerCustomField::TYPE_SELECT:
+                        $typedValue['value_text'] = is_string($rawValue) && trim($rawValue) !== '' ? trim($rawValue) : null;
+                        break;
+                    case OwnerCustomField::TYPE_NUMBER:
+                        $typedValue['value_number'] = $rawValue !== null && $rawValue !== '' ? (float) $rawValue : null;
+                        break;
+                    case OwnerCustomField::TYPE_BOOLEAN:
+                        $typedValue['value_boolean'] = (bool) $rawValue;
+                        break;
+                }
+
+                $savedVenue->fieldValues()->updateOrCreate(
+                    ['owner_custom_field_id' => $customField->getKey()],
+                    $typedValue,
+                );
+            }
+
+            $staleCustomFields = $savedVenue->ownerCustomFields();
+
+            if ($keptCustomFieldIds !== []) {
+                $staleCustomFields->whereNotIn('id', $keptCustomFieldIds);
+            }
+
+            $staleCustomFieldIds = $staleCustomFields->pluck('id')->all();
+
+            if ($staleCustomFieldIds !== []) {
+                $savedVenue->fieldValues()->whereIn('owner_custom_field_id', $staleCustomFieldIds)->delete();
+                $savedVenue->ownerCustomFields()->whereIn('id', $staleCustomFieldIds)->delete();
             }
 
             return $savedVenue;
