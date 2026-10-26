@@ -59,7 +59,7 @@ class AvailabilityService
             return false;
         }
 
-        return ! $this->overlapsBooking($venue, $conflictStart, $conflictEnd);
+        return ! $this->overlapsBooking($venue, $conflictStart, $conflictEnd, $ignoreBookingId);
     }
 
     public function assertAvailable(
