@@ -46,6 +46,7 @@
                     [
                         'label' => 'Pengelolaan platform',
                         'items' => [
+                            ['label' => 'Template venue', 'href' => route('venue-templates.index')],
                             ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
                             ['label' => 'Pengaturan platform', 'placeholder' => 'Segera hadir'],
                         ],
@@ -241,6 +242,7 @@
                 @if ($currentUser)
                     @if ($currentUser->isSuperAdmin())
                         <a class="underline-offset-4 hover:underline" href="{{ route('business-revisions.index') }}">Peninjauan revisi</a>
+                        <a class="underline-offset-4 hover:underline" href="{{ route('venue-templates.index') }}">Template venue</a>
                     @elseif ($currentUser->isOwner())
                         @if ($currentUser->hasVerifiedEmail())
                             <a class="underline-offset-4 hover:underline" href="{{ route('owner.businesses.index') }}">Kelola usaha</a>
