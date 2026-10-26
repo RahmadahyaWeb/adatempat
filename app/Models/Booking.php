@@ -122,6 +122,11 @@ class Booking extends Model
         return $this->hasMany(Refund::class);
     }
 
+    public function dispute(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Dispute::class);
+    }
+
     public function payout(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Payout::class);
