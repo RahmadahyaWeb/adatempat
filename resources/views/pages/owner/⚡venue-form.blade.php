@@ -350,15 +350,16 @@ new #[Title('Data venue')] class extends Component {
 
         try {
             DB::transaction(function () use ($venue, $file, $mimeType, $disk, $path, $validated, &$createdMediaId): void {
-                $isCover = (bool) $validated['mediaIsCover'] || ! $venue->media()->exists();
+                $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+                $isCover = (bool) $validated['mediaIsCover'] || ! $lockedVenue->media()->exists();
 
                 if ($isCover) {
-                    $venue->media()->update(['is_cover' => false]);
+                    $lockedVenue->media()->update(['is_cover' => false]);
                 }
 
-                $sortOrder = ((int) $venue->media()->max('sort_order')) + 10;
+                $sortOrder = ((int) $lockedVenue->media()->max('sort_order')) + 10;
 
-                $createdMedia = $venue->media()->create([
+                $createdMedia = $lockedVenue->media()->create([
                     'disk' => $disk,
                     'file_path' => $path,
                     'mime_type' => $mimeType,
@@ -417,8 +418,10 @@ new #[Title('Data venue')] class extends Component {
         $media = $venue->media()->whereKey($mediaId)->firstOrFail();
 
         DB::transaction(function () use ($venue, $media): void {
-            $venue->media()->update(['is_cover' => false]);
-            $media->update(['is_cover' => true]);
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $lockedMedia = $lockedVenue->media()->whereKey($media->getKey())->firstOrFail();
+            $lockedVenue->media()->update(['is_cover' => false]);
+            $lockedMedia->update(['is_cover' => true]);
         });
 
         unset($this->currentVenue);
@@ -474,11 +477,13 @@ new #[Title('Data venue')] class extends Component {
         $path = $media->file_path;
         $wasCover = $media->is_cover;
 
-        DB::transaction(function () use ($venue, $media, $wasCover): void {
-            $media->delete();
+        DB::transaction(function () use ($venue, $mediaId, $wasCover): void {
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $lockedMedia = $lockedVenue->media()->whereKey($mediaId)->firstOrFail();
+            $lockedMedia->delete();
 
             if ($wasCover) {
-                $replacement = $venue->media()->orderBy('sort_order')->orderBy('id')->first();
+                $replacement = $lockedVenue->media()->orderBy('sort_order')->orderBy('id')->first();
                 $replacement?->update(['is_cover' => true]);
             }
         });
