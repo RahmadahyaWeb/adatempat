@@ -117,7 +117,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -339,8 +339,10 @@ new #[Title('Data venue')] class extends Component {
         $disk = 'public';
         $path = $file->storePublicly('venues/' . $venue->public_id, $disk);
 
+        $createdMediaId = null;
+
         try {
-            DB::transaction(function () use ($venue, $file, $mimeType, $disk, $path, $validated): void {
+            DB::transaction(function () use ($venue, $file, $mimeType, $disk, $path, $validated, &$createdMediaId): void {
                 $isCover = (bool) $validated['mediaIsCover'] || ! $venue->media()->exists();
 
                 if ($isCover) {
@@ -349,7 +351,7 @@ new #[Title('Data venue')] class extends Component {
 
                 $sortOrder = ((int) $venue->media()->max('sort_order')) + 10;
 
-                $venue->media()->create([
+                $createdMedia = $venue->media()->create([
                     'disk' => $disk,
                     'file_path' => $path,
                     'mime_type' => $mimeType,
@@ -358,6 +360,7 @@ new #[Title('Data venue')] class extends Component {
                     'is_cover' => $isCover,
                     'sort_order' => $sortOrder,
                 ]);
+                $createdMediaId = $createdMedia->getKey();
             });
         } catch (\Throwable $exception) {
             Storage::disk($disk)->delete($path);
@@ -366,6 +369,9 @@ new #[Title('Data venue')] class extends Component {
         }
 
         $this->reset(['mediaUpload', 'mediaAltText', 'mediaIsCover']);
+        if ($createdMediaId !== null) {
+            $this->mediaAltTexts[$createdMediaId] = trim($validated['mediaAltText']);
+        }
         unset($this->currentVenue);
         session()->flash('status', 'Foto venue berhasil diunggah.');
     }
