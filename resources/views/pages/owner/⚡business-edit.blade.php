@@ -51,12 +51,12 @@ new #[Title('Profil usaha')] class extends Component {
     }
 
     #[Computed]
-    public function latestRejectedRevision(): ?BusinessRevision
+    public function latestRevision(): ?BusinessRevision
     {
         return $this->currentBusiness
             ->revisions()
-            ->where('status', BusinessRevision::STATUS_REJECTED)
             ->latest('created_at')
+            ->latest('id')
             ->first();
     }
 
@@ -149,7 +149,7 @@ new #[Title('Profil usaha')] class extends Component {
             }
 
             $this->resetValidation();
-            unset($this->currentBusiness, $this->pendingRevision);
+            unset($this->currentBusiness, $this->pendingRevision, $this->latestRevision);
             session()->flash(
                 'status',
                 'Revisi identitas berhasil diajukan. Informasi publik tetap menggunakan data yang saat ini disetujui sampai Super Admin meninjau revisi.',
@@ -199,7 +199,7 @@ new #[Title('Profil usaha')] class extends Component {
         $canEdit = $this->canEditIdentity();
         $canSubmit = $canEdit || $this->canSubmitRevision();
         $pendingRevision = $this->pendingRevision;
-        $latestRejectedRevision = $this->latestRejectedRevision;
+        $latestRevision = $this->latestRevision;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -247,12 +247,22 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @endif
 
-            @if (!$pendingRevision && $latestRejectedRevision)
+            @if (!$pendingRevision && $latestRevision?->status === \App\Models\BusinessRevision::STATUS_REJECTED)
                 <div class="status-note mt-5">
-                    <p class="font-bold">Revisi identitas sebelumnya ditolak</p>
-                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRejectedRevision->proposed_name }}</strong></p>
-                    <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRejectedRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
-                    <p class="mt-2 text-xs leading-5">Data publik tetap menggunakan identitas yang disetujui. Perbaiki usulan lalu ajukan revisi baru.</p>
+                    <p class="font-bold">Revisi identitas terakhir ditolak</p>
+                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
+                    <p class="mt-2 text-xs leading-5">Perbaiki informasi yang diminta lalu ajukan revisi baru. Nama dan alamat publik tetap menggunakan data yang disetujui.</p>
+                </div>
+            @elseif (!$pendingRevision && $latestRevision?->status === \App\Models\BusinessRevision::STATUS_APPROVED)
+                <div role="status" class="status-note status-success mt-5">
+                    <p class="font-bold">Revisi identitas terakhir disetujui</p>
+                    <p class="mt-2 text-sm leading-6">Nama yang disetujui: <strong>{{ $latestRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Alamat yang disetujui: <strong>{{ $latestRevision->proposed_address ?: 'Belum diisi' }}</strong></p>
+                    @if ($latestRevision->reviewed_at)
+                        <p class="mt-2 text-xs leading-5">Disetujui pada {{ $latestRevision->reviewed_at->format('d/m/Y H:i') }}.</p>
+                    @endif
+                    <p class="mt-2 text-xs leading-5">Data usaha kini menggunakan identitas yang disetujui. Jika profil sudah dipublikasikan, informasi ini menjadi identitas yang tampil ke publik. Tautan profil tetap menggunakan slug sebelumnya.</p>
                 </div>
             @endif
 
@@ -289,29 +299,72 @@ new #[Title('Profil usaha')] class extends Component {
         </section>
 
         <aside class="rounded-2xl bg-[var(--surface-soft)] p-5 sm:p-6">
-            <p class="eyebrow"><span class="eyebrow-dot"></span> Berikutnya</p>
-            <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Siapkan informasi venue</h2>
-            <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Sebelum usaha dapat ditampilkan ke publik, data venue, foto, informasi operasional, dan proses verifikasi perlu diselesaikan.</p>
-            <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-lime)] text-xs font-extrabold text-[var(--ink)]">1</span>
-                    <div><p class="text-sm font-bold">Profil usaha</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Nama dan alamat dasar</p></div>
+            @if ($business->status === \App\Models\Business::STATUS_ACTIVE)
+                @if ($business->published_at)
+                    <p class="eyebrow"><span class="eyebrow-dot"></span> Profil publik</p>
+                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Profil usaha sudah aktif</h2>
+                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Nama dan alamat di profil publik mengikuti identitas yang disetujui. Perubahan identitas berikutnya perlu ditinjau Super Admin sebelum tampil ke publik.</p>
+                @else
+                    <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
+                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Identitas usaha berstatus aktif</h2>
+                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Tanggal publikasi belum tercatat. Pastikan status publikasi sudah benar sebelum membagikan tautan profil.</p>
+                @endif
+
+                <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
+                    <div class="flex items-start gap-3">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--success-bg)] text-sm font-extrabold text-[var(--success-ink)]">✓</span>
+                        <div>
+                            <p class="text-sm font-bold">Identitas usaha</p>
+                            <p class="mt-1 text-xs leading-5 text-[var(--muted)]">Nama dan alamat yang disetujui</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">2</span>
+                        <div>
+                            <p class="text-sm font-bold">Kelola venue</p>
+                            <p class="mt-1 text-xs leading-5 text-[var(--muted)]">Perbarui nama, kategori, dan deskripsi venue</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">2</span>
-                    <div><p class="text-sm font-bold">Detail venue</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Informasi ruang dan kategori</p></div>
+            @elseif ($business->status === \App\Models\Business::STATUS_PENDING_VERIFICATION)
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
+                <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Menunggu verifikasi</h2>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Identitas usaha sedang menunggu keputusan. Perubahan identitas dikunci selama status ini berlangsung.</p>
+                <p class="mt-5 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">Halaman ini belum menyediakan alur pengajuan ulang verifikasi. Status akan tetap mengikuti data yang tercatat di sistem.</p>
+            @elseif ($business->status === \App\Models\Business::STATUS_REJECTED)
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Perlu tindakan</p>
+                <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Perbaiki profil usaha</h2>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Kamu dapat memperbaiki nama dan alamat lalu menyimpan perubahan. Penyimpanan tidak otomatis mengajukan ulang verifikasi.</p>
+                <p class="mt-5 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">Alur pengajuan ulang verifikasi belum tersedia pada versi ini.</p>
+            @elseif ($business->status === \App\Models\Business::STATUS_DRAFT)
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Langkah berikutnya</p>
+                <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Lengkapi profil usaha</h2>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha berstatus draft belum tampil di katalog publik. Lengkapi identitas dan siapkan detail venue sebelum proses publikasi tersedia.</p>
+                <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
+                    <div class="flex items-start gap-3">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-lime)] text-xs font-extrabold text-[var(--ink)]">1</span>
+                        <div><p class="text-sm font-bold">Profil usaha</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Nama dan alamat dasar</p></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">2</span>
+                        <div><p class="text-sm font-bold">Detail venue</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Nama, kategori, dan deskripsi ruang</p></div>
+                    </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">3</span>
-                    <div><p class="text-sm font-bold">Tinjau dan verifikasi</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Sebelum profil ditampilkan kepada publik</p></div>
-                </div>
-            </div>
-            <p class="mt-5 text-xs leading-5 text-[var(--muted)]">Kelola nama, kategori, dan deskripsi venue dari katalog usaha ini. Pengaturan foto, harga, dan jadwal menyusul pada modul berikutnya.</p>
+                <p class="mt-5 text-xs leading-5 text-[var(--muted)]">Pengaturan foto, harga, jam operasional, dan pengajuan verifikasi belum tersedia pada versi ini.</p>
+            @else
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
+                <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Usaha ditangguhkan</h2>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Pengelolaan usaha dibatasi selama status penangguhan. Hubungi pengelola platform melalui kanal dukungan yang tersedia jika perlu meninjau status ini.</p>
+            @endif
+
             @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
                 <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-primary mt-5 w-full">
                     Kelola venue
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
                 </a>
+                @if ($business->status === \App\Models\Business::STATUS_ACTIVE && $business->published_at)
+                    <a href="{{ route('business.public', ['businessSlug' => $business->slug]) }}" class="btn btn-secondary mt-2 w-full">Lihat profil publik</a>
+                @endif
             @endif
         </aside>
     </div>
