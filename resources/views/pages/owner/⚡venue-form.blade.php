@@ -437,27 +437,28 @@ new #[Title('Data venue')] class extends Component {
         abort_unless($venue !== null, 404);
         Gate::authorize('update', $venue);
 
-        $items = $venue->media()->orderBy('sort_order')->orderBy('id')->get()->all();
-        $ids = array_map(fn ($item) => (int) $item->getKey(), $items);
-        $index = array_search($mediaId, $ids, true);
+        DB::transaction(function () use ($venue, $mediaId, $direction): void {
+            $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
+            $items = $lockedVenue->media()->orderBy('sort_order')->orderBy('id')->get()->all();
+            $ids = array_map(fn ($item) => (int) $item->getKey(), $items);
+            $index = array_search($mediaId, $ids, true);
 
-        if ($index === false) {
-            abort(404);
-        }
+            if ($index === false) {
+                abort(404);
+            }
 
-        $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+            $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
 
-        if (! isset($items[$targetIndex])) {
-            return;
-        }
+            if (! isset($items[$targetIndex])) {
+                return;
+            }
 
-        $current = $items[$index];
-        $items[$index] = $items[$targetIndex];
-        $items[$targetIndex] = $current;
+            $current = $items[$index];
+            $items[$index] = $items[$targetIndex];
+            $items[$targetIndex] = $current;
 
-        DB::transaction(function () use ($items): void {
-            foreach ($items as $index => $item) {
-                $item->update(['sort_order' => ($index + 1) * 10]);
+            foreach ($items as $itemIndex => $item) {
+                $item->update(['sort_order' => ($itemIndex + 1) * 10]);
             }
         });
 
