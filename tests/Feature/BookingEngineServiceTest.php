@@ -54,7 +54,9 @@ class BookingEngineServiceTest extends TestCase
         $this->assertSame(Booking::STATUS_PENDING_PAYMENT, $result['booking']->status);
         $this->assertTrue($result['booking']->payment_required);
         $this->assertSame(Payment::STATUS_PENDING, $result['payment']->status);
-        $this->assertNull($result['payment']->qris_payload);
+        $this->assertNotNull($result['payment']->qris_payload);
+        $this->assertSame('mock', $result['payment']->gateway_provider);
+        $this->assertStringStartsWith('MOCK-QRIS:', $result['payment']->qris_payload);
         $this->assertSame(100000, $result['payment']->amount);
         $this->assertSame(BookingHold::STATUS_ACTIVE, $result['hold']->status);
         $this->assertEqualsWithDelta(now('UTC')->addMinutes(15)->timestamp, $result['hold']->expires_at->timestamp, 5);
