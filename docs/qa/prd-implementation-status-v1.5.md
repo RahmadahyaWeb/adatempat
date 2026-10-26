@@ -34,8 +34,8 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 ### Parsial / pekerjaan yang dilanjutkan
 - Revisi identitas usaha aktif: Owner dapat mengajukan perubahan identitas tanpa langsung mengubah data publik; Super Admin dapat menyetujui/menolak, termasuk kota/provinsi/koordinat, dan keputusan dicatat ke `audit_logs`.
 - Alur verifikasi usaha baru sedang dikerjakan di PR #21 (belum merged): pengajuan Owner, antrean Super Admin, keputusan dengan alasan wajib, dan audit log. Persetujuan tetap tidak menerbitkan profil ke publik sampai aturan langganan/publikasi tersedia.
-- Fondasi template kategori dan field dinamis venue sedang dikerjakan di PR #22: tabel template/field, template awal untuk kategori Acara, Meeting, Foto, dan Outdoor, validasi server berdasarkan tipe, penyimpanan nilai bertipe, kapasitas, fasilitas standar, dan tampilan nilai pada profil publik. Pengujian PR #22 belum dijalankan.
-- UI Super Admin untuk mengelola template/field dan custom field Owner masih belum tersedia.
+- Fondasi template kategori dan field dinamis venue sedang dikerjakan di PR #22 (belum merged): template default untuk kategori Acara, Meeting, Foto, dan Outdoor; validasi server; penyimpanan nilai bertipe; kapasitas/fasilitas; dan tampilan nilai pada profil publik. Test baru belum dijalankan.
+- UI Super Admin untuk mengelola template dan field sedang dikerjakan di PR #23 (bertumpuk di atas PR #22); custom field Owner masih belum diimplementasikan.
 - Media/foto, harga, jam operasional, availability, blok waktu, dan promosi belum tersedia di formulir pengelolaan.
 - Pencarian tingkat lanjut menurut rentang harga, kapasitas, fasilitas, tanggal/jam, jarak, dan rating belum lengkap.
 - Carousel dan sistem slot iklan belum tersedia.
