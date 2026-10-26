@@ -51,16 +51,13 @@ new #[Title('Profil usaha')] class extends Component {
     }
 
     #[Computed]
-    public function latestRejectedRevision(): ?BusinessRevision
+    public function latestRevision(): ?BusinessRevision
     {
-        $latestRevision = $this->currentBusiness
+        return $this->currentBusiness
             ->revisions()
             ->latest('created_at')
+            ->latest('id')
             ->first();
-
-        return $latestRevision?->status === BusinessRevision::STATUS_REJECTED
-            ? $latestRevision
-            : null;
     }
 
     public function canEditIdentity(): bool
@@ -152,7 +149,7 @@ new #[Title('Profil usaha')] class extends Component {
             }
 
             $this->resetValidation();
-            unset($this->currentBusiness, $this->pendingRevision);
+            unset($this->currentBusiness, $this->pendingRevision, $this->latestRevision);
             session()->flash(
                 'status',
                 'Revisi identitas berhasil diajukan. Informasi publik tetap menggunakan data yang saat ini disetujui sampai Super Admin meninjau revisi.',
@@ -202,7 +199,7 @@ new #[Title('Profil usaha')] class extends Component {
         $canEdit = $this->canEditIdentity();
         $canSubmit = $canEdit || $this->canSubmitRevision();
         $pendingRevision = $this->pendingRevision;
-        $latestRejectedRevision = $this->latestRejectedRevision;
+        $latestRevision = $this->latestRevision;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -250,12 +247,22 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @endif
 
-            @if (!$pendingRevision && $latestRejectedRevision)
+            @if (!$pendingRevision && $latestRevision?->status === \\App\\Models\\BusinessRevision::STATUS_REJECTED)
                 <div class="status-note mt-5">
-                    <p class="font-bold">Revisi identitas sebelumnya ditolak</p>
-                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRejectedRevision->proposed_name }}</strong></p>
-                    <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRejectedRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
-                    <p class="mt-2 text-xs leading-5">Data publik tetap menggunakan identitas yang disetujui. Perbaiki usulan lalu ajukan revisi baru.</p>
+                    <p class="font-bold">Revisi identitas terakhir ditolak</p>
+                    <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
+                    <p class="mt-2 text-xs leading-5">Perbaiki informasi yang diminta lalu ajukan revisi baru. Nama dan alamat publik tetap menggunakan data yang disetujui.</p>
+                </div>
+            @elseif (!$pendingRevision && $latestRevision?->status === \\App\\Models\\BusinessRevision::STATUS_APPROVED)
+                <div role="status" class="status-note status-success mt-5">
+                    <p class="font-bold">Revisi identitas terakhir disetujui</p>
+                    <p class="mt-2 text-sm leading-6">Nama yang disetujui: <strong>{{ $latestRevision->proposed_name }}</strong></p>
+                    <p class="mt-1 text-sm leading-6">Alamat yang disetujui: <strong>{{ $latestRevision->proposed_address ?: 'Belum diisi' }}</strong></p>
+                    @if ($latestRevision->reviewed_at)
+                        <p class="mt-2 text-xs leading-5">Disetujui pada {{ $latestRevision->reviewed_at->format('d/m/Y H:i') }}.</p>
+                    @endif
+                    <p class="mt-2 text-xs leading-5">Informasi publik kini menggunakan identitas yang disetujui. Tautan profil tetap menggunakan slug sebelumnya.</p>
                 </div>
             @endif
 
