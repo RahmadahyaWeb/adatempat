@@ -80,7 +80,7 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
 
             try {
                 $paidAt = CarbonImmutable::parse($paidAt)->utc()->toIso8601String();
-            } catch (\\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 throw new InvalidArgumentException('The gateway paid_at timestamp is invalid.', previous: $exception);
             }
         } else {
