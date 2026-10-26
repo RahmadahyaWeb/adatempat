@@ -18,7 +18,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 
 ### Belum lengkap
 - Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi saat ini baru mencakup sebagian kecil skema tersebut.
-- Belum tersedia set lengkap model, relasi, dan Laravel Policies yang diminta PRD untuk seluruh domain.
+- Laravel Policies untuk seluruh domain belum lengkap. BusinessPolicy dan VenuePolicy kini dibuat serta dihubungkan ke aksi daftar, lihat, buat, dan ubah owner; policy untuk domain lain masih harus ditambahkan.
 - Google OAuth belum tersedia di alur login/registrasi dan laravel/socialite tidak tercantum pada dependensi.
 - Seeder paket langganan dan platform_settings belum tersedia sebagai fondasi konfigurasi lengkap.
 - Audit log baru ditambahkan untuk keputusan revisi identitas dalam perubahan ini; kebutuhan audit lintas modul masih harus diterapkan sesuai PRD.
@@ -57,4 +57,4 @@ Belum diimplementasikan sebagai alur produk lengkap. Test suite saat ini masih b
 2. Menyelesaikan alur Tahap 2: verifikasi usaha baru, template/custom fields venue, media, kapasitas, harga, jadwal, availability, dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
-**Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Perubahan kode pada branch perlu ditinjau dan digabung sebelum dianggap bagian dari main.
+**Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah diimplementasikan pada branch `feat/owner-authorization-policies`; belum diuji dan belum digabung ke `main`.
