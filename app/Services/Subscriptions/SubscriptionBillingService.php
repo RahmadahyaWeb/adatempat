@@ -3,6 +3,7 @@
 namespace App\Services\Subscriptions;
 
 use App\Models\AuditLog;
+use App\Models\PaymentWebhookEvent;
 use App\Models\Business;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -10,13 +11,18 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Payments\PaymentService;
+use App\Services\Finance\LedgerService;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SubscriptionBillingService
 {
-    public function __construct(private readonly PaymentService $payments)
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly LedgerService $ledger,
+    )
     {
     }
 
@@ -124,6 +130,275 @@ class SubscriptionBillingService
         }
 
         return $this->createUpgrade($owner, $current, $targetPlan, $paymentKey);
+    }
+
+    /**
+     * Process an already signature-verified, normalized subscription payment webhook.
+     *
+     * @param array{event_id:string,gateway_transaction_id:string,status:string,paid_at:?string,gateway_fee_amount:int,amount:int} $event
+     */
+    public function processWebhook(Payment $payment, PaymentWebhookEvent $eventRecord, array $event): string
+    {
+        $subscription = Subscription::query()->whereKey($payment->payable_id)->first();
+
+        if (! $subscription) {
+            $eventRecord->update([
+                'processing_status' => PaymentWebhookEvent::STATUS_FAILED,
+                'processing_notes' => 'Subscription payment has no matching subscription.',
+                'processed_at' => now('UTC'),
+            ]);
+
+            return PaymentWebhookEvent::STATUS_FAILED;
+        }
+
+        $invoice = Invoice::query()
+            ->where('reference_id', $subscription->getKey())
+            ->whereJsonContains('line_items_json->payment_idempotency_key', $payment->idempotency_key)
+            ->first();
+
+        if (! $invoice) {
+            $eventRecord->update([
+                'payment_id' => $payment->getKey(),
+                'processing_status' => PaymentWebhookEvent::STATUS_FAILED,
+                'processing_notes' => 'Subscription invoice could not be resolved from the payment idempotency key.',
+                'processed_at' => now('UTC'),
+            ]);
+
+            return PaymentWebhookEvent::STATUS_FAILED;
+        }
+
+        return DB::transaction(function () use ($payment, $eventRecord, $event, $subscription, $invoice): string {
+            $lockedPayment = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
+            $lockedSubscription = Subscription::query()->whereKey($subscription->getKey())->lockForUpdate()->firstOrFail();
+            $lockedInvoice = Invoice::query()->whereKey($invoice->getKey())->lockForUpdate()->firstOrFail();
+            $lockedEvent = PaymentWebhookEvent::query()->whereKey($eventRecord->getKey())->lockForUpdate()->firstOrFail();
+
+            $lockedEvent->update(['payment_id' => $lockedPayment->getKey()]);
+
+            if ($lockedPayment->status === Payment::STATUS_PAID && $lockedInvoice->status === Invoice::STATUS_PAID) {
+                $lockedEvent->update([
+                    'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                    'processing_notes' => 'Duplicate subscription paid event ignored; financial state is already final.',
+                    'processed_at' => now('UTC'),
+                ]);
+
+                return PaymentWebhookEvent::STATUS_PROCESSED;
+            }
+
+            if (in_array($event['status'], [Payment::STATUS_FAILED, Payment::STATUS_EXPIRED], true)) {
+                if (in_array($lockedPayment->status, [Payment::STATUS_PAID, Payment::STATUS_RECONCILIATION_REQUIRED], true)) {
+                    $lockedEvent->update([
+                        'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                        'processing_notes' => 'Conflicting non-paid subscription event did not downgrade an existing paid/reconciliation state.',
+                        'processed_at' => now('UTC'),
+                    ]);
+
+                    return PaymentWebhookEvent::STATUS_PROCESSED;
+                }
+
+                $beforePaymentStatus = $lockedPayment->status;
+                $lockedPayment->update([
+                    'status' => $event['status'],
+                    'qris_payload' => null,
+                ]);
+                $lockedInvoice->update(['status' => Invoice::STATUS_VOID]);
+
+                if ($lockedSubscription->status === Subscription::STATUS_PENDING_PAYMENT) {
+                    $lockedSubscription->update(['status' => Subscription::STATUS_CANCELLED]);
+                }
+
+                $this->audit($lockedSubscription->owner, $lockedSubscription, 'subscription.payment_failed', 'Subscription payment failed or expired before activation.', [
+                    'payment_id' => $lockedPayment->getKey(),
+                    'invoice_id' => $lockedInvoice->getKey(),
+                    'before_payment_status' => $beforePaymentStatus,
+                    'payment_status' => $lockedPayment->status,
+                    'subscription_status' => $lockedSubscription->status,
+                ]);
+
+                $lockedEvent->update([
+                    'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                    'processing_notes' => null,
+                    'processed_at' => now('UTC'),
+                ]);
+
+                return PaymentWebhookEvent::STATUS_PROCESSED;
+            }
+
+            $paidAt = filled($event['paid_at'] ?? null)
+                ? CarbonImmutable::parse($event['paid_at'])->utc()
+                : null;
+            $fee = (int) ($event['gateway_fee_amount'] ?? 0);
+            $validState = in_array($lockedPayment->status, [Payment::STATUS_PENDING, Payment::STATUS_VERIFYING], true);
+            $validAmount = (int) $event['amount'] === (int) $lockedInvoice->total_amount
+                && (int) $event['amount'] === (int) $lockedPayment->amount;
+            $validFee = $fee >= 0 && $fee <= (int) $lockedPayment->amount;
+            $validTime = $paidAt !== null
+                && ($lockedPayment->expires_at === null || $paidAt->lessThanOrEqualTo(CarbonImmutable::instance($lockedPayment->expires_at)->utc()));
+            $lineItems = $lockedInvoice->line_items_json ?? [];
+            $action = $lineItems['action'] ?? null;
+            $targetPlanId = (int) ($lineItems['target_plan_id'] ?? 0);
+            $targetPlan = SubscriptionPlan::query()->whereKey($targetPlanId)->where('is_active', true)->first();
+
+            if (! $validState || ! $validAmount || ! $validFee || ! $validTime || ! $targetPlan || ! in_array($action, ['purchase', 'renewal', 'renewal_downgrade', 'upgrade'], true)) {
+                $beforePaymentStatus = $lockedPayment->status;
+                $lockedPayment->update(['status' => Payment::STATUS_RECONCILIATION_REQUIRED, 'qris_payload' => null]);
+
+                $lockedEvent->update([
+                    'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                    'processing_notes' => 'Subscription payment requires manual reconciliation: status, amount, fee, paid_at, invoice action, or target plan did not pass validation.',
+                    'processed_at' => now('UTC'),
+                ]);
+
+                $this->audit($lockedSubscription->owner, $lockedSubscription, 'subscription.payment_reconciliation_required', 'Payment webhook did not meet the conditions for automatic subscription activation.', [
+                    'payment_id' => $lockedPayment->getKey(),
+                    'invoice_id' => $lockedInvoice->getKey(),
+                    'before_payment_status' => $beforePaymentStatus,
+                    'payment_status' => Payment::STATUS_RECONCILIATION_REQUIRED,
+                    'event_amount' => (int) $event['amount'],
+                    'invoice_amount' => (int) $lockedInvoice->total_amount,
+                    'paid_at' => $paidAt?->toISOString(),
+                ]);
+
+                return PaymentWebhookEvent::STATUS_PROCESSED;
+            }
+
+            $now = CarbonImmutable::now('UTC');
+            $beforeSubscriptionStatus = $lockedSubscription->status;
+            $lockedPayment->update([
+                'status' => Payment::STATUS_PAID,
+                'paid_at' => $paidAt,
+                'gateway_fee_amount' => $fee,
+                'qris_payload' => null,
+            ]);
+            $lockedInvoice->update([
+                'status' => Invoice::STATUS_PAID,
+                'paid_at' => $paidAt,
+            ]);
+
+            if ($action === 'purchase') {
+                $startsAt = $paidAt;
+                $endsAt = $startsAt->addDays((int) $targetPlan->duration_days);
+                $lockedSubscription->update([
+                    'plan_id' => $targetPlan->getKey(),
+                    'is_trial' => false,
+                    'status' => Subscription::STATUS_ACTIVE,
+                    'starts_at' => $startsAt,
+                    'ends_at' => $endsAt,
+                    'grace_ends_at' => $endsAt->addHours(24),
+                    'suspended_at' => null,
+                    'scheduled_plan_id' => null,
+                    'retained_business_id' => null,
+                ]);
+            } elseif ($action === 'upgrade') {
+                if (! in_array($lockedSubscription->status, [Subscription::STATUS_TRIALING, Subscription::STATUS_ACTIVE], true) || $lockedSubscription->ends_at->lessThanOrEqualTo($paidAt)) {
+                    $lockedPayment->update(['status' => Payment::STATUS_RECONCILIATION_REQUIRED]);
+                    $lockedInvoice->update(['status' => Invoice::STATUS_UNPAID, 'paid_at' => null]);
+                    $lockedEvent->update([
+                        'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                        'processing_notes' => 'Upgrade payment arrived outside the active period and requires manual reconciliation.',
+                        'processed_at' => now('UTC'),
+                    ]);
+
+                    return PaymentWebhookEvent::STATUS_PROCESSED;
+                }
+
+                $lockedSubscription->update([
+                    'plan_id' => $targetPlan->getKey(),
+                    'is_trial' => false,
+                    'status' => Subscription::STATUS_ACTIVE,
+                    'grace_ends_at' => $lockedSubscription->ends_at->copy()->addHours(24),
+                    'scheduled_plan_id' => null,
+                    'retained_business_id' => null,
+                ]);
+            } else {
+                $periodStart = $lockedSubscription->ends_at->greaterThan($paidAt)
+                    ? CarbonImmutable::instance($lockedSubscription->ends_at)->utc()
+                    : $paidAt;
+                $endsAt = $periodStart->addDays((int) $targetPlan->duration_days);
+                $retainedBusinessId = $action === 'renewal_downgrade'
+                    ? ($lineItems['retained_business_id'] ?? null)
+                    : null;
+
+                $lockedSubscription->update([
+                    'plan_id' => $targetPlan->getKey(),
+                    'is_trial' => false,
+                    'status' => Subscription::STATUS_ACTIVE,
+                    'starts_at' => $lockedSubscription->starts_at,
+                    'ends_at' => $endsAt,
+                    'grace_ends_at' => $endsAt->addHours(24),
+                    'suspended_at' => null,
+                    'scheduled_plan_id' => null,
+                    'retained_business_id' => $retainedBusinessId,
+                ]);
+
+                if ($action === 'renewal_downgrade' && $retainedBusinessId) {
+                    Business::query()
+                        ->where('owner_id', $lockedSubscription->owner_id)
+                        ->whereKeyNot($retainedBusinessId)
+                        ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED])
+                        ->update(['status' => Business::STATUS_ARCHIVED_BY_DOWNGRADE]);
+                }
+            }
+
+            $this->ledger->postBalancedGroup([
+                [
+                    'account_code' => 'customer_cash',
+                    'entry_type' => 'debit',
+                    'amount' => (int) $lockedPayment->amount,
+                    'reference_type' => 'invoice',
+                    'reference_id' => $lockedInvoice->getKey(),
+                    'description' => 'Verified subscription invoice payment.',
+                ],
+                [
+                    'account_code' => 'subscription_revenue',
+                    'entry_type' => 'credit',
+                    'amount' => (int) $lockedPayment->amount,
+                    'reference_type' => 'invoice',
+                    'reference_id' => $lockedInvoice->getKey(),
+                    'description' => 'Recognize subscription invoice revenue.',
+                ],
+            ]);
+
+            if ($fee > 0) {
+                $this->ledger->postBalancedGroup([
+                    [
+                        'account_code' => 'gateway_fee_expense',
+                        'entry_type' => 'debit',
+                        'amount' => $fee,
+                        'reference_type' => 'invoice',
+                        'reference_id' => $lockedInvoice->getKey(),
+                        'description' => 'Record subscription payment gateway fee; final provider settlement treatment remains configurable.',
+                    ],
+                    [
+                        'account_code' => 'gateway_clearing',
+                        'entry_type' => 'credit',
+                        'amount' => $fee,
+                        'reference_type' => 'invoice',
+                        'reference_id' => $lockedInvoice->getKey(),
+                        'description' => 'Record gateway fee payable/withheld on subscription payment.',
+                    ],
+                ]);
+            }
+
+            $this->audit($lockedSubscription->owner, $lockedSubscription, 'subscription.payment_confirmed', 'Subscription invoice payment confirmed by verified gateway webhook.', [
+                'payment_id' => $lockedPayment->getKey(),
+                'invoice_id' => $lockedInvoice->getKey(),
+                'action' => $action,
+                'before_status' => $beforeSubscriptionStatus,
+                'status' => $lockedSubscription->status,
+                'plan_id' => $lockedSubscription->plan_id,
+                'starts_at' => $lockedSubscription->starts_at?->toISOString(),
+                'ends_at' => $lockedSubscription->ends_at?->toISOString(),
+            ]);
+
+            $lockedEvent->update([
+                'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
+                'processing_notes' => null,
+                'processed_at' => now('UTC'),
+            ]);
+
+            return PaymentWebhookEvent::STATUS_PROCESSED;
+        }, attempts: 3);
     }
 
     private function createInitialPurchase(User $owner, SubscriptionPlan $plan, string $paymentKey): array
