@@ -6,6 +6,7 @@ use App\Models\LedgerEntry;
 use App\Services\Finance\LedgerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use LogicException;
 use Tests\TestCase;
 
@@ -106,7 +107,7 @@ class LedgerServiceTest extends TestCase
     public function test_ledger_entry_cannot_be_updated_or_deleted(): void
     {
         $entry = LedgerEntry::query()->create([
-            'transaction_group_ulid' => '01JABCDEF0123456789ABCDEFGH',
+            'transaction_group_ulid' => (string) Str::ulid(),
             'account_code' => 'customer_cash',
             'entry_type' => 'debit',
             'amount' => 100,
