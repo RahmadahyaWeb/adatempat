@@ -8,8 +8,6 @@ use App\Models\Business;
 use App\Models\Category;
 use App\Models\Venue;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AvailabilityService
@@ -152,7 +150,7 @@ class AvailabilityService
                             ->where('expires_at', '>', now('UTC'));
                     });
             })
-            ->when($ignoreHoldId !== null, fn ($query) => $query->whereKeyNot($ignoreHoldId))
+            ->when($ignoreHoldId !== null, fn ($query) => $query->where('id', '!=', $ignoreHoldId))
             ->where('starts_at', '<', $endsAtUtc)
             ->where('ends_at', '>', $startsAtUtc)
             ->exists();
