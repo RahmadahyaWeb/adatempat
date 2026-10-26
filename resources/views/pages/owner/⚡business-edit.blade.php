@@ -3,6 +3,7 @@
 use App\Models\Business;
 use App\Models\BusinessRevision;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -21,6 +22,8 @@ new #[Title('Profil usaha')] class extends Component {
             ->businesses()
             ->where('public_id', $business)
             ->firstOrFail();
+
+        Gate::authorize('view', $record);
 
         $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
@@ -81,6 +84,8 @@ new #[Title('Profil usaha')] class extends Component {
         $business = $owner->businesses()
             ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
+
+        Gate::authorize('update', $business);
 
         abort_unless(
             in_array($business->status, [
