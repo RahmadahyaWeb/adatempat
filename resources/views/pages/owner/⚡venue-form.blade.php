@@ -5,7 +5,6 @@ use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
-use App\Models\VenueFieldValue;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -323,9 +322,10 @@ new #[Title('Data venue')] class extends Component {
         if ($template !== null) {
             foreach ($template->fields as $field) {
                 $key = 'templateValues.' . $field->field_key;
-                $fieldRules = [$field->is_required ? 'required' : 'nullable'];
-                $fieldOptions = $field->options_json ?? [];
                 $validation = $field->validation_rules_json ?? [];
+                $isRequired = $field->is_required || (bool) ($validation['required'] ?? false);
+                $fieldRules = [$isRequired ? 'required' : 'nullable'];
+                $fieldOptions = $field->options_json ?? [];
 
                 switch ($field->input_type) {
                     case TemplateField::TYPE_TEXT:
@@ -360,9 +360,9 @@ new #[Title('Data venue')] class extends Component {
                         break;
 
                     case TemplateField::TYPE_MULTISELECT:
-                        $fieldRules = [$field->is_required ? 'required' : 'nullable', 'array'];
+                        $fieldRules = [$isRequired ? 'required' : 'nullable', 'array'];
 
-                        if ($field->is_required) {
+                        if ($isRequired) {
                             $fieldRules[] = 'min:1';
                         }
 
