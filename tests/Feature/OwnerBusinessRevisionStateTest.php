@@ -98,6 +98,7 @@ class OwnerBusinessRevisionStateTest extends TestCase
             'slug' => 'studio-demo-adatempat-tes',
             'address' => 'Banjarbaru, Kalimantan Selatan',
             'status' => Business::STATUS_ACTIVE,
+            'published_at' => now(),
         ]);
     }
 
