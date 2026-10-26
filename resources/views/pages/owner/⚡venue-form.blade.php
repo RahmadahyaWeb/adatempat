@@ -137,7 +137,9 @@ new #[Title('Data venue')] class extends Component {
 
     public function updatedCategoryId(): void
     {
-        $this->resetValidation(['categoryId', 'venueTemplateId', 'templateValues']);
+        $this->resetValidation('categoryId');
+        $this->resetValidation('venueTemplateId');
+        $this->resetValidation('templateValues');
         $this->templateValues = [];
 
         $template = VenueTemplate::query()
@@ -503,6 +505,7 @@ new #[Title('Data venue')] class extends Component {
         $categories = $this->categories;
         $templates = $this->templates;
         $selectedTemplate = $templates->firstWhere('id', ctype_digit($this->venueTemplateId) ? (int) $this->venueTemplateId : 0);
+        $selectedCategory = $categories->firstWhere('id', ctype_digit($categoryId) ? (int) $categoryId : 0);
         $facilityOptions = $this->availableFacilities();
         $isEditing = $venue !== null;
         $statusMeta = [
@@ -627,7 +630,7 @@ new #[Title('Data venue')] class extends Component {
                     <section aria-labelledby="dynamic-template-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
                         <div class="mb-4">
                             <h3 id="dynamic-template-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Detail khusus kategori</h3>
-                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi informasi tambahan untuk {{ $category->name ?? 'kategori ini' }}.</p>
+                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi informasi tambahan untuk {{ $selectedCategory?->name ?? 'kategori ini' }}.</p>
                         </div>
 
                         <div class="space-y-5">
