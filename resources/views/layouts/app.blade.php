@@ -17,51 +17,86 @@
     @php
         $currentUser = auth()->user();
         $compactHeader = request()->routeIs('login', 'register', 'password.request', 'password.reset', 'verification.notice', 'mfa.setup', 'mfa.challenge');
-        $navigationItems = [];
+        $primaryNavigationItems = [];
+        $roleMenuLabel = null;
+        $roleMenuGroups = [];
         $accountLabel = 'Pelanggan';
 
         if (! $compactHeader) {
             if (! $currentUser) {
-                $navigationItems = [
+                $primaryNavigationItems = [
                     ['label' => 'Jelajahi tempat', 'href' => route('home') . '#hasil'],
                     ['label' => 'Kategori', 'href' => route('home') . '#kategori'],
                     ['label' => 'Untuk pemilik', 'href' => route('home') . '#untuk-pemilik'],
                 ];
             } elseif ($currentUser->isSuperAdmin()) {
                 $accountLabel = 'Super Admin';
-                $navigationItems = [
+                $primaryNavigationItems = [
                     ['label' => 'Revisi identitas', 'href' => route('business-revisions.index')],
-                    ['label' => 'Verifikasi usaha', 'placeholder' => 'Segera hadir'],
-                    ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
-                    ['label' => 'Moderasi', 'placeholder' => 'Segera hadir'],
-                    ['label' => 'Pengaturan', 'placeholder' => 'Segera hadir'],
+                ];
+                $roleMenuLabel = 'Menu admin';
+                $roleMenuGroups = [
+                    [
+                        'label' => 'Verifikasi & moderasi',
+                        'items' => [
+                            ['label' => 'Verifikasi usaha', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Moderasi konten', 'placeholder' => 'Segera hadir'],
+                        ],
+                    ],
+                    [
+                        'label' => 'Pengelolaan platform',
+                        'items' => [
+                            ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Pengaturan platform', 'placeholder' => 'Segera hadir'],
+                        ],
+                    ],
                 ];
             } elseif ($currentUser->isOwner()) {
                 $accountLabel = 'Owner';
 
                 if ($currentUser->hasVerifiedEmail()) {
-                    $navigationItems = [
+                    $primaryNavigationItems = [
                         ['label' => 'Usaha & venue', 'href' => route('owner.businesses.index')],
-                        ['label' => 'Pesanan', 'placeholder' => 'Segera hadir'],
-                        ['label' => 'Kalender', 'placeholder' => 'Segera hadir'],
-                        ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
-                        ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
+                    ];
+                    $roleMenuLabel = 'Menu owner';
+                    $roleMenuGroups = [
+                        [
+                            'label' => 'Operasional',
+                            'items' => [
+                                ['label' => 'Pesanan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Kalender', 'placeholder' => 'Segera hadir'],
+                            ],
+                        ],
+                        [
+                            'label' => 'Bisnis',
+                            'items' => [
+                                ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
+                            ],
+                        ],
                     ];
                 } else {
-                    $navigationItems = [
+                    $primaryNavigationItems = [
                         ['label' => 'Verifikasi email', 'href' => route('verification.notice')],
                         ['label' => 'Jelajahi tempat', 'href' => route('home') . '#hasil'],
-                        ['label' => 'Kategori', 'href' => route('home') . '#kategori'],
                     ];
                 }
             } else {
                 $accountLabel = 'Pelanggan';
-                $navigationItems = [
+                $primaryNavigationItems = [
                     ['label' => 'Jelajahi tempat', 'href' => route('home') . '#hasil'],
                     ['label' => 'Kategori', 'href' => route('home') . '#kategori'],
-                    ['label' => 'Pesanan saya', 'placeholder' => 'Segera hadir'],
-                    ['label' => 'Favorit', 'placeholder' => 'Segera hadir'],
-                    ['label' => 'Pesan pemilik', 'placeholder' => 'Segera hadir'],
+                ];
+                $roleMenuLabel = 'Aktivitas saya';
+                $roleMenuGroups = [
+                    [
+                        'label' => 'Akun pelanggan',
+                        'items' => [
+                            ['label' => 'Pesanan saya', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Favorit', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Pesan pemilik', 'placeholder' => 'Segera hadir'],
+                        ],
+                    ],
                 ];
             }
         }
@@ -89,17 +124,36 @@
                     <span class="sm:hidden">Beranda</span>
                 </a>
             @else
-                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-0.5 xl:flex">
-                    @foreach ($navigationItems as $item)
-                        @if (isset($item['href']))
-                            <a href="{{ $item['href'] }}" class="site-nav-link whitespace-nowrap">{{ $item['label'] }}</a>
-                        @else
-                            <span class="site-nav-link cursor-not-allowed gap-1.5 whitespace-nowrap opacity-65" aria-disabled="true" title="Fitur ini belum tersedia">
-                                <span>{{ $item['label'] }}</span>
-                                <span class="rounded-md bg-[var(--surface-soft)] px-1.5 py-0.5 text-[0.625rem] font-bold leading-none text-[var(--muted)]">{{ $item['placeholder'] }}</span>
-                            </span>
-                        @endif
+                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-1 xl:flex">
+                    @foreach ($primaryNavigationItems as $item)
+                        <a href="{{ $item['href'] }}" class="site-nav-link whitespace-nowrap">{{ $item['label'] }}</a>
                     @endforeach
+
+                    @if ($roleMenuLabel && count($roleMenuGroups))
+                        <details class="mobile-menu role-menu">
+                            <summary aria-label="{{ $roleMenuLabel }}">
+                                <span>{{ $roleMenuLabel }}</span>
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m7 10 5 5 5-5"/></svg>
+                            </summary>
+                            <div class="mobile-menu-panel role-menu-panel">
+                                @foreach ($roleMenuGroups as $group)
+                                    <div class="role-menu-group">
+                                        <p class="role-menu-group-label">{{ $group['label'] }}</p>
+                                        @foreach ($group['items'] as $item)
+                                            @if (isset($item['href']))
+                                                <a href="{{ $item['href'] }}" class="role-menu-item">{{ $item['label'] }}</a>
+                                            @else
+                                                <span class="role-menu-item role-menu-item-disabled" aria-disabled="true" title="Fitur ini belum tersedia">
+                                                    <span>{{ $item['label'] }}</span>
+                                                    <span class="role-menu-status">{{ $item['placeholder'] }}</span>
+                                                </span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endif
                 </nav>
 
                 <div class="hidden shrink-0 items-center gap-3 xl:flex">
@@ -119,23 +173,32 @@
                 </div>
 
                 <details class="mobile-menu xl:hidden">
-                    <summary aria-label="Buka menu navigasi" aria-controls="menu-navigasi-seluler">
+                    <summary aria-label="Buka menu navigasi">
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                     </summary>
-                    <nav id="menu-navigasi-seluler" aria-label="Navigasi seluler" class="mobile-menu-panel">
-                        @foreach ($navigationItems as $item)
-                            @if (isset($item['href']))
-                                <a href="{{ $item['href'] }}" class="site-nav-link w-full justify-between">{{ $item['label'] }}</a>
-                            @else
-                                <span class="site-nav-link w-full cursor-not-allowed justify-between gap-3 opacity-70" aria-disabled="true" title="Fitur ini belum tersedia">
-                                    <span>{{ $item['label'] }}</span>
-                                    <span class="shrink-0 rounded-md bg-[var(--surface-soft)] px-1.5 py-1 text-[0.625rem] font-bold leading-none text-[var(--muted)]">{{ $item['placeholder'] }}</span>
-                                </span>
-                            @endif
+                    <nav aria-label="Navigasi seluler" class="mobile-menu-panel">
+                        @foreach ($primaryNavigationItems as $item)
+                            <a href="{{ $item['href'] }}" class="site-nav-link w-full">{{ $item['label'] }}</a>
                         @endforeach
 
-                        <div class="my-1 border-t border-[var(--border)]"></div>
+                        @foreach ($roleMenuGroups as $group)
+                            <div class="role-menu-group">
+                                <p class="role-menu-group-label">{{ $group['label'] }}</p>
+                                @foreach ($group['items'] as $item)
+                                    @if (isset($item['href']))
+                                        <a href="{{ $item['href'] }}" class="role-menu-item">{{ $item['label'] }}</a>
+                                    @else
+                                        <span class="role-menu-item role-menu-item-disabled" aria-disabled="true" title="Fitur ini belum tersedia">
+                                            <span>{{ $item['label'] }}</span>
+                                            <span class="role-menu-status">{{ $item['placeholder'] }}</span>
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endforeach
+
                         @auth
+                            <div class="my-1 border-t border-[var(--border)]"></div>
                             <div class="px-3 py-2">
                                 <p class="truncate text-sm font-bold text-[var(--ink)]">{{ $currentUser->name }}</p>
                                 <p class="mt-0.5 text-xs font-semibold text-[var(--muted)]">{{ $accountLabel }}</p>
@@ -145,6 +208,7 @@
                                 <button type="submit" class="btn btn-secondary w-full">Keluar</button>
                             </form>
                         @else
+                            <div class="my-1 border-t border-[var(--border)]"></div>
                             <a href="{{ route('login') }}" class="btn btn-secondary w-full">Masuk</a>
                             <a href="{{ route('register') }}" class="btn btn-primary w-full">Buat akun</a>
                         @endauth
