@@ -991,6 +991,39 @@ new #[Title('Data venue')] class extends Component {
             $this->validate($customFieldRules, $customFieldMessages);
         }
 
+        $normalisedAvailabilityRules = collect($validated['availabilityRules'])
+            ->sortBy('day_of_week')
+            ->map(fn (array $rule): array => [
+                'day_of_week' => (int) $rule['day_of_week'],
+                'is_open' => (bool) $rule['is_open'],
+                'open_time' => $rule['open_time'],
+                'close_time' => $rule['close_time'],
+                'buffer_minutes' => (int) $rule['buffer_minutes'],
+            ])
+            ->values()
+            ->all();
+
+        $normalisedPriceRows = [];
+
+        if ($pricingUnit !== '') {
+            foreach ($validated['priceRows'] as $priceRow) {
+                $normalisedPriceRows[] = [
+                    'id' => isset($priceRow['id']) && $priceRow['id'] !== '' ? (int) $priceRow['id'] : null,
+                    'pricing_unit' => $pricingUnit,
+                    'session_name' => $pricingUnit === VenuePrice::UNIT_SESSION ? trim($priceRow['session_name']) : null,
+                    'session_start_time' => $pricingUnit === VenuePrice::UNIT_SESSION ? $priceRow['session_start_time'] : null,
+                    'session_end_time' => $pricingUnit === VenuePrice::UNIT_SESSION ? $priceRow['session_end_time'] : null,
+                    'step_interval_minutes' => (int) $priceRow['step_interval_minutes'],
+                    'min_duration_units' => (int) $priceRow['min_duration_units'],
+                    'max_duration_units' => (int) $priceRow['max_duration_units'],
+                    'price_amount' => (int) $priceRow['price_amount'],
+                    'weekend_price_amount' => trim((string) ($priceRow['weekend_price_amount'] ?? '')) !== ''
+                        ? (int) $priceRow['weekend_price_amount']
+                        : null,
+                ];
+            }
+        }
+
         $venueName = trim($validated['name']);
         $slugBase = Str::slug($venueName) ?: 'venue';
         $slug = $slugBase;
@@ -1017,7 +1050,7 @@ new #[Title('Data venue')] class extends Component {
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues): Venue {
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues, $normalisedAvailabilityRules, $normalisedPriceRows, $pricingUnit): Venue {
             if ($venue === null) {
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
@@ -1149,6 +1182,59 @@ new #[Title('Data venue')] class extends Component {
             if ($staleCustomFieldIds !== []) {
                 $savedVenue->fieldValues()->whereIn('owner_custom_field_id', $staleCustomFieldIds)->delete();
                 $savedVenue->ownerCustomFields()->whereIn('id', $staleCustomFieldIds)->delete();
+            }
+
+            foreach ($normalisedAvailabilityRules as $rule) {
+                $savedVenue->availabilityRules()->updateOrCreate(
+                    ['day_of_week' => $rule['day_of_week']],
+                    [
+                        'is_open' => $rule['is_open'],
+                        'open_time' => $rule['open_time'],
+                        'close_time' => $rule['close_time'],
+                        'buffer_minutes' => $rule['buffer_minutes'],
+                    ],
+                );
+            }
+
+            $activePrices = $savedVenue->prices()->where('is_active', true)->orderBy('id')->get();
+
+            if ($pricingUnit === '') {
+                $savedVenue->prices()->where('is_active', true)->update(['is_active' => false]);
+            } else {
+                $activeUnit = $activePrices->first()?->pricing_unit;
+
+                if ($activeUnit !== $pricingUnit) {
+                    $savedVenue->prices()->where('is_active', true)->update(['is_active' => false]);
+                    $activePrices = collect();
+                }
+
+                $keptPriceIds = [];
+
+                foreach ($normalisedPriceRows as $priceData) {
+                    $priceId = $priceData['id'];
+                    unset($priceData['id']);
+
+                    $existingPrice = $priceId !== null
+                        ? $activePrices->firstWhere('id', $priceId)
+                        : null;
+
+                    if ($existingPrice !== null) {
+                        $existingPrice->fill($priceData + ['is_active' => true])->save();
+                        $savedPrice = $existingPrice;
+                    } else {
+                        $savedPrice = $savedVenue->prices()->create($priceData + ['is_active' => true]);
+                    }
+
+                    $keptPriceIds[] = $savedPrice->getKey();
+                }
+
+                $stalePrices = $savedVenue->prices()->where('is_active', true);
+
+                if ($keptPriceIds !== []) {
+                    $stalePrices->whereNotIn('id', $keptPriceIds);
+                }
+
+                $stalePrices->update(['is_active' => false]);
             }
 
             return $savedVenue;
