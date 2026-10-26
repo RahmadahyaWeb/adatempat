@@ -103,7 +103,7 @@ class PayoutService
             ->whereNotNull('completion_window_ends_at')
             ->where('completion_window_ends_at', '<=', now('UTC'))
             ->whereDoesntHave('payout')
-            ->whereDoesntHave('refunds', fn ($query) => $query->where('status', '!=', Refund::STATUS_REJECTED))
+            ->whereDoesntHave('refunds', fn ($query) => $query->whereIn('status', Refund::OPEN_STATUSES))
             ->orderBy('completion_window_ends_at')
             ->limit(max(1, min($limit, 500)))
             ->pluck('id');
@@ -128,7 +128,7 @@ class PayoutService
                     || $booking->completion_window_ends_at === null
                     || $booking->completion_window_ends_at->isFuture()
                     || Payout::query()->where('booking_id', $booking->getKey())->exists()
-                    || Refund::query()->where('booking_id', $booking->getKey())->where('status', '!=', Refund::STATUS_REJECTED)->exists()
+                    || Refund::query()->where('booking_id', $booking->getKey())->whereIn('status', Refund::OPEN_STATUSES)->exists()
                 ) {
                     return 'skipped';
                 }
@@ -304,7 +304,7 @@ class PayoutService
                 ]);
             }
 
-            if (Refund::query()->where('booking_id', $locked->booking_id)->where('status', '!=', Refund::STATUS_REJECTED)->exists()) {
+            if (Refund::query()->where('booking_id', $locked->booking_id)->whereIn('status', Refund::OPEN_STATUSES)->exists()) {
                 throw ValidationException::withMessages([
                     'payout' => 'Payout tidak dapat diselesaikan selama kewajiban refund masih terbuka.',
                 ]);
@@ -388,7 +388,7 @@ class PayoutService
                     || $payout->eligible_at === null
                     || $payout->eligible_at->isFuture()
                     || (int) $payout->net_amount !== max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted)
-                    || Refund::query()->where('booking_id', $booking->getKey())->where('status', '!=', Refund::STATUS_REJECTED)->exists()
+                    || Refund::query()->where('booking_id', $booking->getKey())->whereIn('status', Refund::OPEN_STATUSES)->exists()
                 ) {
                     return;
                 }
