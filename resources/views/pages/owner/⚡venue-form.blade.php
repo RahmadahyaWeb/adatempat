@@ -5,6 +5,7 @@ use App\Models\Category;
 use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
+use App\Models\OwnerCustomField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,10 @@ new #[Title('Data venue')] class extends Component {
 
     public array $templateValues = [];
 
+    public array $customFields = [];
+
+    public array $customFieldValues = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -48,7 +53,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -76,6 +81,7 @@ new #[Title('Data venue')] class extends Component {
 
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
+            $this->loadCustomFieldsFromVenue($record);
         }
     }
 
@@ -97,7 +103,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -206,6 +212,80 @@ new #[Title('Data venue')] class extends Component {
         }
     }
 
+    private function loadCustomFieldsFromVenue(Venue $venue): void
+    {
+        $this->customFields = [];
+        $this->customFieldValues = [];
+
+        foreach ($venue->ownerCustomFields->sortBy('sort_order')->values() as $field) {
+            $this->customFields[] = [
+                'id' => $field->getKey(),
+                'field_key' => $field->field_key,
+                'label' => $field->label,
+                'input_type' => $field->input_type,
+                'options_text' => implode("\n", $field->options_json ?? []),
+                'sort_order' => $field->sort_order,
+            ];
+
+            $value = $venue->fieldValues->first(
+                fn ($fieldValue) => (int) $fieldValue->owner_custom_field_id === (int) $field->getKey(),
+            );
+
+            $this->customFieldValues[] = match ($field->input_type) {
+                OwnerCustomField::TYPE_BOOLEAN => (bool) ($value?->value_boolean ?? false),
+                OwnerCustomField::TYPE_NUMBER => $value?->value_number !== null ? (string) $value->value_number : '',
+                default => (string) ($value?->value_text ?? ''),
+            };
+        }
+    }
+
+    public function addCustomField(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if (count($this->customFields) >= 30) {
+            $this->addError('customFields', 'Maksimal 30 custom field untuk satu venue.');
+
+            return;
+        }
+
+        $this->customFields[] = [
+            'id' => null,
+            'field_key' => '',
+            'label' => '',
+            'input_type' => OwnerCustomField::TYPE_TEXT,
+            'options_text' => '',
+            'sort_order' => (count($this->customFields) + 1) * 10,
+        ];
+        $this->customFieldValues[] = '';
+    }
+
+    public function removeCustomField(int $index): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if (! array_key_exists($index, $this->customFields)) {
+            return;
+        }
+
+        unset($this->customFields[$index], $this->customFieldValues[$index]);
+        $this->customFields = array_values($this->customFields);
+        $this->customFieldValues = array_values($this->customFieldValues);
+        $this->resetValidation();
+    }
+
+    public function updatedCustomFields(mixed $value, string $key): void
+    {
+        [$index, $property] = array_pad(explode('.', $key, 2), 2, null);
+
+        if ($property !== 'input_type' || ! ctype_digit((string) $index) || ! isset($this->customFields[(int) $index])) {
+            return;
+        }
+
+        $this->customFieldValues[(int) $index] = $value === OwnerCustomField::TYPE_BOOLEAN ? false : '';
+        $this->resetValidation("customFieldValues.{$index}");
+    }
+
     public function availableFacilities(): array
     {
         return [
@@ -232,7 +312,7 @@ new #[Title('Data venue')] class extends Component {
         $venue = $this->venuePublicId === null
             ? null
             : $business->venues()
-                ->with(['fieldValues.templateField'])
+                ->with(['fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
                 ->where('public_id', $this->venuePublicId)
                 ->firstOrFail();
 
@@ -241,6 +321,9 @@ new #[Title('Data venue')] class extends Component {
         } else {
             Gate::authorize('update', $venue);
         }
+
+        $this->customFields = array_values($this->customFields);
+        $this->customFieldValues = array_values($this->customFieldValues);
 
         $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
@@ -252,6 +335,15 @@ new #[Title('Data venue')] class extends Component {
                 'capacityPersons' => ['nullable', 'integer', 'min:1', 'max:100000'],
                 'facilities' => ['array'],
                 'facilities.*' => [Rule::in($facilityOptions)],
+                'customFields' => ['array', 'max:30'],
+                'customFields.*.id' => ['nullable', 'integer'],
+                'customFields.*.field_key' => ['nullable', 'string', 'max:80'],
+                'customFields.*.label' => ['required', 'string', 'max:120'],
+                'customFields.*.input_type' => ['required', Rule::in([OwnerCustomField::TYPE_TEXT, OwnerCustomField::TYPE_NUMBER, OwnerCustomField::TYPE_BOOLEAN, OwnerCustomField::TYPE_SELECT])],
+                'customFields.*.options_text' => ['nullable', 'string', 'max:4000'],
+                'customFields.*.sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+                'customFieldValues' => ['array'],
+                'customFieldValues.*' => ['nullable'],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -265,8 +357,25 @@ new #[Title('Data venue')] class extends Component {
                 'capacityPersons.min' => 'Kapasitas minimal 1 orang.',
                 'capacityPersons.max' => 'Kapasitas maksimal 100.000 orang.',
                 'facilities.*.in' => 'Pilih fasilitas dari daftar yang tersedia.',
+                'customFields.max' => 'Maksimal 30 custom field untuk satu venue.',
+                'customFields.*.label.required' => 'Label custom field wajib diisi.',
+                'customFields.*.label.max' => 'Label custom field maksimal 120 karakter.',
+                'customFields.*.input_type.in' => 'Tipe custom field tidak didukung.',
+                'customFields.*.options_text.max' => 'Daftar pilihan terlalu panjang.',
             ],
         );
+
+        $existingCustomFieldIds = array_map('intval', $venue?->ownerCustomFields()->pluck('id')->all() ?? []);
+
+        foreach ($validated['customFields'] ?? [] as $index => $customField) {
+            $fieldId = $customField['id'] ?? null;
+
+            if ($fieldId !== null && ! in_array((int) $fieldId, $existingCustomFieldIds, true)) {
+                $this->addError("customFields.{$index}.id", 'Custom field tidak terkait dengan venue ini.');
+
+                return;
+            }
+        }
 
         $category = Category::query()->findOrFail($validated['categoryId']);
 
@@ -389,6 +498,66 @@ new #[Title('Data venue')] class extends Component {
             $this->validate($templateRules, $templateMessages);
         }
 
+        $normalisedCustomFields = [];
+        $normalisedCustomValues = [];
+        $customFieldRules = [];
+        $customFieldMessages = [];
+        $customFieldDefinitionErrors = false;
+
+        foreach ($validated['customFields'] ?? [] as $index => $field) {
+            $options = collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($field['options_text'] ?? '')) ?: [])
+                ->map(fn (string $option): string => trim($option))
+                ->filter(fn (string $option): bool => $option !== '')
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($field['input_type'] === OwnerCustomField::TYPE_SELECT && $options === []) {
+                $this->addError("customFields.{$index}.options_text", 'Tambahkan minimal satu pilihan untuk custom field bertipe pilihan.');
+                $customFieldDefinitionErrors = true;
+                continue;
+            }
+
+            $value = $this->customFieldValues[$index] ?? null;
+
+            if ($field['input_type'] !== OwnerCustomField::TYPE_BOOLEAN && is_string($value) && trim($value) === '') {
+                $value = null;
+            }
+
+            $valueKey = "customFieldValues.{$index}";
+            $customFieldRules[$valueKey] = match ($field['input_type']) {
+                OwnerCustomField::TYPE_TEXT => ['nullable', 'string', 'max:2000'],
+                OwnerCustomField::TYPE_NUMBER => ['nullable', 'numeric'],
+                OwnerCustomField::TYPE_BOOLEAN => ['boolean'],
+                OwnerCustomField::TYPE_SELECT => ['nullable', 'string', Rule::in($options)],
+                default => ['prohibited'],
+            };
+            $customFieldMessages[$valueKey . '.string'] = $field['label'] . ' harus berupa teks.';
+            $customFieldMessages[$valueKey . '.numeric'] = $field['label'] . ' harus berupa angka.';
+            $customFieldMessages[$valueKey . '.boolean'] = $field['label'] . ' harus berupa pilihan ya/tidak.';
+            $customFieldMessages[$valueKey . '.in'] = 'Pilihan untuk ' . $field['label'] . ' tidak valid.';
+            $customFieldMessages[$valueKey . '.max'] = $field['label'] . ' maksimal 2.000 karakter.';
+
+            $normalisedCustomFields[] = [
+                'id' => isset($field['id']) && $field['id'] !== '' ? (int) $field['id'] : null,
+                'label' => trim($field['label']),
+                'input_type' => $field['input_type'],
+                'options_json' => $field['input_type'] === OwnerCustomField::TYPE_SELECT ? $options : null,
+                'sort_order' => (int) $field['sort_order'],
+            ];
+            $normalisedCustomValues[] = $value;
+        }
+
+        if ($customFieldDefinitionErrors) {
+            return;
+        }
+
+        $this->customFieldValues = $normalisedCustomValues;
+
+        if ($customFieldRules !== []) {
+            $this->validate($customFieldRules, $customFieldMessages);
+        }
+
         $venueName = trim($validated['name']);
         $slugBase = Str::slug($venueName) ?: 'venue';
         $slug = $slugBase;
@@ -415,7 +584,7 @@ new #[Title('Data venue')] class extends Component {
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template): Venue {
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues): Venue {
             if ($venue === null) {
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
@@ -474,6 +643,79 @@ new #[Title('Data venue')] class extends Component {
                         $typedValue,
                     );
                 }
+            }
+
+            $keptCustomFieldIds = [];
+
+            foreach ($normalisedCustomFields as $index => $fieldData) {
+                $fieldId = $fieldData['id'];
+                $fieldAttributes = [
+                    'label' => $fieldData['label'],
+                    'input_type' => $fieldData['input_type'],
+                    'options_json' => $fieldData['options_json'],
+                    'sort_order' => $fieldData['sort_order'],
+                ];
+
+                if ($fieldId !== null) {
+                    $customField = $savedVenue->ownerCustomFields()->whereKey($fieldId)->firstOrFail();
+                    $customField->fill($fieldAttributes)->save();
+                } else {
+                    $baseKey = substr(Str::slug($fieldData['label'], '_') ?: 'field', 0, 70);
+                    $fieldKey = $baseKey;
+                    $suffix = 2;
+
+                    while ($savedVenue->ownerCustomFields()->where('field_key', $fieldKey)->exists()) {
+                        $fieldKey = substr($baseKey, 0, 75) . '_' . $suffix;
+                        $suffix++;
+                    }
+
+                    $customField = $savedVenue->ownerCustomFields()->create($fieldAttributes + [
+                        'field_key' => $fieldKey,
+                        'moderation_status' => OwnerCustomField::STATUS_ACTIVE,
+                        'moderation_reason' => null,
+                    ]);
+                }
+
+                $keptCustomFieldIds[] = $customField->getKey();
+                $rawValue = $normalisedCustomValues[$index] ?? null;
+                $typedValue = [
+                    'template_field_id' => null,
+                    'value_text' => null,
+                    'value_number' => null,
+                    'value_boolean' => null,
+                    'value_json' => null,
+                ];
+
+                switch ($customField->input_type) {
+                    case OwnerCustomField::TYPE_TEXT:
+                    case OwnerCustomField::TYPE_SELECT:
+                        $typedValue['value_text'] = is_string($rawValue) && trim($rawValue) !== '' ? trim($rawValue) : null;
+                        break;
+                    case OwnerCustomField::TYPE_NUMBER:
+                        $typedValue['value_number'] = $rawValue !== null && $rawValue !== '' ? (float) $rawValue : null;
+                        break;
+                    case OwnerCustomField::TYPE_BOOLEAN:
+                        $typedValue['value_boolean'] = (bool) $rawValue;
+                        break;
+                }
+
+                $savedVenue->fieldValues()->updateOrCreate(
+                    ['owner_custom_field_id' => $customField->getKey()],
+                    $typedValue,
+                );
+            }
+
+            $staleCustomFields = $savedVenue->ownerCustomFields();
+
+            if ($keptCustomFieldIds !== []) {
+                $staleCustomFields->whereNotIn('id', $keptCustomFieldIds);
+            }
+
+            $staleCustomFieldIds = $staleCustomFields->pluck('id')->all();
+
+            if ($staleCustomFieldIds !== []) {
+                $savedVenue->fieldValues()->whereIn('owner_custom_field_id', $staleCustomFieldIds)->delete();
+                $savedVenue->ownerCustomFields()->whereIn('id', $staleCustomFieldIds)->delete();
             }
 
             return $savedVenue;
@@ -696,6 +938,91 @@ new #[Title('Data venue')] class extends Component {
                         </div>
                     </section>
                 @endif
+
+                <section aria-labelledby="owner-custom-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h3 id="owner-custom-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Informasi tambahan buatan sendiri</h3>
+                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Tambahkan detail khusus venue dengan tipe teks, angka, ya/tidak, atau pilihan. Field ini tidak otomatis menjadi filter pencarian.</p>
+                        </div>
+                        <button type="button" wire:click="addCustomField" class="btn btn-secondary w-full shrink-0 sm:w-auto">Tambah field</button>
+                    </div>
+
+                    @error('customFields') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
+
+                    @if (count($customFields) === 0)
+                        <p class="mt-4 rounded-lg bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted)]">Belum ada field tambahan. Kamu dapat menambahkannya untuk mencantumkan informasi yang tidak tersedia pada template kategori.</p>
+                    @else
+                        <div class="mt-4 space-y-4">
+                            @foreach ($customFields as $index => $customField)
+                                @php
+                                    $customFieldOptions = collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($customField['options_text'] ?? '')) ?: [])
+                                        ->map(fn (string $option): string => trim($option))
+                                        ->filter(fn (string $option): bool => $option !== '')
+                                        ->values();
+                                    $customFieldInputId = 'owner-custom-field-' . $index;
+                                @endphp
+                                <article wire:key="owner-custom-field-{{ $index }}" class="rounded-xl border border-[var(--border)] p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Custom field {{ $index + 1 }}</p>
+                                            <h4 class="mt-1 text-sm font-extrabold text-[var(--ink)]">{{ $customField['label'] ?: 'Field baru' }}</h4>
+                                        </div>
+                                        <button type="button" wire:click="removeCustomField({{ $index }})" class="btn btn-secondary min-h-9 px-3 py-1.5" aria-label="Hapus custom field {{ $index + 1 }}">Hapus</button>
+                                    </div>
+
+                                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                        <div>
+                                            <label for="owner-custom-label-{{ $index }}" class="ui-label">Label field</label>
+                                            <input id="owner-custom-label-{{ $index }}" type="text" wire:model="customFields.{{ $index }}.label" maxlength="120" required class="ui-input" placeholder="Contoh: Jam maksimal penggunaan">
+                                            @error("customFields.{$index}.label") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="owner-custom-type-{{ $index }}" class="ui-label">Tipe input</label>
+                                            <select id="owner-custom-type-{{ $index }}" wire:model.live="customFields.{{ $index }}.input_type" class="ui-input" required>
+                                                <option value="text">Teks</option>
+                                                <option value="number">Angka</option>
+                                                <option value="boolean">Ya / Tidak</option>
+                                                <option value="select">Satu pilihan</option>
+                                            </select>
+                                            @error("customFields.{$index}.input_type") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+
+                                    @if ($customField['input_type'] === 'select')
+                                        <div class="mt-4">
+                                            <label for="owner-custom-options-{{ $index }}" class="ui-label">Pilihan (satu opsi per baris)</label>
+                                            <textarea id="owner-custom-options-{{ $index }}" wire:model="customFields.{{ $index }}.options_text" rows="3" maxlength="4000" class="ui-input resize-y font-mono text-sm" placeholder="Pagi&#10;Siang&#10;Malam"></textarea>
+                                            @error("customFields.{$index}.options_text") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    @endif
+
+                                    <div class="mt-4 border-t border-[var(--border)] pt-4">
+                                        <label for="{{ $customFieldInputId }}" class="ui-label">Nilai untuk venue ini</label>
+                                        @if ($customField['input_type'] === 'boolean')
+                                            <label for="{{ $customFieldInputId }}" class="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink-soft)]">
+                                                <input id="{{ $customFieldInputId }}" type="checkbox" wire:model="customFieldValues.{{ $index }}" class="size-4 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                                Ya
+                                            </label>
+                                        @elseif ($customField['input_type'] === 'number')
+                                            <input id="{{ $customFieldInputId }}" type="number" step="any" wire:model="customFieldValues.{{ $index }}" class="ui-input" placeholder="Masukkan angka">
+                                        @elseif ($customField['input_type'] === 'select')
+                                            <select id="{{ $customFieldInputId }}" wire:model="customFieldValues.{{ $index }}" class="ui-input">
+                                                <option value="">Pilih nilai</option>
+                                                @foreach ($customFieldOptions as $option)
+                                                    <option value="{{ $option }}">{{ $option }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <input id="{{ $customFieldInputId }}" type="text" wire:model="customFieldValues.{{ $index }}" maxlength="2000" class="ui-input" placeholder="Masukkan nilai">
+                                        @endif
+                                        @error("customFieldValues.{$index}") <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
 
                 <div>
                     <label for="venue-description" class="ui-label">Deskripsi venue</label>
