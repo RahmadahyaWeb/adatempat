@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Models\AuditLog;
 use App\Models\Booking;
+use App\Models\Dispute;
 use App\Models\Payout;
 use App\Models\PayoutAccount;
 use App\Models\Refund;
@@ -381,13 +382,17 @@ class PayoutService
                 Venue::query()->whereKey($initial->booking->venue_id)->lockForUpdate()->firstOrFail();
                 $payout = Payout::query()->whereKey($initial->getKey())->lockForUpdate()->firstOrFail();
                 $booking = Booking::query()->whereKey($payout->booking_id)->lockForUpdate()->firstOrFail();
+                $hasResolvedSplit = Dispute::query()
+                    ->where('booking_id', $booking->getKey())
+                    ->where('status', Dispute::STATUS_RESOLVED_SPLIT)
+                    ->exists();
 
                 if (
                     $payout->status !== Payout::STATUS_HELD
                     || $booking->status !== Booking::STATUS_COMPLETED
                     || $payout->eligible_at === null
                     || $payout->eligible_at->isFuture()
-                    || (int) $payout->net_amount !== max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted)
+                    || (! $hasResolvedSplit && (int) $payout->net_amount !== max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted))
                     || Refund::query()->where('booking_id', $booking->getKey())->whereIn('status', Refund::OPEN_STATUSES)->exists()
                 ) {
                     return;
