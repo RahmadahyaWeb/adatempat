@@ -179,6 +179,11 @@ Route::prefix('owner')
             ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.edit');
 
+        Route::livewire('/businesses/{business}/venues/{venue}/promotions', 'pages::owner.venue-promotions')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->name('businesses.venues.promotions');
+
         Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.edit');
