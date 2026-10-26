@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueAvailabilityRule;
 use App\Models\VenuePrice;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\VenueTemplateSeeder;
@@ -197,6 +198,52 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'price_amount' => 700000,
             'is_active' => 1,
         ]);
+    }
+
+    public function test_public_business_profile_displays_operating_hours_and_active_price(): void
+    {
+        $owner = $this->createOwner();
+        $business = $this->createBusiness($owner);
+        $business->forceFill([
+            'status' => Business::STATUS_ACTIVE,
+            'published_at' => now(),
+            'timezone' => 'Asia/Makassar',
+        ])->save();
+        $category = Category::query()->where('slug', 'acara')->firstOrFail();
+        $venue = $business->venues()->create([
+            'category_id' => $category->getKey(),
+            'name' => 'Venue Publik Uji Jam',
+            'slug' => 'venue-publik-uji-jam',
+            'status' => Venue::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+
+        VenueAvailabilityRule::query()->create([
+            'venue_id' => $venue->getKey(),
+            'day_of_week' => 1,
+            'is_open' => true,
+            'open_time' => '08:00',
+            'close_time' => '22:00',
+            'buffer_minutes' => 30,
+        ]);
+
+        $venue->prices()->create([
+            'pricing_unit' => VenuePrice::UNIT_HOURLY,
+            'step_interval_minutes' => 30,
+            'min_duration_units' => 1,
+            'max_duration_units' => 12,
+            'price_amount' => 250000,
+            'weekend_price_amount' => 300000,
+            'is_active' => true,
+        ]);
+
+        Livewire::test('pages::business', ['businessSlug' => $business->slug])
+            ->assertSee('Jam operasional')
+            ->assertSee('Asia/Makassar')
+            ->assertSee('08:00–22:00')
+            ->assertSee('Harga dasar')
+            ->assertSee('Rp 250.000')
+            ->assertSee('Rp 300.000');
     }
 
     private function createOwner(): User
