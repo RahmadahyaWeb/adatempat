@@ -439,19 +439,81 @@ new #[Title('Profil usaha')] class extends Component {
                     @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label for="business-address" class="ui-label">Alamat usaha</label>
-                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Jalan, area, kota" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
+                    <label for="business-address" class="ui-label">Alamat lengkap</label>
+                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Nama jalan, nomor, kelurahan, dan area" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
                     @error('address') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="business-city" class="ui-label">Kota / kabupaten</label>
+                        <input id="business-city" type="text" wire:model="city" maxlength="100" class="ui-input" placeholder="Contoh: Banjarbaru" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}">
+                        @error('city') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="business-province" class="ui-label">Provinsi</label>
+                        <input id="business-province" type="text" wire:model="province" maxlength="100" class="ui-input" placeholder="Contoh: Kalimantan Selatan" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('province') ? 'true' : 'false' }}">
+                        @error('province') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <fieldset class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <legend class="px-1 text-sm font-extrabold text-[var(--ink)]">Koordinat lokasi</legend>
+                    <p class="mb-4 text-sm leading-6 text-[var(--ink-soft)]">Masukkan koordinat desimal yang ditunjukkan pada peta. Contoh format koordinat di Kalimantan Selatan: -3.4429, 114.8355.</p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="business-latitude" class="ui-label">Lintang (latitude)</label>
+                            <input id="business-latitude" type="number" step="any" min="-90" max="90" wire:model="latitude" class="ui-input" placeholder="-3.4429" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}">
+                            @error('latitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="business-longitude" class="ui-label">Bujur (longitude)</label>
+                            <input id="business-longitude" type="number" step="any" min="-180" max="180" wire:model="longitude" class="ui-input" placeholder="114.8355" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}">
+                            @error('longitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex min-h-9 items-center gap-2 text-sm font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                        Buka peta untuk mencari koordinat
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
+                    </a>
+                </fieldset>
+
+                @error('verification')
+                    <div role="alert" class="status-note mt-4">{{ $message }}</div>
+                @enderror
+
+                @if ($canEdit)
+                    <section aria-labelledby="verification-readiness-heading" class="rounded-xl bg-[var(--surface-soft)] p-4 sm:p-5">
+                        <h3 id="verification-readiness-heading" class="text-sm font-extrabold text-[var(--ink)]">Persiapan pengajuan verifikasi</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi data dasar dan buat minimal satu venue Draft sebelum mengajukan usaha untuk ditinjau.</p>
+                        <ul class="mt-4 space-y-2 text-sm">
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ trim($name) !== '' && trim($address) !== '' ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ trim($name) !== '' && trim($address) !== '' ? '✓' : '○' }}</span><span>Nama usaha dan alamat lengkap</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ trim($city) !== '' && trim($province) !== '' ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ trim($city) !== '' && trim($province) !== '' ? '✓' : '○' }}</span><span>Kota / kabupaten dan provinsi</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ is_numeric($latitude) && is_numeric($longitude) && (float) $latitude >= -90 && (float) $latitude <= 90 && (float) $longitude >= -180 && (float) $longitude <= 180 ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ is_numeric($latitude) && is_numeric($longitude) && (float) $latitude >= -90 && (float) $latitude <= 90 && (float) $longitude >= -180 && (float) $longitude <= 180 ? '✓' : '○' }}</span><span>Koordinat lokasi valid</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ $hasDraftVenue ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ $hasDraftVenue ? '✓' : '○' }}</span><span>Minimal satu venue berstatus Draft</span></li>
+                        </ul>
+                        @if (!$hasDraftVenue)
+                            <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-secondary mt-4 w-full sm:w-auto">Tambah venue Draft</a>
+                        @endif
+                    </section>
+                @endif
+
                 @if ($canSubmit)
-                    <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
+                    <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:flex-wrap sm:justify-end">
                         <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full sm:w-auto">Kembali</a>
-                        <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
-                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
+                        <button type="submit" wire:loading.attr="disabled" class="btn btn-secondary w-full sm:w-auto">
+                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan draft' }}</span>
                             <span wire:loading wire:target="save">Menyimpan...</span>
                         </button>
+                        @if ($this->canSubmitVerification())
+                            <button type="button" wire:click="submitForVerification" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
+                                <span wire:loading.remove wire:target="submitForVerification">Ajukan verifikasi</span>
+                                <span wire:loading wire:target="submitForVerification">Mengirim pengajuan...</span>
+                            </button>
+                        @endif
                     </div>
                 @endif
+
             </form>
         </section>
 
