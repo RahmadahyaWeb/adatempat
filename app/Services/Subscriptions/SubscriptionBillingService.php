@@ -335,7 +335,7 @@ class SubscriptionBillingService
                     Business::query()
                         ->where('owner_id', $lockedSubscription->owner_id)
                         ->where('id', '!=', $retainedBusinessId)
-                        ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED])
+                        ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED, Business::STATUS_ARCHIVED_BY_DOWNGRADE])
                         ->update(['status' => Business::STATUS_ARCHIVED_BY_DOWNGRADE]);
                 }
             }
