@@ -1213,6 +1213,81 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </section>
 
+                <section aria-labelledby="venue-media-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div>
+                        <h3 id="venue-media-heading" class="text-base font-extrabold text-[var(--ink)]">Foto venue</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Unggah foto JPEG, PNG, atau WebP maksimal 5 MB per file. SVG tidak diperbolehkan. Tambahkan deskripsi foto untuk aksesibilitas.</p>
+                    </div>
+
+                    @if (!$isEditing)
+                        <p class="status-note mt-4">Simpan venue sebagai draft terlebih dahulu. Setelah venue memiliki ID, kamu dapat mengunggah dan mengatur foto.</p>
+                    @else
+                        <div class="mt-4 rounded-xl bg-[var(--surface-soft)] p-4">
+                            <div>
+                                <label for="media-upload" class="ui-label">Pilih foto</label>
+                                <input id="media-upload" type="file" wire:model="mediaUpload" accept="image/jpeg,image/png,image/webp" class="ui-input">
+                                @error('mediaUpload') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                <div wire:loading wire:target="mediaUpload" class="mt-2 text-xs font-semibold text-[var(--muted)]">Mengunggah file sementara...</div>
+                            </div>
+                            <div class="mt-3">
+                                <label for="media-alt-text" class="ui-label">Deskripsi singkat foto (alt text)</label>
+                                <input id="media-alt-text" type="text" wire:model="mediaAltText" maxlength="180" required class="ui-input" placeholder="Contoh: Tampak depan ruang acara dengan kursi tersusun">
+                                @error('mediaAltText') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                            <label class="mt-3 flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                <input type="checkbox" wire:model="mediaIsCover" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                <span>Jadikan foto sampul</span>
+                            </label>
+                            <button type="button" wire:click="uploadMedia" wire:loading.attr="disabled" class="btn btn-primary mt-4 w-full sm:w-auto">
+                                <span wire:loading.remove wire:target="uploadMedia">Unggah foto</span>
+                                <span wire:loading wire:target="uploadMedia">Menyimpan foto...</span>
+                            </button>
+                        </div>
+
+                        @if ($venue->media->isEmpty())
+                            <p class="mt-4 rounded-lg border border-dashed border-[var(--border-strong)] p-4 text-sm leading-6 text-[var(--muted)]">Belum ada foto venue. Foto pertama otomatis menjadi foto sampul.</p>
+                        @else
+                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                @foreach ($venue->media as $mediaItem)
+                                    <article wire:key="venue-media-{{ $mediaItem->id }}" class="min-w-0 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                                        <div class="relative aspect-[4/3] bg-[var(--surface-soft)]">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($mediaItem->disk)->url($mediaItem->file_path) }}" alt="{{ $mediaItem->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
+                                            @if ($mediaItem->is_cover)
+                                                <span class="absolute left-3 top-3 rounded-md bg-[var(--brand-forest)] px-2.5 py-1 text-xs font-bold text-white">Foto sampul</span>
+                                            @endif
+                                        </div>
+                                        <div class="space-y-3 p-4">
+                                            <p class="text-xs text-[var(--muted)]">{{ strtoupper(str_replace('image/', '', $mediaItem->mime_type)) }} · {{ number_format($mediaItem->file_size_bytes / 1048576, 2) }} MB</p>
+                                            <div>
+                                                <label for="media-alt-{{ $mediaItem->id }}" class="ui-label">Deskripsi foto</label>
+                                                <input id="media-alt-{{ $mediaItem->id }}" type="text" wire:model="mediaAltTexts.{{ $mediaItem->id }}" maxlength="180" class="ui-input">
+                                                @error("mediaAltTexts.{$mediaItem->id}") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                                <button type="button" wire:click="updateMediaAltText({{ $mediaItem->id }})" class="btn btn-secondary mt-2 w-full sm:w-auto">Simpan deskripsi</button>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                @if (!$mediaItem->is_cover)
+                                                    <button type="button" wire:click="setMediaCover({{ $mediaItem->id }})" class="btn btn-secondary w-full">Jadikan sampul</button>
+                                                @else
+                                                    <span class="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--surface-soft)] px-3 text-center text-xs font-bold text-[var(--ink-soft)]">Sampul aktif</span>
+                                                @endif
+                                                <button type="button" wire:click="deleteMedia({{ $mediaItem->id }})" wire:confirm="Hapus foto ini dari venue?" class="btn btn-secondary w-full">Hapus foto</button>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                @if (!$loop->first)
+                                                    <button type="button" wire:click="moveMedia({{ $mediaItem->id }}, 'up')" class="btn btn-secondary min-h-9 flex-1 px-3 py-1.5">Geser ke kiri/atas</button>
+                                                @endif
+                                                @if (!$loop->last)
+                                                    <button type="button" wire:click="moveMedia({{ $mediaItem->id }}, 'down')" class="btn btn-secondary min-h-9 flex-1 px-3 py-1.5">Geser ke kanan/bawah</button>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        @endif
+                    @endif
+                </section>
+
                 <div>
                     <label for="venue-description" class="ui-label">Deskripsi venue</label>
                     <textarea id="venue-description" wire:model="description" rows="5" maxlength="10000" class="ui-input resize-y" placeholder="Jelaskan suasana, penggunaan ruang, atau informasi yang penting bagi pengunjung.">{{ $description }}</textarea>
