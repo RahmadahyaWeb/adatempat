@@ -22,3 +22,8 @@ Schedule::command('refunds:reconcile')
 Schedule::command('bookings:auto-complete-expired')
     ->everyMinute()
     ->withoutOverlapping();
+
+
+Schedule::command('payouts:prepare-eligible')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
