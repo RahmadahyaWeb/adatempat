@@ -75,6 +75,7 @@ class PaymentWebhookProcessorTest extends TestCase
             'id' => $checkout['hold']->getKey(),
             'status' => BookingHold::STATUS_CONVERTED,
         ]);
+        $this->assertDatabaseCount('ledger_entries', 4);
     }
 
     public function test_duplicate_event_is_idempotent_and_only_increments_delivery_count(): void

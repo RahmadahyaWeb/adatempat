@@ -10,6 +10,8 @@ use App\Models\TermsAcceptance;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePromotion;
+use App\Services\Finance\LedgerService;
+use App\Services\Finance\PayoutService;
 use App\Services\Payments\PaymentService;
 use App\Services\Subscriptions\SubscriptionEligibilityService;
 use Carbon\CarbonImmutable;
@@ -25,6 +27,8 @@ class BookingEngineService
         private readonly PricingAndPromoService $pricing,
         private readonly SubscriptionEligibilityService $subscriptions,
         private readonly PaymentService $payments,
+        private readonly LedgerService $ledger,
+        private readonly PayoutService $payouts,
     ) {
     }
 
@@ -184,6 +188,37 @@ class BookingEngineService
 
                 if ($isFree) {
                     $this->consumePromotionQuotas($quote['promotion_quota_to_consume']);
+
+                    $grossOwnerEntitlement = (int) $quote['base_amount'] - (int) $quote['owner_discount_amount'];
+
+                    if ((int) $quote['actual_paid_amount'] + (int) $quote['platform_subsidy_amount'] !== $grossOwnerEntitlement) {
+                        throw ValidationException::withMessages([
+                            'pricing' => 'Snapshot harga tidak seimbang; booking tidak dapat dikonfirmasi.',
+                        ]);
+                    }
+
+                    if ($grossOwnerEntitlement > 0) {
+                        $this->ledger->postBalancedGroup([
+                            [
+                                'account_code' => 'platform_subsidy_expense',
+                                'entry_type' => 'debit',
+                                'amount' => $grossOwnerEntitlement,
+                                'reference_type' => 'booking',
+                                'reference_id' => $booking->getKey(),
+                                'description' => 'Platform subsidy funds a zero-payment confirmed booking.',
+                            ],
+                            [
+                                'account_code' => 'owner_payable',
+                                'entry_type' => 'credit',
+                                'amount' => $grossOwnerEntitlement,
+                                'reference_type' => 'booking',
+                                'reference_id' => $booking->getKey(),
+                                'description' => 'Owner entitlement for a zero-payment confirmed booking.',
+                            ],
+                        ]);
+                    }
+
+                    $this->payouts->holdForConfirmedBooking($booking);
                 } else {
                     $payment = Payment::query()->create([
                         'payable_type' => Payment::TYPE_BOOKING,

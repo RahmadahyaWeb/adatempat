@@ -3,6 +3,8 @@
 namespace App\Services\Payments;
 
 use App\Models\AuditLog;
+use App\Services\Finance\LedgerService;
+use App\Services\Finance\PayoutService;
 use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\Payment;
@@ -21,6 +23,8 @@ class PaymentWebhookProcessor
     public function __construct(
         private readonly AvailabilityService $availability,
         private readonly SubscriptionEligibilityService $subscriptions,
+        private readonly LedgerService $ledger,
+        private readonly PayoutService $payouts,
     ) {
     }
 
@@ -147,6 +151,15 @@ class PaymentWebhookProcessor
                     return PaymentWebhookEvent::STATUS_PROCESSED;
                 }
 
+                $grossOwnerEntitlement = (int) $lockedBooking->snapshot_base_amount - (int) $lockedBooking->snapshot_owner_discount_amount;
+                $platformSubsidy = (int) $lockedBooking->snapshot_platform_subsidy_amount;
+
+                if ((int) $lockedPayment->amount + $platformSubsidy !== $grossOwnerEntitlement) {
+                    $this->markReconciliation($lockedPayment, $lockedBooking, $lockedHold, $lockedEvent, 'Booking price snapshot does not reconcile to payment plus platform subsidy.');
+
+                    return PaymentWebhookEvent::STATUS_PROCESSED;
+                }
+
                 $deadline = CarbonImmutable::instance($lockedHold->expires_at)->utc();
                 $now = CarbonImmutable::now('UTC');
 
@@ -241,6 +254,8 @@ class PaymentWebhookProcessor
                     'snapshot_refund_policy_json' => $refundPolicy,
                 ]);
                 $lockedHold->update(['status' => BookingHold::STATUS_CONVERTED]);
+                $this->postBookingLedger($lockedBooking, $lockedPayment, $fee);
+                $this->payouts->holdForConfirmedBooking($lockedBooking);
 
                 AuditLog::query()->create([
                     'actor_user_id' => null,
@@ -274,6 +289,89 @@ class PaymentWebhookProcessor
             ]);
 
             return ['status' => PaymentWebhookEvent::STATUS_FAILED, 'duplicate' => false];
+        }
+    }
+
+    private function postBookingLedger(Booking $booking, Payment $payment, int $gatewayFee): void
+    {
+        $grossOwnerEntitlement = (int) $booking->snapshot_base_amount - (int) $booking->snapshot_owner_discount_amount;
+        $platformSubsidy = (int) $booking->snapshot_platform_subsidy_amount;
+        $entries = [];
+
+        if ((int) $payment->amount > 0) {
+            $entries[] = [
+                'account_code' => 'customer_cash',
+                'entry_type' => 'debit',
+                'amount' => (int) $payment->amount,
+                'reference_type' => 'booking',
+                'reference_id' => $booking->getKey(),
+                'description' => 'Verified customer payment for confirmed booking.',
+            ];
+        }
+
+        if ($platformSubsidy > 0) {
+            $entries[] = [
+                'account_code' => 'platform_subsidy_expense',
+                'entry_type' => 'debit',
+                'amount' => $platformSubsidy,
+                'reference_type' => 'booking',
+                'reference_id' => $booking->getKey(),
+                'description' => 'Platform-funded promotion subsidy.',
+            ];
+        }
+
+        if ($grossOwnerEntitlement > 0) {
+            $entries[] = [
+                'account_code' => 'owner_payable',
+                'entry_type' => 'credit',
+                'amount' => $grossOwnerEntitlement,
+                'reference_type' => 'booking',
+                'reference_id' => $booking->getKey(),
+                'description' => 'Gross Owner entitlement after Owner-funded discount.',
+            ];
+        }
+
+        if ($entries !== []) {
+            $this->ledger->postBalancedGroup($entries);
+        }
+
+        if ($gatewayFee > 0) {
+            $ownerFee = min($gatewayFee, $grossOwnerEntitlement);
+            $platformFee = max(0, $gatewayFee - $ownerFee);
+            $feeEntries = [];
+
+            if ($ownerFee > 0) {
+                $feeEntries[] = [
+                    'account_code' => 'owner_payable',
+                    'entry_type' => 'debit',
+                    'amount' => $ownerFee,
+                    'reference_type' => 'booking',
+                    'reference_id' => $booking->getKey(),
+                    'description' => 'Gateway fee deducted from Owner entitlement.',
+                ];
+            }
+
+            if ($platformFee > 0) {
+                $feeEntries[] = [
+                    'account_code' => 'gateway_fee_expense',
+                    'entry_type' => 'debit',
+                    'amount' => $platformFee,
+                    'reference_type' => 'booking',
+                    'reference_id' => $booking->getKey(),
+                    'description' => 'Gateway fee portion absorbed by platform beyond Owner entitlement.',
+                ];
+            }
+
+            $feeEntries[] = [
+                'account_code' => 'gateway_clearing',
+                'entry_type' => 'credit',
+                'amount' => $gatewayFee,
+                'reference_type' => 'booking',
+                'reference_id' => $booking->getKey(),
+                'description' => 'Gateway fee withheld from the settlement.',
+            ];
+
+            $this->ledger->postBalancedGroup($feeEntries);
         }
     }
 

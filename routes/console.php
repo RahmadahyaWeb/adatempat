@@ -17,3 +17,13 @@ Schedule::command('bookings:reconcile-expired-holds')
 Schedule::command('refunds:reconcile')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+
+Schedule::command('bookings:auto-complete-expired')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+
+Schedule::command('payouts:prepare-eligible')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
