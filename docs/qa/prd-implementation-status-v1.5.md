@@ -17,7 +17,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Kerangka setup dan challenge MFA TOTP Super Admin; pengujian manualnya dilewati atas permintaan pengguna.
 
 ### Belum lengkap
-- Inventaris PRD v1.7 menetapkan 45 tabel fisik. Migrasi yang tersedia masih mencakup sebagian kecil skema tersebut; tabel `subscription_plans` dan `platform_settings` sudah tersedia, tetapi alur siklus langganan belum diimplementasikan.
+- Inventaris PRD v1.7 menetapkan 45 tabel fisik. Skema yang tersedia masih bertahap; PR #31 menambahkan tabel `subscriptions` dan `invoices`, sementara payment, refund, payout, ledger, engagement, iklan, sengketa, dan notifikasi masih harus dilengkapi.
 - Laravel Policies untuk seluruh domain belum lengkap. BusinessPolicy dan VenuePolicy kini dibuat serta dihubungkan ke aksi daftar, lihat, buat, dan ubah owner; policy untuk domain lain masih harus ditambahkan.
 - Google OAuth belum tersedia di alur login/registrasi dan laravel/socialite tidak tercantum pada dependensi.
 - Seeder paket Starter/Business dan nilai awal `platform_settings` tersedia. UI pengaturan Super Admin dan alur siklus langganan belum tersedia.
@@ -55,13 +55,20 @@ Belum diimplementasikan sebagai alur produk. Termasuk subscription lifecycle, in
 
 ## Tahap 5 — Chat, ulasan, iklan, moderasi, dan pengujian otomatis
 
-Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah tersedia untuk regresi revisi identitas; PR ini menambahkan test validasi/penyimpanan template venue dan rendering profil publik. Test baru belum dijalankan. Test concurrency untuk booking/payment dan suite domain finansial masih belum tersedia.
+Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah ditambahkan di beberapa PR untuk regresi revisi identitas, template, availability, pricing, subscription eligibility, dan booking engine. Atas instruksi pengguna, seluruh test dan browser testing ditunda sampai implementasi mencapai 100%; belum ada hasil lulus baru. Test concurrency booking/payment dan suite domain finansial masih perlu ditambahkan.
 
 ## Urutan pengembangan berikutnya
 
 1. Melanjutkan fondasi Tahap 1: menambah skema database secara terkelola mengikuti inventaris PRD, model/relasi, Policies isolasi tenant, dan seeder konfigurasi yang belum tersedia.
-2. Menyelesaikan alur Tahap 2: tinjau dan merge PR #21, #22, #23, #24, #25, #26, #27, lalu #28 sesuai dependensi; tinjau PR #29 setelahnya.
-3. Melanjutkan Tahap 3: review PR #30 dan #31, lalu BookingEngineService dengan hold 15 menit dan transaksi atomik. Setelah itu implementasikan pembayaran/webhook, refund, payout, ledger, chat, ulasan, iklan, dan seluruh alur tersisa sebelum testing.
-3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
+2. Menyelesaikan alur Tahap 2 dan menggabungkan PR #21–#28 sesuai dependensi.
+3. Meninjau rangkaian fondasi Tahap 3: PR #29 availability, PR #30 pricing/promosi, PR #31 subscription eligibility, dan PR #32 BookingEngine.
+4. Menghubungkan PaymentGatewayContract dan mock adapter; melengkapi webhook idempoten, expiry/reconciliation, dan konfirmasi booking.
+5. Melanjutkan refund, payout, ledger, subscription lifecycle, chat, ulasan, iklan, sengketa, moderasi, notifikasi, serta sisa skema dan UI PRD.
+6. Menjalankan seluruh testing hanya setelah implementasi PRD mencapai 100% sesuai instruksi pengguna.
 
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
+
+
+## Catatan instruksi pengguna
+
+Testing otomatis, manual, dan browser ditunda sampai implementasi Adatempat terhadap PRD v1.7 dinyatakan 100% selesai. Progress persentase adalah estimasi perencanaan, bukan bukti bahwa kode telah diuji atau di-merge. PR terbuka harus digabungkan sesuai dependensi sebelum rilis.
