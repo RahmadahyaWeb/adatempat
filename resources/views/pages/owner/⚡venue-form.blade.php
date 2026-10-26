@@ -476,11 +476,10 @@ new #[Title('Data venue')] class extends Component {
         $media = $venue->media()->whereKey($mediaId)->firstOrFail();
         $disk = $media->disk;
         $path = $media->file_path;
-        $wasCover = $media->is_cover;
-
-        DB::transaction(function () use ($venue, $mediaId, $wasCover): void {
+        DB::transaction(function () use ($venue, $mediaId): void {
             $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
             $lockedMedia = $lockedVenue->media()->whereKey($mediaId)->firstOrFail();
+            $wasCover = $lockedMedia->is_cover;
             $lockedMedia->delete();
 
             if ($wasCover) {
