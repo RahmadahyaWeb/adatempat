@@ -20,4 +20,9 @@ interface PaymentWebhookContract
      * }
      */
     public function normalizeWebhookPayload(array $payload): array;
+
+    /**
+     * @return array{event_id:string,gateway_refund_id:string,status:string}
+     */
+    public function normalizeRefundWebhookPayload(array $payload): array;
 }
