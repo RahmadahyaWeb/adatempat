@@ -526,7 +526,7 @@ new #[Title('Profil usaha')] class extends Component {
                 @else
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
                     <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Identitas usaha berstatus aktif</h2>
-                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Tanggal publikasi belum tercatat. Pastikan status publikasi sudah benar sebelum membagikan tautan profil.</p>
+                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha telah terverifikasi, tetapi belum tampil ke publik karena persyaratan langganan belum dikelola oleh versi ini. Jangan membagikan profil sebagai tautan publik sebelum status publikasi aktif.</p>
                 @endif
 
                 <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
