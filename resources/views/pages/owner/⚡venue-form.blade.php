@@ -1601,7 +1601,7 @@ new #[Title('Data venue')] class extends Component {
                 <section aria-labelledby="venue-pricing-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
                     <div>
                         <h3 id="venue-pricing-heading" class="text-base font-extrabold text-[var(--ink)]">Harga venue</h3>
-                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Pilih satu model harga aktif. Harga disimpan dalam Rupiah penuh. Mengubah konfigurasi tidak mengubah snapshot harga booking yang sudah dibuat.</p>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Pilih satu model harga aktif. Harga disimpan dalam Rupiah penuh. Untuk harga per jam, interval mengatur kelipatan waktu pemesanan, sedangkan tarif tetap dihitung per jam. Mengubah konfigurasi tidak mengubah snapshot harga booking yang sudah dibuat.</p>
                     </div>
 
                     <div class="mt-4">
@@ -1679,12 +1679,12 @@ new #[Title('Data venue')] class extends Component {
                                 </div>
                             @endif
                             <div>
-                                <label for="price-min-duration" class="ui-label">Durasi minimum ({{ $pricingUnit === 'hourly' ? 'unit interval' : 'hari' }})</label>
+                                <label for="price-min-duration" class="ui-label">Durasi minimum ({{ $pricingUnit === 'hourly' ? 'jam' : 'hari' }})</label>
                                 <input id="price-min-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.min_duration_units" required class="ui-input">
                                 @error('priceRows.0.min_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label for="price-max-duration" class="ui-label">Durasi maksimum ({{ $pricingUnit === 'hourly' ? 'unit interval' : 'hari' }})</label>
+                                <label for="price-max-duration" class="ui-label">Durasi maksimum ({{ $pricingUnit === 'hourly' ? 'jam' : 'hari' }})</label>
                                 <input id="price-max-duration" type="number" min="1" max="65535" step="1" wire:model="priceRows.0.max_duration_units" required class="ui-input">
                                 @error('priceRows.0.max_duration_units') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                             </div>
