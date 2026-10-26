@@ -430,7 +430,7 @@ new #[Title('Data venue')] class extends Component {
                 'facilities.*' => [Rule::in($facilityOptions)],
                 'customFields' => ['array', 'max:30'],
                 'customFields.*.id' => ['nullable', 'integer'],
-                'customFields.*.field_key' => ['nullable', 'string', 'max:80', 'regex:/^[a-z][a-z0-9_]*$/'],
+                'customFields.*.field_key' => ['nullable', 'string', 'max:80'],
                 'customFields.*.label' => ['required', 'string', 'max:120'],
                 'customFields.*.input_type' => ['required', Rule::in([OwnerCustomField::TYPE_TEXT, OwnerCustomField::TYPE_NUMBER, OwnerCustomField::TYPE_BOOLEAN, OwnerCustomField::TYPE_SELECT])],
                 'customFields.*.options_text' => ['nullable', 'string', 'max:4000'],
@@ -459,7 +459,7 @@ new #[Title('Data venue')] class extends Component {
             ],
         );
 
-        $existingCustomFieldIds = $venue?->ownerCustomFields()->pluck('id')->all() ?? [];
+        $existingCustomFieldIds = array_map('intval', $venue?->ownerCustomFields()->pluck('id')->all() ?? []);
 
         foreach ($validated['customFields'] ?? [] as $index => $customField) {
             $fieldId = $customField['id'] ?? null;
