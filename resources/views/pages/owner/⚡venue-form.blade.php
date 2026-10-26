@@ -1034,6 +1034,91 @@ new #[Title('Data venue')] class extends Component {
                     </section>
                 @endif
 
+                <section aria-labelledby="owner-custom-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h3 id="owner-custom-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Informasi tambahan buatan sendiri</h3>
+                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Tambahkan detail khusus venue dengan tipe teks, angka, ya/tidak, atau pilihan. Field ini tidak otomatis menjadi filter pencarian.</p>
+                        </div>
+                        <button type="button" wire:click="addCustomField" class="btn btn-secondary w-full shrink-0 sm:w-auto">Tambah field</button>
+                    </div>
+
+                    @error('customFields') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
+
+                    @if (count($customFields) === 0)
+                        <p class="mt-4 rounded-lg bg-[var(--surface-soft)] p-3 text-sm leading-6 text-[var(--muted)]">Belum ada field tambahan. Kamu dapat menambahkannya untuk mencantumkan informasi yang tidak tersedia pada template kategori.</p>
+                    @else
+                        <div class="mt-4 space-y-4">
+                            @foreach ($customFields as $index => $customField)
+                                @php
+                                    $customFieldOptions = collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($customField['options_text'] ?? '')) ?: [])
+                                        ->map(fn (string $option): string => trim($option))
+                                        ->filter(fn (string $option): bool => $option !== '')
+                                        ->values();
+                                    $customFieldInputId = 'owner-custom-field-' . $index;
+                                @endphp
+                                <article wire:key="owner-custom-field-{{ $index }}" class="rounded-xl border border-[var(--border)] p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Custom field {{ $index + 1 }}</p>
+                                            <h4 class="mt-1 text-sm font-extrabold text-[var(--ink)]">{{ $customField['label'] ?: 'Field baru' }}</h4>
+                                        </div>
+                                        <button type="button" wire:click="removeCustomField({{ $index }})" class="btn btn-secondary min-h-9 px-3 py-1.5" aria-label="Hapus custom field {{ $index + 1 }}">Hapus</button>
+                                    </div>
+
+                                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                        <div>
+                                            <label for="owner-custom-label-{{ $index }}" class="ui-label">Label field</label>
+                                            <input id="owner-custom-label-{{ $index }}" type="text" wire:model="customFields.{{ $index }}.label" maxlength="120" required class="ui-input" placeholder="Contoh: Jam maksimal penggunaan">
+                                            @error("customFields.{$index}.label") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label for="owner-custom-type-{{ $index }}" class="ui-label">Tipe input</label>
+                                            <select id="owner-custom-type-{{ $index }}" wire:model.live="customFields.{{ $index }}.input_type" class="ui-input" required>
+                                                <option value="text">Teks</option>
+                                                <option value="number">Angka</option>
+                                                <option value="boolean">Ya / Tidak</option>
+                                                <option value="select">Satu pilihan</option>
+                                            </select>
+                                            @error("customFields.{$index}.input_type") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+
+                                    @if ($customField['input_type'] === 'select')
+                                        <div class="mt-4">
+                                            <label for="owner-custom-options-{{ $index }}" class="ui-label">Pilihan (satu opsi per baris)</label>
+                                            <textarea id="owner-custom-options-{{ $index }}" wire:model="customFields.{{ $index }}.options_text" rows="3" maxlength="4000" class="ui-input resize-y font-mono text-sm" placeholder="Pagi&#10;Siang&#10;Malam"></textarea>
+                                            @error("customFields.{$index}.options_text") <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                                        </div>
+                                    @endif
+
+                                    <div class="mt-4 border-t border-[var(--border)] pt-4">
+                                        <label for="{{ $customFieldInputId }}" class="ui-label">Nilai untuk venue ini</label>
+                                        @if ($customField['input_type'] === 'boolean')
+                                            <label for="{{ $customFieldInputId }}" class="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink-soft)]">
+                                                <input id="{{ $customFieldInputId }}" type="checkbox" wire:model="customFieldValues.{{ $index }}" class="size-4 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                                Ya
+                                            </label>
+                                        @elseif ($customField['input_type'] === 'number')
+                                            <input id="{{ $customFieldInputId }}" type="number" step="any" wire:model="customFieldValues.{{ $index }}" class="ui-input" placeholder="Masukkan angka">
+                                        @elseif ($customField['input_type'] === 'select')
+                                            <select id="{{ $customFieldInputId }}" wire:model="customFieldValues.{{ $index }}" class="ui-input">
+                                                <option value="">Pilih nilai</option>
+                                                @foreach ($customFieldOptions as $option)
+                                                    <option value="{{ $option }}">{{ $option }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <input id="{{ $customFieldInputId }}" type="text" wire:model="customFieldValues.{{ $index }}" maxlength="2000" class="ui-input" placeholder="Masukkan nilai">
+                                        @endif
+                                        @error("customFieldValues.{$index}") <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
+
                 <div>
                     <label for="venue-description" class="ui-label">Deskripsi venue</label>
                     <textarea id="venue-description" wire:model="description" rows="5" maxlength="10000" class="ui-input resize-y" placeholder="Jelaskan suasana, penggunaan ruang, atau informasi yang penting bagi pengunjung.">{{ $description }}</textarea>
