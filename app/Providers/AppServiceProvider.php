@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Contracts\Notifications\NotificationDeliveryContract;
 use App\Contracts\Payments\PaymentGatewayContract;
 use App\Contracts\Payments\PaymentWebhookContract;
 use App\Models\Business;
 use App\Models\Venue;
 use App\Policies\BusinessPolicy;
 use App\Policies\VenuePolicy;
+use App\Services\Notifications\Delivery\MockNotificationDelivery;
 use App\Services\Payments\Gateways\MockPaymentGateway;
 use RuntimeException;
 use Illuminate\Support\Facades\Gate;
@@ -20,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(NotificationDeliveryContract::class, function (): NotificationDeliveryContract {
+            return new MockNotificationDelivery();
+        });
+
         $this->app->bind(PaymentGatewayContract::class, function (): PaymentGatewayContract {
             $driver = (string) config('services.payment_gateway.driver', 'mock');
 
