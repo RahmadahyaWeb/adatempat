@@ -84,7 +84,7 @@ new #[Title('Profil usaha')] class extends Component {
                         @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
                         @if ($coverMedia)
                             <div class="aspect-[4/3] overflow-hidden bg-[var(--surface-soft)]">
-                                <img src="{{ \\Illuminate\\Support\\Facades\\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
                             </div>
                         @else
                             <div class="flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-[var(--surface-soft)] px-5 text-center">
