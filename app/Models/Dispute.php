@@ -65,6 +65,16 @@ class Dispute extends Model
         return $this->belongsTo(User::class, 'resolved_by');
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(DisputeMessage::class)->orderBy('created_at');
+    }
+
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(DisputeEvidence::class)->orderBy('created_at');
+    }
+
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class, 'auditable_id')

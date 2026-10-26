@@ -33,6 +33,8 @@ new #[Title('Sengketa booking')] class extends Component {
             ->with([
                 'openedBy:id,name,email,role',
                 'auditLogs',
+                'messages.sender:id,name',
+                'evidence',
                 'booking:id,reference_code,customer_id,venue_id,booking_start,booking_end,status,snapshot_actual_paid_amount,snapshot_net_owner_entitlement',
                 'booking.customer:id,name,email',
                 'booking.venue:id,name,business_id',
@@ -203,6 +205,25 @@ new #[Title('Sengketa booking')] class extends Component {
                                     <p class="mt-1 whitespace-pre-line leading-6 text-sky-950">{{ $responseLog->reason }}</p>
                                 </div>
                             @endforeach
+                            @if ($dispute->messages->isNotEmpty())
+                                <div class="mt-3 space-y-2">
+                                    <p class="text-sm font-bold">Tanggapan tambahan</p>
+                                    @foreach ($dispute->messages as $entry)
+                                        <div class="rounded-lg border border-[var(--border)] p-3 text-sm">
+                                            <p class="font-semibold">{{ $entry->sender?->name }} · {{ $entry->created_at?->format('d/m/Y H:i') }} UTC</p>
+                                            <p class="mt-1 whitespace-pre-line">{{ $entry->message }}</p>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                            @if ($dispute->evidence->isNotEmpty())
+                                <div class="mt-3 space-y-2">
+                                    <p class="text-sm font-bold">Bukti privat (memerlukan MFA Super Admin)</p>
+                                    @foreach ($dispute->evidence as $entry)
+                                        <a href="{{ route('disputes.evidence.download', $entry) }}" class="block text-sm font-semibold underline">{{ $entry->original_name }}</a>
+                                    @endforeach
+                                </div>
+                            @endif
                             <div class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3 text-sm">
                                 <p><span class="font-semibold">Booking:</span> {{ $dispute->booking?->reference_code }} · {{ $dispute->booking?->venue?->name }}</p>
                                 <p class="mt-1"><span class="font-semibold">Usaha:</span> {{ $dispute->booking?->venue?->business?->name }}</p>
