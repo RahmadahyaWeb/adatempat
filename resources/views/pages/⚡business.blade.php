@@ -24,7 +24,7 @@ new #[Title('Profil usaha')] class extends Component {
             ->with([
                 'venues' => function ($query): void {
                     $query->published()
-                        ->with('category')
+                        ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
                         ->orderBy('name');
                 },
             ])
@@ -94,6 +94,52 @@ new #[Title('Profil usaha')] class extends Component {
                                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{{ \Illuminate\Support\Str::limit($venue->description, 180) }}</p>
                             @else
                                 <p class="mt-2 text-sm leading-6 text-[var(--muted)]">Deskripsi venue belum ditambahkan oleh pemilik usaha.</p>
+                            @endif
+
+                            @if ($venue->capacity_persons || ($venue->facilities_json ?? []) !== [])
+                                <div class="mt-4 border-t border-[var(--border)] pt-4">
+                                    @if ($venue->capacity_persons)
+                                        <p class="text-sm font-semibold text-[var(--ink-soft)]">Kapasitas: {{ number_format($venue->capacity_persons) }} orang</p>
+                                    @endif
+                                    @if (($venue->facilities_json ?? []) !== [])
+                                        <div class="mt-3 flex flex-wrap gap-2">
+                                            @foreach ($venue->facilities_json as $facility)
+                                                <span class="inline-flex items-center rounded-md bg-[var(--surface-soft)] px-2 py-1 text-xs font-semibold text-[var(--ink-soft)]">{{ $facility }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
+                            @php
+                                $displayTemplateValues = $venue->fieldValues
+                                    ->filter(fn ($fieldValue) => $fieldValue->templateField !== null)
+                                    ->map(function ($fieldValue) {
+                                        $field = $fieldValue->templateField;
+                                        $value = match ($field->input_type) {
+                                            'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
+                                            'number' => $fieldValue->value_number !== null
+                                                ? number_format((float) $fieldValue->value_number, 2, ',', '.') . ($field->unit_label ? ' ' . $field->unit_label : '')
+                                                : '',
+                                            'multiselect' => collect($fieldValue->value_json ?? [])->implode(', '),
+                                            default => (string) ($fieldValue->value_text ?? ''),
+                                        };
+
+                                        return ['label' => $field->label, 'value' => $value];
+                                    })
+                                    ->filter(fn ($item) => $item['value'] !== '')
+                                    ->values();
+                            @endphp
+
+                            @if ($displayTemplateValues->isNotEmpty())
+                                <dl class="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
+                                    @foreach ($displayTemplateValues as $item)
+                                        <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
+                                            <dt class="text-xs font-semibold text-[var(--muted)]">{{ $item['label'] }}</dt>
+                                            <dd class="break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-right">{{ $item['value'] }}</dd>
+                                        </div>
+                                    @endforeach
+                                </dl>
                             @endif
                         </div>
                     </article>
