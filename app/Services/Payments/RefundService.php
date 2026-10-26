@@ -67,7 +67,7 @@ class RefundService
 
         $committedRefundAmount = (int) Refund::query()
             ->where('payment_id', $payment->getKey())
-            ->whereNot('status', Refund::STATUS_REJECTED)
+            ->where('status', '!=', Refund::STATUS_REJECTED)
             ->sum('amount');
 
         if ($committedRefundAmount + $amount > (int) $payment->amount) {
