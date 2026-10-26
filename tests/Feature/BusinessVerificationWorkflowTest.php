@@ -118,6 +118,9 @@ class BusinessVerificationWorkflowTest extends TestCase
         $this->assertSame($admin->getKey(), $business->verified_by);
         $this->assertNull($business->published_at);
 
+        $this->get(route('business.public', ['businessSlug' => $business->slug]))
+            ->assertNotFound();
+
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'business_verification.approved',
             'auditable_type' => Business::class,
