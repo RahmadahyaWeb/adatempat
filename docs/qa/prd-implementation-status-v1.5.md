@@ -39,7 +39,8 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Custom field per venue yang dibuat Owner sedang dikerjakan di PR #24 (bertumpuk di atas PR #23): tipe terbatas `text`, `number`, `boolean`, `select`; validasi server; penyimpanan nilai bertipe melalui `venue_field_values`; dan nilai dari field berstatus `hidden_by_admin` tidak ditampilkan pada profil publik. Custom field tidak otomatis menjadi filter marketplace. Test baru belum dijalankan.
 - Pengelolaan media/foto venue sedang dikerjakan di PR #25 (bertumpuk di atas PR #24): upload JPEG/PNG/WebP maksimal 5 MB, metadata alt text, foto sampul, urutan galeri, penghapusan file dari storage, dan tampilan foto pada katalog/profil publik. Test baru belum dijalankan.
 - Konfigurasi jam operasional mingguan dan harga sedang dikerjakan di PR #26 (bertumpuk di atas PR #25): tujuh hari operasional, jam lintas tengah malam, buffer persiapan, model harga hourly/session/daily, harga akhir pekan, dan satu model harga aktif per venue. Zona waktu usaha tersedia sebagai pilihan `Asia/Jakarta`, `Asia/Makassar`, atau `Asia/Jayapura`; jam operasional dan harga aktif ditampilkan pada profil publik. Feature Test mencakup penyimpanan jam/harga, validasi konfigurasi, perubahan model harga, dan tampilan publik; test belum dijalankan.
-- Availability engine, jadwal blokir manual (`venue_blocks`), promosi, dan validasi konflik booking belum tersedia.
+- Blokir jadwal manual Owner sedang dikerjakan di PR #27 (bertumpuk di atas PR #26): tabel `venue_blocks`, pencatatan waktu dalam UTC dengan input sesuai zona waktu usaha, alasan blokir, dan kontrol tambah/hapus yang dibatasi oleh kepemilikan venue. Blokir belum terhubung ke availability engine atau booking karena domain booking/hold belum tersedia. Feature Test ditambahkan tetapi belum dijalankan.
+- Availability engine untuk jam buka, blokir, booking/hold dan buffer, promosi, serta validasi konflik booking belum tersedia; blokir manual sedang dikerjakan di PR #27.
 - Pencarian tingkat lanjut menurut rentang harga, kapasitas, fasilitas, tanggal/jam, jarak, dan rating belum lengkap.
 - Carousel dan sistem slot iklan belum tersedia.
 
@@ -58,7 +59,7 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah tersedia
 ## Urutan pengembangan berikutnya
 
 1. Melanjutkan fondasi Tahap 1: menambah skema database secara terkelola mengikuti inventaris PRD, model/relasi, Policies isolasi tenant, dan seeder konfigurasi yang belum tersedia.
-2. Menyelesaikan alur Tahap 2: tinjau dan merge PR #21, #22, #23, #24, #25, lalu #26 sesuai dependensi; lanjutkan blokir jadwal, promosi, dan availability engine.
+2. Menyelesaikan alur Tahap 2: tinjau dan merge PR #21, #22, #23, #24, #25, #26, lalu #27 sesuai dependensi; lanjutkan availability engine dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
