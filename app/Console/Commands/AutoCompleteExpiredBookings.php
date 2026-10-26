@@ -13,8 +13,10 @@ class AutoCompleteExpiredBookings extends Command
 
     public function handle(BookingCompletionService $completion): int
     {
-        $count = $completion->autoCompleteExpired((int) $this->option('limit'));
-        $this->info(sprintf('Automatically completed %d booking(s).', $count));
+        $limit = (int) $this->option('limit');
+        $advanced = $completion->advanceEndedBookings($limit);
+        $count = $completion->autoCompleteExpired($limit);
+        $this->info(sprintf('Advanced %d and completed %d booking(s).', $advanced, $count));
 
         return self::SUCCESS;
     }
