@@ -124,7 +124,26 @@ class Venue extends Model
             ->whereHas('business', function (Builder $businessQuery) {
                 $businessQuery
                     ->where('status', Business::STATUS_ACTIVE)
-                    ->whereNotNull('published_at');
+                    ->whereNotNull('published_at')
+                    ->whereHas('owner.subscriptions', function (Builder $subscriptionQuery): void {
+                        $now = now('UTC');
+
+                        $subscriptionQuery
+                            ->where('starts_at', '<=', $now)
+                            ->where(function (Builder $eligible) use ($now): void {
+                                $eligible->where(function (Builder $active) use ($now): void {
+                                    $active->whereIn('status', ['trialing', 'active'])
+                                        ->where('ends_at', '>', $now);
+                                })->orWhere(function (Builder $grace) use ($now): void {
+                                    $grace->where('status', 'grace_period')
+                                        ->where('grace_ends_at', '>=', $now);
+                                });
+                            })
+                            ->where(function (Builder $scope): void {
+                                $scope->whereNull('retained_business_id')
+                                    ->orWhereColumn('retained_business_id', 'businesses.id');
+                            });
+                    });
             })
             ->whereHas('category', function (Builder $categoryQuery) {
                 $categoryQuery->where('status', Category::STATUS_ACTIVE);

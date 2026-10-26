@@ -11,42 +11,64 @@ class Dispute extends Model
 {
     use HasFactory;
 
-    public const STATUS_AWAITING_RESPONSE = 'awaiting_response';
+    public const STATUS_OPEN = 'open';
     public const STATUS_UNDER_REVIEW = 'under_review';
-    public const STATUS_RESOLVED = 'resolved';
-    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_RESOLVED_TO_CUSTOMER = 'resolved_to_customer';
+    public const STATUS_RESOLVED_TO_OWNER = 'resolved_to_owner';
+    public const STATUS_RESOLVED_SPLIT = 'resolved_split';
 
-    public const REASON_SERVICE_NOT_PROVIDED = 'service_not_provided';
-    public const REASON_VENUE_CONDITION = 'venue_condition';
-    public const REASON_BOOKING_MISMATCH = 'booking_mismatch';
-    public const REASON_PAYMENT_OR_REFUND = 'payment_or_refund';
-    public const REASON_OTHER = 'other';
-
-    public const RESOLUTION_FULL_OWNER_PAYOUT = 'full_owner_payout';
-    public const RESOLUTION_FULL_CUSTOMER_REFUND = 'full_customer_refund';
-    public const RESOLUTION_PARTIAL_SPLIT = 'partial_split';
+    public const OPEN_STATUSES = [
+        self::STATUS_OPEN,
+        self::STATUS_UNDER_REVIEW,
+    ];
 
     protected $fillable = [
-        'reference_code', 'booking_id', 'opened_by', 'against_user_id', 'reason_type',
-        'description', 'status', 'response_deadline', 'resolution_type',
-        'customer_refund_amount', 'owner_payout_amount', 'resolution_notes',
-        'resolved_by', 'resolved_at',
+        'reference_code',
+        'booking_id',
+        'opened_by_user_id',
+        'opened_by_role',
+        'category',
+        'description',
+        'owner_response_deadline_at',
+        'owner_responded_at',
+        'status',
+        'resolution_notes',
+        'refund_amount_awarded',
+        'payout_amount_awarded',
+        'resolved_by',
+        'resolved_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'response_deadline' => 'datetime',
-            'customer_refund_amount' => 'integer',
-            'owner_payout_amount' => 'integer',
+            'owner_response_deadline_at' => 'datetime',
+            'owner_responded_at' => 'datetime',
+            'refund_amount_awarded' => 'integer',
+            'payout_amount_awarded' => 'integer',
             'resolved_at' => 'datetime',
         ];
     }
 
-    public function booking(): BelongsTo { return $this->belongsTo(Booking::class); }
-    public function opener(): BelongsTo { return $this->belongsTo(User::class, 'opened_by'); }
-    public function respondent(): BelongsTo { return $this->belongsTo(User::class, 'against_user_id'); }
-    public function resolver(): BelongsTo { return $this->belongsTo(User::class, 'resolved_by'); }
-    public function messages(): HasMany { return $this->hasMany(DisputeMessage::class)->orderBy('created_at'); }
-    public function evidence(): HasMany { return $this->hasMany(DisputeEvidence::class)->orderBy('created_at'); }
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
+    }
+
+    public function openedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'opened_by_user_id');
+    }
+
+    public function resolver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class, 'auditable_id')
+            ->where('auditable_type', self::class)
+            ->orderBy('created_at');
+    }
 }

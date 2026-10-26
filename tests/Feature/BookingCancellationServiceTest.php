@@ -160,6 +160,37 @@ class BookingCancellationServiceTest extends TestCase
         $this->assertNull($booking->fresh()->slot_released_at);
     }
 
+    public function test_super_admin_can_record_verified_manual_refund_transfer_after_gateway_failure(): void
+    {
+        [$owner, $customer, $booking] = $this->createConfirmedBooking('manual-refund-001');
+        $cancelled = app(BookingCancellationService::class)->cancelByCustomer($customer, $booking);
+        $refund = $cancelled['refund'];
+        $refund->update(['status' => 'failed']);
+
+        $admin = User::factory()->create([
+            'role' => User::ROLE_SUPER_ADMIN,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+
+        $updated = app(RefundService::class)->recordManualTransfer(
+            $refund,
+            $admin,
+            'BANK-REF-1234',
+            'Gateway gagal dan status transaksi telah diverifikasi sebelum transfer manual.',
+            true,
+        );
+
+        $this->assertSame('succeeded', $updated->status);
+        $this->assertSame('BANK-REF-1234', $updated->manual_transfer_reference);
+        $this->assertNotNull($booking->fresh()->slot_released_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'auditable_type' => \App\Models\Refund::class,
+            'auditable_id' => $refund->getKey(),
+            'action' => 'refund.manual_transfer_recorded',
+        ]);
+    }
+
     public function test_customer_cancellation_with_zero_percent_refund_releases_slot_without_refund(): void
     {
         [$owner, $customer, $booking] = $this->createConfirmedBooking('cancel-zero-refund-001');

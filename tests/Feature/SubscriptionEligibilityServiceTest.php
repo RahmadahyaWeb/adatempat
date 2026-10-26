@@ -110,6 +110,33 @@ class SubscriptionEligibilityServiceTest extends TestCase
         $this->assertFalse(app(SubscriptionEligibilityService::class)->canCreateVenue($business, $at));
     }
 
+    public function test_published_venue_is_hidden_when_owner_subscription_is_suspended(): void
+    {
+        [$owner, $business, $plan] = $this->createBusinessAndPlan();
+        $category = Category::query()->firstOrFail();
+        $venue = $business->venues()->create([
+            'category_id' => $category->getKey(),
+            'name' => 'Venue Subscription Gate',
+            'slug' => 'venue-subscription-gate-' . strtolower((string) Str::ulid()),
+            'status' => Venue::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+        $subscription = $this->createSubscription($owner, $plan, [
+            'status' => Subscription::STATUS_ACTIVE,
+            'ends_at' => now('UTC')->addDay(),
+            'grace_ends_at' => now('UTC')->addDays(2),
+        ]);
+
+        $this->assertTrue(Venue::query()->published()->whereKey($venue->getKey())->exists());
+
+        $subscription->update([
+            'status' => Subscription::STATUS_SUSPENDED,
+            'suspended_at' => now('UTC'),
+        ]);
+
+        $this->assertFalse(Venue::query()->published()->whereKey($venue->getKey())->exists());
+    }
+
     private function createBusinessAndPlan(array $planOverrides = []): array
     {
         $owner = User::factory()->create([
