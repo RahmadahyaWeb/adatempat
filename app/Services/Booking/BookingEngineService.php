@@ -3,6 +3,7 @@
 namespace App\Services\Booking;
 
 use App\Models\Booking;
+use App\Models\AuditLog;
 use App\Models\BookingHold;
 use App\Models\Payment;
 use App\Models\TermsAcceptance;
@@ -100,6 +101,13 @@ class BookingEngineService
                 }
 
                 $lockedVenue->load(['business', 'category', 'availabilityRules', 'prices']);
+
+                if ((int) $lockedVenue->business->owner_id === (int) $customer->getKey()) {
+                    throw ValidationException::withMessages([
+                        'venue' => 'Owner tidak dapat membuat booking pada venue miliknya sendiri.',
+                    ]);
+                }
+
                 $this->subscriptions->assertBusinessBookable($lockedVenue->business);
                 $this->availability->assertAvailable($lockedVenue, $startsAtUtc, $endsAtUtc);
 
@@ -138,6 +146,26 @@ class BookingEngineService
                     'snapshot_refund_policy_json' => $this->refundPolicySnapshot($lockedVenue),
                     'terms_acceptance_id' => $acceptance->getKey(),
                     'confirmed_at' => $isFree ? $now : null,
+                ]);
+
+                AuditLog::query()->create([
+                    'actor_user_id' => $customer->getKey(),
+                    'actor_role' => $customer->role,
+                    'action' => $isFree ? 'booking.confirmed_zero_amount' : 'booking.checkout_created',
+                    'auditable_type' => Booking::class,
+                    'auditable_id' => $booking->getKey(),
+                    'reason' => $isFree
+                        ? 'Booking terkonfirmasi tanpa pembayaran karena total akhir Rp0.'
+                        : 'Checkout booking dibuat dengan hold dan pembayaran pending.',
+                    'before_state_json' => null,
+                    'after_state_json' => [
+                        'reference_code' => $booking->reference_code,
+                        'status' => $booking->status,
+                        'payment_required' => $booking->payment_required,
+                        'actual_paid_amount' => $booking->snapshot_actual_paid_amount,
+                    ],
+                    'ip_hash' => request()->ip() ? hash('sha256', (string) request()->ip()) : null,
+                    'created_at' => now(),
                 ]);
 
                 $hold = BookingHold::query()->create([
