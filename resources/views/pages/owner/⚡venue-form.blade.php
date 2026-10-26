@@ -339,6 +339,12 @@ new #[Title('Data venue')] class extends Component {
         $disk = 'public';
         $path = $file->storePublicly('venues/' . $venue->public_id, $disk);
 
+        if (! is_string($path) || $path === '') {
+            $this->addError('mediaUpload', 'Foto gagal disimpan. Silakan coba lagi.');
+
+            return;
+        }
+
         $createdMediaId = null;
 
         try {
