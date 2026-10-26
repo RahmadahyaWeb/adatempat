@@ -96,6 +96,11 @@ class Venue extends Model
         return $this->hasMany(VenuePrice::class)->orderBy('id');
     }
 
+    public function promotions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VenuePromotion::class)->orderByDesc('created_at');
+    }
+
     public function media(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(VenueMedia::class)->orderBy('sort_order')->orderBy('id');

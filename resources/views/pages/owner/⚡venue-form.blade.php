@@ -1928,7 +1928,7 @@ new #[Title('Data venue')] class extends Component {
                 </div>
                 <div class="flex items-start gap-3">
                     <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">03</span>
-                    <div><p class="text-sm font-bold">Foto, harga, dan jadwal</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Belum termasuk dalam formulir ini karena modul backend-nya belum tersedia.</p></div>
+                    <div><p class="text-sm font-bold">Foto, harga, dan jadwal</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Foto, harga, jadwal, dan blokir dikelola pada bagian formulir terkait; promosi tersedia melalui daftar venue.</p></div>
                 </div>
             </div>
         </aside>

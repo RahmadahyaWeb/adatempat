@@ -91,12 +91,6 @@ new #[Title('Kelola venue')] class extends Component {
             $this->statusFilter = 'all';
         }
     }
-
-    public function clearFilters(): void
-    {
-        $this->search = '';
-        $this->statusFilter = 'all';
-    }
 };
 ?>
 
@@ -135,16 +129,16 @@ new #[Title('Kelola venue')] class extends Component {
         <div role="status" class="status-note status-success mt-6">{{ session('status') }}</div>
     @endif
 
-    @if ($business->status !== \App\Models\Business::STATUS_ACTIVE)
-        <div role="status" class="status-note mt-6">
-            @if ($business->status === \App\Models\Business::STATUS_DRAFT)
-                Usaha masih berstatus Draft. Kamu bisa menyiapkan venue, tetapi profil usaha belum tampil di katalog publik.
-            @elseif ($business->status === \App\Models\Business::STATUS_PENDING_VERIFICATION)
-                Usaha sedang menunggu verifikasi. Menambah atau mengubah informasi venue tidak mengubah status verifikasi usaha.
-            @elseif ($business->status === \App\Models\Business::STATUS_REJECTED)
-                Profil usaha perlu diperbaiki. Venue bisa disiapkan, tetapi tidak akan tampil ke publik sebelum status usaha memenuhi persyaratan.
+    @if ($business->status !== 'active')
+        <div class="status-note mt-6">
+            @if ($business->status === 'draft')
+                Usaha ini masih berstatus draft. Data venue dapat disiapkan, tetapi profil usaha belum tampil ke publik.
+            @elseif ($business->status === 'pending_verification')
+                Usaha sedang menunggu verifikasi. Penambahan atau pembaruan informasi venue tidak mengubah status verifikasi usaha.
+            @elseif ($business->status === 'rejected')
+                Usaha memerlukan perbaikan. Kamu dapat menyiapkan data venue, tetapi profil tidak akan dipublikasikan sampai status usaha memenuhi persyaratan.
             @else
-                Status usaha berubah dan perlu ditinjau sebelum melanjutkan pengelolaan venue.
+                Status usaha saat ini: {{ $business->status }}.
             @endif
         </div>
     @endif
@@ -159,7 +153,7 @@ new #[Title('Kelola venue')] class extends Component {
             <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] tabular-nums sm:text-3xl">{{ $business->draft_venues_count }}</p>
         </div>
         <div>
-            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Menunggu peninjauan</p>
+            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Menunggu tinjauan</p>
             <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] tabular-nums sm:text-3xl">{{ $business->pending_venues_count }}</p>
         </div>
         <div>
@@ -198,36 +192,20 @@ new #[Title('Kelola venue')] class extends Component {
                 <span class="mx-auto flex size-12 items-center justify-center rounded-xl bg-[var(--brand-lime)] text-[var(--ink)]">
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-3h4v3"/></svg>
                 </span>
+                <h3 class="mt-4 text-lg font-extrabold tracking-[-0.035em] sm:text-xl">
+                    {{ $this->currentBusiness->venues_count === 0 ? 'Belum ada venue untuk usaha ini.' : 'Tidak ada venue yang cocok.' }}
+                </h3>
+                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
+                    {{ $this->currentBusiness->venues_count === 0 ? 'Tambahkan venue untuk mulai menyiapkan katalog tempat.' : 'Coba kata kunci atau status lain, atau buat venue baru.' }}
+                </p>
                 @if ($this->currentBusiness->venues_count === 0)
-                    <h3 class="mt-4 text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Belum ada venue untuk usaha ini.</h3>
-                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">Tambahkan venue pertama untuk mulai menyiapkan katalog tempat. Venue baru akan disimpan sebagai Draft.</p>
                     <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary mt-5">Tambah venue pertama</a>
-                @else
-                    <h3 class="mt-4 text-lg font-extrabold tracking-[-0.035em] sm:text-xl">Tidak ada venue yang sesuai.</h3>
-                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">Coba kata kunci lain atau tampilkan semua status untuk menemukan venue yang dicari.</p>
-                    <button type="button" wire:click="clearFilters" class="btn btn-secondary mt-5">Hapus pencarian dan filter</button>
                 @endif
             </div>
         @else
             <div class="mt-5 divide-y divide-[var(--border)] rounded-2xl bg-white px-4 sm:px-6">
                 @foreach ($venues as $venue)
-                    @php
-                        $meta = $statusMeta[$venue->status] ?? ['Status belum dikenali', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'];
-                        $statusHint = match ($venue->status) {
-                            \App\Models\Venue::STATUS_DRAFT => 'Belum tampil di katalog publik.',
-                            \App\Models\Venue::STATUS_PENDING_REVIEW => 'Menunggu peninjauan. Menyimpan informasi tidak mengubah status ini.',
-                            \App\Models\Venue::STATUS_PUBLISHED => 'Tampil di katalog publik.',
-                            \App\Models\Venue::STATUS_REJECTED => 'Perlu diperbaiki. Menyimpan perubahan tidak mengirim ulang ke peninjauan.',
-                            \App\Models\Venue::STATUS_ARCHIVED => 'Diarsipkan dan tidak dapat diedit.',
-                            default => 'Periksa status venue sebelum melanjutkan.',
-                        };
-                        $editActionLabel = match ($venue->status) {
-                            \App\Models\Venue::STATUS_DRAFT => 'Lengkapi venue',
-                            \App\Models\Venue::STATUS_REJECTED => 'Perbaiki venue',
-                            \App\Models\Venue::STATUS_PENDING_REVIEW => 'Edit informasi',
-                            default => 'Edit venue',
-                        };
-                    @endphp
+                    @php($meta = $statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'])
                     <article wire:key="venue-{{ $venue->id }}" class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-6">
                         <div class="flex min-w-0 items-start gap-3 sm:gap-4">
                             <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-lime)] text-[var(--brand-forest)]">
@@ -245,12 +223,15 @@ new #[Title('Kelola venue')] class extends Component {
                                     <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold {{ $meta[1] }}">{{ $meta[0] }}</span>
                                     <span class="text-xs text-[var(--muted)]">Diperbarui {{ $venue->updated_at?->format('d/m/Y') }}</span>
                                 </div>
-                                <p class="mt-2 text-xs leading-5 text-[var(--muted)]">{{ $statusHint }}</p>
                             </div>
                         </div>
                         @if ($venue->status !== \App\Models\Venue::STATUS_ARCHIVED)
                             <a href="{{ route('owner.businesses.venues.edit', ['business' => $business->public_id, 'venue' => $venue->public_id]) }}" class="btn btn-secondary w-full shrink-0 sm:w-auto">
-                                {{ $editActionLabel }}
+                                Edit venue
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
+                            </a>
+                            <a href="{{ route('owner.businesses.venues.promotions', ['business' => $business->public_id, 'venue' => $venue->public_id]) }}" class="btn btn-secondary w-full shrink-0 sm:w-auto">
+                                Kelola promosi
                                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
                             </a>
                         @else

@@ -97,9 +97,6 @@ Route::prefix('admin')
         Route::livewire('/mfa/challenge', 'pages::admin.mfa.challenge')
             ->name('mfa.challenge');
 
-        Route::livewire('/business-verifications', 'pages::admin.business-verifications')
-            ->name('business-verifications.index');
-
         Route::livewire('/business-revisions', 'pages::admin.business-revisions')
             ->name('business-revisions.index');
 
@@ -181,6 +178,11 @@ Route::prefix('owner')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.edit');
+
+        Route::livewire('/businesses/{business}/venues/{venue}/promotions', 'pages::owner.venue-promotions')
+            ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->name('businesses.venues.promotions');
 
         Route::livewire('/businesses/{business}/edit', 'pages::owner.business-edit')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
