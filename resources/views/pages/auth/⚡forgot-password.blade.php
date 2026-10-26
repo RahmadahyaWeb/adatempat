@@ -17,19 +17,19 @@ new class extends Component {
         ]);
 
         if ($status === Password::RESET_LINK_SENT) {
-            session()->flash('status', 'Jika email terdaftar, instruksi reset password akan dikirim ke alamat tersebut.');
+            session()->flash('status', 'Jika email terdaftar, instruksi untuk membuat kata sandi baru akan dikirim ke alamat tersebut.');
 
             return;
         }
 
         if ($status === Password::RESET_THROTTLED) {
-            $this->addError('email', 'Permintaan reset terlalu sering. Silakan tunggu sebelum mencoba lagi.');
+            $this->addError('email', 'Permintaan terlalu sering. Tunggu sebentar sebelum meminta tautan pemulihan lagi.');
 
             return;
         }
 
         // Pesan generik untuk tidak membocorkan keberadaan akun.
-        session()->flash('status', 'Jika email terdaftar, instruksi reset password akan dikirim ke alamat tersebut.');
+        session()->flash('status', 'Jika email terdaftar, instruksi untuk membuat kata sandi baru akan dikirim ke alamat tersebut.');
     }
 };
 ?>
