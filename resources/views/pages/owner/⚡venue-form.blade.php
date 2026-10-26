@@ -382,6 +382,18 @@ new #[Title('Data venue')] class extends Component {
         $this->resetValidation();
     }
 
+    public function updatedCustomFields(mixed $value, string $key): void
+    {
+        [$index, $property] = array_pad(explode('.', $key, 2), 2, null);
+
+        if ($property !== 'input_type' || ! ctype_digit((string) $index) || ! isset($this->customFields[(int) $index])) {
+            return;
+        }
+
+        $this->customFieldValues[(int) $index] = $value === OwnerCustomField::TYPE_BOOLEAN ? false : '';
+        $this->resetValidation("customFieldValues.{$index}");
+    }
+
     public function availableFacilities(): array
     {
         return [
