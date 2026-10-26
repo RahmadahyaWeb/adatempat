@@ -95,6 +95,15 @@ class BookingCancellationService
                 'slot_released_at' => $refundAmount > 0 ? null : $now,
             ]);
 
+            \App\Models\Payout::query()
+                ->where('booking_id', $lockedBooking->getKey())
+                ->whereIn('status', [
+                    \App\Models\Payout::STATUS_HELD,
+                    \App\Models\Payout::STATUS_ELIGIBLE,
+                    \App\Models\Payout::STATUS_PROCESSING,
+                ])
+                ->update(['status' => \App\Models\Payout::STATUS_ON_HOLD]);
+
             $this->auditCancellation(
                 $customer,
                 $lockedBooking,
@@ -187,6 +196,11 @@ class BookingCancellationService
                 'cancelled_at' => $now,
                 'slot_released_at' => $now,
             ]);
+
+            \App\Models\Payout::query()
+                ->where('booking_id', $lockedBooking->getKey())
+                ->whereNotIn('status', [\App\Models\Payout::STATUS_PAID, \App\Models\Payout::STATUS_CANCELLED])
+                ->update(['status' => \App\Models\Payout::STATUS_CANCELLED]);
 
             $this->auditCancellation(
                 $owner,
