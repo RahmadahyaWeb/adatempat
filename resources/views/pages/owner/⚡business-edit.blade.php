@@ -247,14 +247,14 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @endif
 
-            @if (!$pendingRevision && $latestRevision?->status === \\App\\Models\\BusinessRevision::STATUS_REJECTED)
+            @if (!$pendingRevision && $latestRevision?->status === \App\Models\BusinessRevision::STATUS_REJECTED)
                 <div class="status-note mt-5">
                     <p class="font-bold">Revisi identitas terakhir ditolak</p>
                     <p class="mt-2 text-sm leading-6">Usulan nama: <strong>{{ $latestRevision->proposed_name }}</strong></p>
                     <p class="mt-1 text-sm leading-6">Alasan: {{ $latestRevision->review_reason ?: 'Alasan penolakan belum tersedia.' }}</p>
                     <p class="mt-2 text-xs leading-5">Perbaiki informasi yang diminta lalu ajukan revisi baru. Nama dan alamat publik tetap menggunakan data yang disetujui.</p>
                 </div>
-            @elseif (!$pendingRevision && $latestRevision?->status === \\App\\Models\\BusinessRevision::STATUS_APPROVED)
+            @elseif (!$pendingRevision && $latestRevision?->status === \App\Models\BusinessRevision::STATUS_APPROVED)
                 <div role="status" class="status-note status-success mt-5">
                     <p class="font-bold">Revisi identitas terakhir disetujui</p>
                     <p class="mt-2 text-sm leading-6">Nama yang disetujui: <strong>{{ $latestRevision->proposed_name }}</strong></p>
