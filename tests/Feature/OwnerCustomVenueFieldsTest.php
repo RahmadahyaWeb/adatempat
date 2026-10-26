@@ -166,6 +166,70 @@ class OwnerCustomVenueFieldsTest extends TestCase
             ->assertDontSee('Jangan tampilkan ini');
     }
 
+    public function test_owner_cannot_attach_a_custom_field_from_another_venues_tenant(): void
+    {
+        $owner = $this->createOwner();
+        $otherOwner = $this->createOwner();
+        $business = $this->createBusiness($owner);
+        $otherBusiness = $otherOwner->businesses()->create([
+            'name' => 'Studio Custom Pemilik Lain',
+            'slug' => 'studio-custom-pemilik-lain',
+            'address' => 'Jalan Lain',
+            'status' => Business::STATUS_DRAFT,
+            'published_at' => null,
+        ]);
+        $category = Category::query()->where('slug', 'meeting')->firstOrFail();
+        $template = VenueTemplate::query()
+            ->where('category_id', $category->getKey())
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $venue = $business->venues()->create([
+            'category_id' => $category->getKey(),
+            'venue_template_id' => $template->getKey(),
+            'name' => 'Venue Milik Saya',
+            'slug' => 'venue-milik-saya',
+            'status' => Venue::STATUS_DRAFT,
+        ]);
+        $otherVenue = $otherBusiness->venues()->create([
+            'category_id' => $category->getKey(),
+            'venue_template_id' => $template->getKey(),
+            'name' => 'Venue Pemilik Lain',
+            'slug' => 'venue-pemilik-lain',
+            'status' => Venue::STATUS_DRAFT,
+        ]);
+        $foreignField = $otherVenue->ownerCustomFields()->create([
+            'field_key' => 'catatan_lain',
+            'label' => 'Catatan lain',
+            'input_type' => OwnerCustomField::TYPE_TEXT,
+            'moderation_status' => OwnerCustomField::STATUS_ACTIVE,
+            'sort_order' => 10,
+        ]);
+
+        Livewire::actingAs($owner)
+            ->test('pages::owner.venue-form', [
+                'business' => $business->public_id,
+                'venue' => $venue->public_id,
+            ])
+            ->set('customFields', [[
+                'id' => $foreignField->getKey(),
+                'field_key' => $foreignField->field_key,
+                'label' => $foreignField->label,
+                'input_type' => OwnerCustomField::TYPE_TEXT,
+                'options_text' => '',
+                'sort_order' => 10,
+            ]])
+            ->set('customFieldValues', ['Tidak boleh disalin'])
+            ->call('save')
+            ->assertHasErrors(['customFields.0.id']);
+
+        $this->assertDatabaseHas('owner_custom_fields', [
+            'id' => $foreignField->getKey(),
+            'venue_id' => $otherVenue->getKey(),
+            'label' => 'Catatan lain',
+        ]);
+    }
+
     private function createOwner(): User
     {
         return User::factory()->create([
