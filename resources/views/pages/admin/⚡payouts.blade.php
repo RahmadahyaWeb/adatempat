@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Payout;
+use App\Models\PayoutAccount;
 use App\Models\User;
 use App\Services\Finance\PayoutService;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ new #[Title('Payout Owner')] class extends Component {
     public string $selectedPayoutId = '';
 
     public string $transferReference = '';
+
+    public string $accountReviewReason = '';
 
     #[Computed]
     public function payouts()
@@ -37,6 +40,19 @@ new #[Title('Payout Owner')] class extends Component {
             ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
             ->orderByRaw("CASE status WHEN 'held' THEN 0 WHEN 'eligible' THEN 1 WHEN 'processing' THEN 2 WHEN 'failed' THEN 3 WHEN 'paid' THEN 4 ELSE 5 END")
             ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+    }
+
+    #[Computed]
+    public function pendingAccounts()
+    {
+        $this->requireSuperAdmin();
+
+        return PayoutAccount::query()
+            ->where('verification_status', PayoutAccount::STATUS_PENDING)
+            ->with('owner:id,name,email')
+            ->orderBy('created_at')
             ->limit(100)
             ->get();
     }
@@ -66,6 +82,28 @@ new #[Title('Payout Owner')] class extends Component {
         abort_unless($user instanceof User && $user->isSuperAdmin() && $user->status === 'active', 403);
 
         return $user;
+    }
+
+    public function reviewAccount(int $accountId, string $decision, PayoutService $payoutService): void
+    {
+        $admin = $this->requireSuperAdmin();
+
+        $data = $this->validate([
+            'accountReviewReason' => ['required', 'string', 'min:8', 'max:2000'],
+        ], [
+            'accountReviewReason.required' => 'Alasan verifikasi wajib diisi.',
+            'accountReviewReason.min' => 'Alasan minimal 8 karakter.',
+            'accountReviewReason.max' => 'Alasan maksimal 2.000 karakter.',
+        ]);
+
+        $account = PayoutAccount::query()->findOrFail($accountId);
+        $payoutService->reviewPayoutAccount($account, $admin, $decision, trim($data['accountReviewReason']));
+
+        $this->accountReviewReason = '';
+        unset($this->pendingAccounts, $this->payouts, $this->summary);
+        session()->flash('status', $decision === PayoutAccount::STATUS_VERIFIED
+            ? 'Rekening ditandai terverifikasi dan dapat dipakai untuk payout.'
+            : 'Rekening ditolak. Owner dapat mengajukan rekening baru.');
     }
 
     public function startSettlement(int $payoutId): void
@@ -131,6 +169,38 @@ new #[Title('Payout Owner')] class extends Component {
         <div class="ui-panel p-5"><p class="text-sm text-[var(--ink-soft)]">Siap dibayar</p><p class="mt-2 text-3xl font-extrabold">{{ number_format($this->summary['eligible'], 0, ',', '.') }}</p></div>
         <div class="ui-panel p-5"><p class="text-sm text-[var(--ink-soft)]">Total transfer tercatat</p><p class="mt-2 text-2xl font-extrabold">Rp{{ number_format($this->summary['paid_amount'], 0, ',', '.') }}</p></div>
     </div>
+
+    <section class="ui-panel p-5 sm:p-6">
+        <div>
+            <h2 class="text-xl font-extrabold">Verifikasi rekening payout</h2>
+            <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Periksa rekening melalui prosedur verifikasi yang berlaku sebelum menyetujui. Setiap keputusan wajib menyertakan alasan dan masuk audit log.</p>
+        </div>
+        <div class="mt-4 space-y-3">
+            @forelse ($this->pendingAccounts as $account)
+                <article wire:key="pending-payout-account-{{ $account->id }}" class="rounded-xl border border-[var(--border)] p-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <p class="font-bold">{{ $account->bank_name }} · {{ $account->bank_code }}</p>
+                            <p class="mt-1 text-sm">{{ $account->owner?->name ?? 'Owner tidak tersedia' }} <span class="text-[var(--ink-soft)]">({{ $account->owner?->email }})</span></p>
+                            <p class="mt-1 text-sm text-[var(--ink-soft)]">Rekening ****{{ $account->account_number_last4 }} · {{ $account->account_holder_name }}</p>
+                            <p class="mt-1 text-xs text-[var(--ink-soft)]">Diajukan {{ $account->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
+                        </div>
+                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Menunggu verifikasi</span>
+                    </div>
+                    <label class="ui-label mt-4" for="account-review-reason-{{ $account->id }}">Alasan / catatan verifikasi</label>
+                    <textarea id="account-review-reason-{{ $account->id }}" wire:model="accountReviewReason" rows="2" maxlength="2000" class="ui-input w-full" placeholder="Catat dasar pemeriksaan rekening"></textarea>
+                    @error('accountReviewReason') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                    @error('accountReview') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" wire:click="reviewAccount({{ $account->id }}, 'verified')" class="btn btn-primary" wire:loading.attr="disabled">Verifikasi rekening</button>
+                        <button type="button" wire:click="reviewAccount({{ $account->id }}, 'rejected')" class="btn btn-secondary" wire:loading.attr="disabled">Tolak rekening</button>
+                    </div>
+                </article>
+            @empty
+                <div class="rounded-xl border border-dashed border-[var(--border-strong)] p-5 text-center text-sm text-[var(--ink-soft)]">Tidak ada rekening yang menunggu verifikasi.</div>
+            @endforelse
+        </div>
+    </section>
 
     <section class="ui-panel p-4 sm:p-6">
         <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
