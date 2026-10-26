@@ -7,6 +7,8 @@ use App\Models\VenueTemplate;
 use App\Models\TemplateField;
 use App\Models\OwnerCustomField;
 use App\Models\VenuePrice;
+use App\Services\Booking\VenueBlockService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -48,6 +50,12 @@ new #[Title('Data venue')] class extends Component {
 
     public array $priceRows = [];
 
+    public string $blockStartsAt = '';
+
+    public string $blockEndsAt = '';
+
+    public string $blockReason = '';
+
     public $mediaUpload = null;
 
     public string $mediaAltText = '';
@@ -73,7 +81,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices'])
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices', 'blocks'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -525,6 +533,70 @@ new #[Title('Data venue')] class extends Component {
         Storage::disk($disk)->delete($path);
         unset($this->currentVenue, $this->mediaAltTexts[$mediaId]);
         session()->flash('status', 'Foto venue berhasil dihapus.');
+    }
+
+    public function createVenueBlock(VenueBlockService $venueBlockService): void
+    {
+        $owner = auth()->user();
+
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+
+        if ($venue === null) {
+            $this->addError('blockStartsAt', 'Simpan venue terlebih dahulu sebelum membuat blokir jadwal.');
+
+            return;
+        }
+
+        Gate::authorize('update', $venue);
+
+        $validated = $this->validate([
+            'blockStartsAt' => ['required', 'date_format:Y-m-d\\TH:i'],
+            'blockEndsAt' => ['required', 'date_format:Y-m-d\\TH:i', 'after:blockStartsAt'],
+            'blockReason' => ['required', 'string', 'max:255'],
+        ], [
+            'blockStartsAt.required' => 'Waktu mulai blokir wajib diisi.',
+            'blockStartsAt.date_format' => 'Format waktu mulai tidak valid.',
+            'blockEndsAt.required' => 'Waktu selesai blokir wajib diisi.',
+            'blockEndsAt.date_format' => 'Format waktu selesai tidak valid.',
+            'blockEndsAt.after' => 'Waktu selesai harus lebih akhir daripada waktu mulai.',
+            'blockReason.required' => 'Alasan blokir wajib diisi.',
+            'blockReason.max' => 'Alasan blokir maksimal 255 karakter.',
+        ]);
+
+        $timezone = $this->currentBusiness->timezone ?: 'Asia/Jakarta';
+        $startsAtUtc = CarbonImmutable::parse($validated['blockStartsAt'], $timezone)->utc();
+        $endsAtUtc = CarbonImmutable::parse($validated['blockEndsAt'], $timezone)->utc();
+
+        $venueBlockService->create(
+            $owner,
+            $venue,
+            $startsAtUtc,
+            $endsAtUtc,
+            $validated['blockReason'],
+        );
+
+        $this->reset(['blockStartsAt', 'blockEndsAt', 'blockReason']);
+        $this->resetValidation(['blockStartsAt', 'blockEndsAt', 'blockReason']);
+        unset($this->currentVenue);
+        session()->flash('status', 'Blokir jadwal berhasil disimpan.');
+    }
+
+    public function deleteVenueBlock(int $blockId, VenueBlockService $venueBlockService): void
+    {
+        $owner = auth()->user();
+
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $venue = $this->currentVenue;
+        abort_unless($venue !== null, 404);
+        Gate::authorize('update', $venue);
+
+        $venueBlockService->delete($owner, $venue, $blockId);
+
+        unset($this->currentVenue);
+        session()->flash('status', 'Blokir jadwal berhasil dihapus.');
     }
 
     private function defaultAvailabilityRules(): array
