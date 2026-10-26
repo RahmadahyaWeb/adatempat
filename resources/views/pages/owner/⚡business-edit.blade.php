@@ -250,7 +250,7 @@ new #[Title('Profil usaha')] class extends Component {
         $businessLongitude = trim((string) ($validated['longitude'] ?? '')) !== '' ? (float) $validated['longitude'] : null;
 
         if ($business->status === Business::STATUS_ACTIVE) {
-            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress): ?BusinessRevision {
+            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress, $businessCity, $businessProvince, $businessLatitude, $businessLongitude): ?BusinessRevision {
                 $lockedBusiness = $owner->businesses()
                     ->whereKey($business->getKey())
                     ->lockForUpdate()
@@ -339,7 +339,9 @@ new #[Title('Profil usaha')] class extends Component {
         $statusMeta = match ($business->status) {
             'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
             'pending_verification' => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
-            'active' => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
+            'active' => $business->published_at
+                ? ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]']
+                : ['Terverifikasi · Belum tayang', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
             'suspended' => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
             'rejected' => ['Ditolak', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
             default => [$business->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
@@ -348,6 +350,7 @@ new #[Title('Profil usaha')] class extends Component {
         $canSubmit = $canEdit || $this->canSubmitRevision();
         $pendingRevision = $this->pendingRevision;
         $latestRevision = $this->latestRevision;
+        $hasDraftVenue = $business->draft_venues_count > 0;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -379,8 +382,10 @@ new #[Title('Profil usaha')] class extends Component {
 
             @if (!$canEdit)
                 <div class="status-note mt-5">
-                    @if ($business->status === 'active')
-                        Usaha ini sedang aktif. Perubahan nama atau alamat akan diajukan sebagai revisi dan harus disetujui Super Admin. Data publik yang sudah disetujui tidak akan berubah sebelum peninjauan selesai.
+                    @if ($business->status === 'active' && $business->published_at)
+                        Usaha ini sudah terverifikasi dan ditampilkan ke publik. Perubahan identitas utama akan diajukan sebagai revisi dan harus disetujui Super Admin.
+                    @elseif ($business->status === 'active')
+                        Usaha ini sudah terverifikasi. Profil belum ditampilkan ke publik karena pengelolaan status langganan belum tersedia pada versi ini. Perubahan identitas utama tetap harus ditinjau Super Admin.
                     @elseif ($business->status === 'pending_verification')
                         Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.
                     @elseif ($business->status === 'suspended')
@@ -391,7 +396,11 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @elseif ($business->status === 'rejected')
                 <div class="status-note mt-5">
-                    Profil dapat diperbaiki. Menyimpan perubahan tidak mengubah status penolakan atau otomatis mengajukan ulang verifikasi.
+                    <p class="font-bold">Usaha perlu diperbaiki</p>
+                    @if ($business->rejection_reason)
+                        <p class="mt-2 text-sm leading-6">Alasan: {{ $business->rejection_reason }}</p>
+                    @endif
+                    <p class="mt-2 text-xs leading-5">Perbaiki informasi lalu ajukan ulang verifikasi. Menyimpan perubahan saja tidak mengirim pengajuan baru.</p>
                 </div>
             @endif
 
