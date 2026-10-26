@@ -81,6 +81,11 @@ class Venue extends Model
         return $this->hasMany(OwnerCustomField::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function blocks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VenueBlock::class)->orderBy('starts_at');
+    }
+
     public function availabilityRules(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(VenueAvailabilityRule::class)->orderBy('day_of_week');
