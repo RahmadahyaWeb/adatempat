@@ -157,6 +157,24 @@ class VenueOperationalSettingsTest extends TestCase
         $this->assertSame(['Sesi pagi', 'Sesi siang'], $activePrices->pluck('session_name')->all());
     }
 
+    public function test_owner_can_set_business_timezone_for_local_operating_hours(): void
+    {
+        $owner = $this->createOwner();
+        [$business] = $this->createVenue($owner);
+
+        Livewire::actingAs($owner)
+            ->test('pages::owner.business-edit', ['business' => $business->public_id])
+            ->set('timezone', 'Asia/Makassar')
+            ->call('saveTimezone')
+            ->assertHasNoErrors()
+            ->assertSee('Zona waktu usaha berhasil diperbarui');
+
+        $this->assertDatabaseHas('businesses', [
+            'id' => $business->getKey(),
+            'timezone' => 'Asia/Makassar',
+        ]);
+    }
+
     public function test_public_profile_displays_the_active_price(): void
     {
         $owner = $this->createOwner();
