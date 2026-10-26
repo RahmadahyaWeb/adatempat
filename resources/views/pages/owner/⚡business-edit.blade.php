@@ -149,8 +149,21 @@ new #[Title('Profil usaha')] class extends Component {
                 'longitude' => $lockedBusiness->longitude,
             ];
 
+            $slugBase = Str::slug(trim($validated['name'])) ?: 'usaha';
+            $slug = $slugBase;
+            $suffix = 2;
+
+            while (Business::query()
+                ->where('slug', $slug)
+                ->where('id', '!=', $lockedBusiness->getKey())
+                ->exists()) {
+                $slug = $slugBase . '-' . $suffix;
+                $suffix++;
+            }
+
             $lockedBusiness->fill([
                 'status' => Business::STATUS_PENDING_VERIFICATION,
+                'slug' => $slug,
                 'name' => trim($validated['name']),
                 'address' => trim($validated['address']),
                 'city' => trim($validated['city']),
