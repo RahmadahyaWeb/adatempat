@@ -70,7 +70,7 @@ class SubscriptionEligibilityService
 
         $businessCount = Business::query()
             ->where('owner_id', $ownerId)
-            ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED])
+            ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED, Business::STATUS_ARCHIVED_BY_DOWNGRADE])
             ->count();
 
         return $businessCount < (int) $subscription->plan->max_businesses;
