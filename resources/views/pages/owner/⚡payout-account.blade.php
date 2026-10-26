@@ -2,6 +2,7 @@
 
 use App\Models\AuditLog;
 use App\Models\PayoutAccount;
+use App\Models\Payout;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,19 @@ new #[Title('Rekening payout')] class extends Component {
             ->where('owner_id', $owner->getKey())
             ->with('verifier:id,name')
             ->orderByDesc('created_at')
+            ->get();
+    }
+
+    #[Computed]
+    public function payouts()
+    {
+        $owner = $this->requireOwner();
+
+        return Payout::query()
+            ->where('owner_id', $owner->getKey())
+            ->with(['booking.venue:id,name'])
+            ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
     }
 
@@ -160,6 +174,33 @@ new #[Title('Rekening payout')] class extends Component {
                 </article>
             @empty
                 <div class="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--ink-soft)]">Belum ada rekening payout yang diajukan.</div>
+            @endforelse
+        </div>
+    </section>
+
+    <section class="ui-panel p-5 sm:p-7">
+        <h2 class="text-xl font-extrabold">Riwayat payout</h2>
+        <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Nominal bersih dan status pembayaran ditampilkan untuk rekening Owner ini. Payout yang ditahan memerlukan penyelesaian pemeriksaan sebelum dapat dibayarkan.</p>
+        <div class="mt-4 space-y-3">
+            @forelse ($this->payouts as $payout)
+                <article wire:key="owner-payout-{{ $payout->id }}" class="rounded-xl border border-[var(--border)] p-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <p class="font-bold">{{ $payout->reference_code }}</p>
+                            <p class="mt-1 text-sm">{{ $payout->booking?->venue?->name ?? 'Venue tidak tersedia' }}</p>
+                            <p class="mt-1 text-xs text-[var(--ink-soft)]">Booking #{{ $payout->booking_id }} · {{ $payout->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
+                            @if ($payout->transfer_reference)
+                                <p class="mt-2 text-xs text-[var(--ink-soft)]">Referensi transfer: {{ $payout->transfer_reference }}</p>
+                            @endif
+                        </div>
+                        <div class="sm:text-right">
+                            <p class="text-xl font-extrabold">Rp{{ number_format($payout->net_amount, 0, ',', '.') }}</p>
+                            <span class="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $payout->status === 'paid' ? 'bg-emerald-100 text-emerald-800' : ($payout->status === 'eligible' ? 'bg-lime-100 text-lime-900' : ($payout->status === 'held' || $payout->status === 'on_hold' ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700')) }}">{{ str($payout->status)->replace('_', ' ')->title() }}</span>
+                        </div>
+                    </div>
+                </article>
+            @empty
+                <div class="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--ink-soft)]">Belum ada payout untuk ditampilkan.</div>
             @endforelse
         </div>
     </section>
