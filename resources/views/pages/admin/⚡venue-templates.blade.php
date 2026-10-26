@@ -32,6 +32,8 @@ new #[Title('Template venue')] class extends Component {
     #[Computed]
     public function categories(): Collection
     {
+        $this->requireSuperAdmin();
+
         return Category::query()
             ->active()
             ->orderBy('name')
@@ -41,6 +43,8 @@ new #[Title('Template venue')] class extends Component {
     #[Computed]
     public function templates(): Collection
     {
+        $this->requireSuperAdmin();
+
         return VenueTemplate::query()
             ->with(['category', 'fields'])
             ->withCount('venues')
@@ -295,18 +299,37 @@ new #[Title('Template venue')] class extends Component {
             ->where('category_id', $categoryId)
             ->where('name', $templateName)
             ->where('is_active', true)
-            ->when($baseTemplateId !== null, fn ($query) => $query->whereKeyNot($baseTemplateId))
+            ->when($baseTemplateId !== null, fn ($query) => $query->where('id', '!=', $baseTemplateId))
             ->exists();
 
-        if ($validated['isActive'] && $duplicateActiveTemplate) {
+        $baseTemplateSnapshot = $baseTemplateId === null
+            ? null
+            : VenueTemplate::query()->whereKey($baseTemplateId)->firstOrFail();
+
+        $sameTemplateLineage = $baseTemplateSnapshot !== null
+            && (int) $baseTemplateSnapshot->category_id === $categoryId
+            && $baseTemplateSnapshot->name === $templateName;
+
+        if ($validated['isActive'] && $duplicateActiveTemplate && ! $sameTemplateLineage) {
             $this->addError('name', 'Kategori sudah memiliki template aktif dengan nama tersebut.');
             return;
         }
 
         DB::transaction(function () use ($actor, $templateName, $categoryId, $baseTemplateId, $normalisedFields, $validated): void {
+            Category::query()->whereKey($categoryId)->lockForUpdate()->firstOrFail();
+
             $baseTemplate = $baseTemplateId === null
                 ? null
                 : VenueTemplate::query()->with('fields')->whereKey($baseTemplateId)->lockForUpdate()->firstOrFail();
+
+            if ($validated['isActive']) {
+                VenueTemplate::query()
+                    ->where('category_id', $categoryId)
+                    ->where('name', $templateName)
+                    ->where('is_active', true)
+                    ->when($baseTemplateId !== null, fn ($query) => $query->where('id', '!=', $baseTemplateId))
+                    ->update(['is_active' => false]);
+            }
 
             $beforeState = $baseTemplate === null ? null : [
                 'id' => $baseTemplate->getKey(),
