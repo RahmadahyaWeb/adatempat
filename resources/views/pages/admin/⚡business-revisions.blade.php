@@ -58,6 +58,8 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
                     'name' => $business->name,
                     'slug' => $business->slug,
                     'address' => $business->address,
+                    'city' => $business->city,
+                    'province' => $business->province,
                     'latitude' => $business->latitude,
                     'longitude' => $business->longitude,
                 ],
@@ -69,6 +71,8 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
             $business->fill([
                 'name' => $proposedName,
                 'address' => $revision->proposed_address,
+                'city' => $revision->proposed_city,
+                'province' => $revision->proposed_province,
                 'latitude' => $revision->proposed_latitude,
                 'longitude' => $revision->proposed_longitude,
             ])->save();
@@ -93,6 +97,8 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
                         'name' => $business->name,
                         'slug' => $business->slug,
                         'address' => $business->address,
+                    'city' => $business->city,
+                    'province' => $business->province,
                         'latitude' => $business->latitude,
                         'longitude' => $business->longitude,
                     ],
@@ -225,6 +231,7 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
                                 <p class="text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">Usaha saat ini</p>
                                 <h3 class="mt-2 break-words text-lg font-extrabold tracking-[-0.035em]">{{ $revision->business->name }}</h3>
                                 <p class="mt-1 break-words text-sm leading-6 text-[var(--ink-soft)]">{{ $revision->business->address ?: 'Alamat belum diisi' }}</p>
+                                    <p class="mt-1 break-words text-xs leading-5 text-[var(--muted)]">{{ collect([$revision->business->city, $revision->business->province])->filter()->implode(', ') ?: 'Kota dan provinsi belum diisi' }}</p>
                                 <p class="mt-2 text-xs leading-5 text-[var(--muted)]">
                                     Pemilik: {{ $revision->business->owner?->name ?? $revision->submittedBy->name }}
                                     · Diajukan {{ $revision->created_at?->format('d/m/Y H:i') }}
@@ -241,6 +248,8 @@ new #[Title('Peninjauan revisi usaha')] class extends Component {
                             <div>
                                 <p class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Usulan alamat</p>
                                 <p class="mt-2 break-words text-sm font-semibold">{{ $revision->proposed_address ?: 'Alamat dikosongkan' }}</p>
+                                <p class="mt-1 break-words text-xs leading-5 text-[var(--muted)]">{{ collect([$revision->proposed_city, $revision->proposed_province])->filter()->implode(', ') ?: 'Kota dan provinsi belum diisi' }}</p>
+                                <p class="mt-2 text-xs font-semibold text-[var(--muted)]">Koordinat: {{ $revision->proposed_latitude ?? '—' }}, {{ $revision->proposed_longitude ?? '—' }}</p>
                             </div>
                         </div>
 
