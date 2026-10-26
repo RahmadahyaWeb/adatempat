@@ -89,7 +89,7 @@ new #[Title('Kelola usaha')] class extends Component {
     @php
         $businesses = $this->businesses;
         $draftCount = $businesses->where('status', 'draft')->count();
-        $activeCount = $businesses->where('status', 'active')->count();
+        $publishedCount = $businesses->filter(fn (Business $business) => $business->status === Business::STATUS_ACTIVE && $business->published_at !== null)->count();
         $venueCount = $businesses->sum('venues_count');
     @endphp
 
@@ -121,8 +121,8 @@ new #[Title('Kelola usaha')] class extends Component {
             <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $businesses->count() }}</p>
         </div>
         <div>
-            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Usaha aktif</p>
-            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $activeCount }}</p>
+            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Tayang di publik</p>
+            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $publishedCount }}</p>
         </div>
         <div class="col-span-2 sm:col-span-1">
             <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Total venue</p>
