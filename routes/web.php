@@ -97,6 +97,9 @@ Route::prefix('admin')
         Route::livewire('/mfa/challenge', 'pages::admin.mfa.challenge')
             ->name('mfa.challenge');
 
+        Route::livewire('/business-verifications', 'pages::admin.business-verifications')
+            ->name('business-verifications.index');
+
         Route::livewire('/business-revisions', 'pages::admin.business-revisions')
             ->name('business-revisions.index');
 
@@ -186,14 +189,21 @@ Route::prefix('owner')
         'role:owner',
     ])
     ->group(function () {
-        Route::livewire('/businesses', 'pages::owner.businesses')
-            ->name('businesses.index');
+        Route::livewire('/mfa/setup', 'pages::owner.mfa.setup')
+            ->name('mfa.setup');
+
+        Route::livewire('/mfa/challenge', 'pages::owner.mfa.challenge')
+            ->name('mfa.challenge');
+
+        Route::livewire('/payout-accounts', 'pages::owner.payout-accounts')
+            ->middleware('owner.mfa')
+            ->name('payout-accounts.index');
 
         Route::livewire('/bookings', 'pages::owner.bookings')
             ->name('bookings.index');
 
-        Route::livewire('/payout-account', 'pages::owner.payout-account')
-            ->name('payout-account');
+        Route::livewire('/businesses', 'pages::owner.businesses')
+            ->name('businesses.index');
 
         Route::livewire('/businesses/{business}/venues', 'pages::owner.venues')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
