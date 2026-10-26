@@ -193,12 +193,29 @@ new #[Title('Kelola usaha')] class extends Component {
                 @foreach ($businesses as $business)
                     @php
                         $statusMeta = match ($business->status) {
-                            'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
-                            'pending_verification' => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
-                            'active' => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
-                            'suspended' => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
-                            'rejected' => ['Perlu perbaikan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
-                            default => [$business->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
+                            \App\Models\Business::STATUS_DRAFT => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
+                            \App\Models\Business::STATUS_PENDING_VERIFICATION => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
+                            \App\Models\Business::STATUS_ACTIVE => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
+                            \App\Models\Business::STATUS_SUSPENDED => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
+                            \App\Models\Business::STATUS_REJECTED => ['Perlu perbaikan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
+                            default => ['Status belum dikenali', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
+                        };
+                        $statusDescription = match ($business->status) {
+                            \App\Models\Business::STATUS_DRAFT => 'Lengkapi profil dasar terlebih dahulu. Usaha draft belum tampil di katalog publik.',
+                            \App\Models\Business::STATUS_PENDING_VERIFICATION => 'Profil sedang menunggu verifikasi. Identitas tidak dapat diubah selama proses ini.',
+                            \App\Models\Business::STATUS_ACTIVE => $business->published_at
+                                ? 'Usaha aktif. Perubahan nama atau alamat perlu disetujui sebelum mengganti informasi publik.'
+                                : 'Status usaha aktif, tetapi waktu publikasi belum tercatat.',
+                            \App\Models\Business::STATUS_REJECTED => 'Periksa kembali informasi profil. Menyimpan perubahan belum mengajukan ulang proses verifikasi.',
+                            \App\Models\Business::STATUS_SUSPENDED => 'Pengelolaan dibatasi selama usaha ditangguhkan.',
+                            default => 'Periksa status usaha ini sebelum melanjutkan.',
+                        };
+                        $primaryAction = match ($business->status) {
+                            \App\Models\Business::STATUS_DRAFT => ['label' => 'Lengkapi profil', 'href' => route('owner.businesses.edit', ['business' => $business->public_id])],
+                            \App\Models\Business::STATUS_PENDING_VERIFICATION => ['label' => 'Lihat status', 'href' => route('owner.businesses.edit', ['business' => $business->public_id])],
+                            \App\Models\Business::STATUS_ACTIVE => ['label' => 'Kelola venue', 'href' => route('owner.businesses.venues.index', ['business' => $business->public_id])],
+                            \App\Models\Business::STATUS_REJECTED => ['label' => 'Perbaiki profil', 'href' => route('owner.businesses.edit', ['business' => $business->public_id])],
+                            default => ['label' => 'Lihat status', 'href' => route('owner.businesses.edit', ['business' => $business->public_id])],
                         };
                     @endphp
                     <article wire:key="business-{{ $business->id }}" class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-6">
@@ -209,6 +226,7 @@ new #[Title('Kelola usaha')] class extends Component {
                             <div class="min-w-0">
                                 <h3 class="break-words text-base font-extrabold tracking-[-0.03em] sm:text-lg">{{ $business->name }}</h3>
                                 <p class="mt-1 break-words text-sm leading-5 text-[var(--muted)]">{{ $business->address ?: 'Alamat belum ditambahkan' }}</p>
+                                <p class="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">{{ $statusDescription }}</p>
                                 <div class="mt-3 flex flex-wrap items-center gap-2">
                                     <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                                     <span class="text-xs text-[var(--muted)]">{{ $business->venues_count }} venue</span>
@@ -217,15 +235,17 @@ new #[Title('Kelola usaha')] class extends Component {
                             </div>
                         </div>
                         <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
-                            @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
-                                <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-primary w-full sm:w-auto">
-                                    Kelola venue
-                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
-                                </a>
-                            @endif
-                            <a href="{{ route('owner.businesses.edit', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">
-                                Kelola data
+                            <a href="{{ $primaryAction['href'] }}" class="btn btn-primary w-full sm:w-auto">
+                                {{ $primaryAction['label'] }}
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
                             </a>
+                            @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
+                                @if ($business->status === \App\Models\Business::STATUS_ACTIVE)
+                                    <a href="{{ route('owner.businesses.edit', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">Kelola data</a>
+                                @else
+                                    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">Kelola venue</a>
+                                @endif
+                            @endif
                         </div>
                     </article>
                 @endforeach
