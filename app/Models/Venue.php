@@ -96,6 +96,16 @@ class Venue extends Model
         return $this->hasMany(VenuePrice::class)->orderBy('id');
     }
 
+    public function bookings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function bookingHolds(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BookingHold::class);
+    }
+
     public function promotions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(VenuePromotion::class)->orderByDesc('created_at');
