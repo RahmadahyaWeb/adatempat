@@ -169,6 +169,9 @@ Route::prefix('owner')
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');
 
+        Route::livewire('/payout-account', 'pages::owner.payout-account')
+            ->name('payout-account');
+
         Route::livewire('/businesses/{business}/venues', 'pages::owner.venues')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
             ->name('businesses.venues.index');
