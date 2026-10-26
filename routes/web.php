@@ -1,21 +1,10 @@
 
 <?php
 
-use App\Http\Controllers\DisputeEvidenceController;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
-Route::livewire('/bookings/{booking}/dispute', 'pages::disputes.show')
-    ->where('booking', '[0-9]+')
-    ->middleware(['auth', 'account.active', 'verified'])
-    ->name('bookings.dispute.show');
-
-Route::get('/disputes/evidence/{evidence}', [DisputeEvidenceController::class, 'download'])
-    ->where('evidence', '[0-9]+')
-    ->middleware(['auth', 'account.active', 'verified'])
-    ->name('disputes.evidence.download');
 
 Route::livewire('/', 'pages::home')->name('home');
 
@@ -108,6 +97,9 @@ Route::prefix('admin')
         Route::livewire('/mfa/challenge', 'pages::admin.mfa.challenge')
             ->name('mfa.challenge');
 
+        Route::livewire('/business-verifications', 'pages::admin.business-verifications')
+            ->name('business-verifications.index');
+
         Route::livewire('/business-revisions', 'pages::admin.business-revisions')
             ->name('business-revisions.index');
 
@@ -117,11 +109,14 @@ Route::prefix('admin')
         Route::livewire('/payouts', 'pages::admin.payouts')
             ->name('payouts.index');
 
-        Route::get('/disputes/evidence/{evidence}', [DisputeEvidenceController::class, 'download'])
-            ->where('evidence', '[0-9]+')
-            ->name('disputes.evidence.download-admin');
+        Route::livewire('/refunds', 'pages::admin.refunds')
+            ->name('refunds.index');
 
-        Route::livewire('/disputes', 'pages::admin.disputes')->name('disputes.index');
+        Route::livewire('/subscriptions', 'pages::admin.subscriptions')
+            ->name('subscriptions.index');
+
+        Route::livewire('/disputes', 'pages::admin.disputes')
+            ->name('disputes.index');
 
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
@@ -174,6 +169,20 @@ Route::livewire('/reset-password/{token}', 'pages::auth.reset-password')
 |
 */
 
+Route::prefix('account')
+    ->name('customer.')
+    ->middleware([
+        'auth',
+        'account.active',
+        'verified',
+        'role:customer',
+    ])
+    ->group(function () {
+        Route::livewire('/bookings', 'pages::customer.bookings')
+            ->name('bookings.index');
+    });
+
+
 Route::prefix('owner')
     ->name('owner.')
     ->middleware([
@@ -193,8 +202,14 @@ Route::prefix('owner')
             ->middleware('owner.mfa')
             ->name('payout-accounts.index');
 
+        Route::livewire('/bookings', 'pages::owner.bookings')
+            ->name('bookings.index');
+
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');
+
+        Route::livewire('/subscription', 'pages::owner.subscription')
+            ->name('subscription');
 
         Route::livewire('/businesses/{business}/venues', 'pages::owner.venues')
             ->where('business', '[0-9A-HJKMNP-TV-Z]{26}')
@@ -229,6 +244,13 @@ Route::prefix('owner')
 | registrasi, dan pemulihan password tetap menjadi prioritas.
 |
 */
+
+Route::middleware(['auth', 'account.active', 'verified', 'throttle:30,1'])->group(function () {
+    Route::livewire('/disputes/{dispute}/evidence', 'pages::disputes.evidence')
+        ->whereNumber('dispute')->name('disputes.evidence');
+    Route::get('/disputes/evidence/{evidence}/download', [\App\Http\Controllers\DisputeEvidenceController::class, 'download'])
+        ->whereNumber('evidence')->name('disputes.evidence.download');
+});
 
 Route::livewire('/{businessSlug}', 'pages::business')
     ->where('businessSlug', '[a-z0-9-]+')

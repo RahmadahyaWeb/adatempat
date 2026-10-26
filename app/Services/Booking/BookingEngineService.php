@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePromotion;
 use App\Services\Finance\LedgerService;
+use App\Services\Finance\PayoutService;
 use App\Services\Payments\PaymentService;
 use App\Services\Subscriptions\SubscriptionEligibilityService;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,7 @@ class BookingEngineService
         private readonly SubscriptionEligibilityService $subscriptions,
         private readonly PaymentService $payments,
         private readonly LedgerService $ledger,
+        private readonly PayoutService $payouts,
     ) {
     }
 
@@ -215,6 +217,8 @@ class BookingEngineService
                             ],
                         ]);
                     }
+
+                    $this->payouts->holdForConfirmedBooking($booking);
                 } else {
                     $payment = Payment::query()->create([
                         'payable_type' => Payment::TYPE_BOOKING,

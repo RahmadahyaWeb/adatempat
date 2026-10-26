@@ -39,7 +39,8 @@
                     [
                         'label' => 'Verifikasi & moderasi',
                         'items' => [
-                            ['label' => 'Verifikasi usaha', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Verifikasi usaha', 'href' => route('business-verifications.index')],
+                            ['label' => 'Sengketa booking', 'href' => route('disputes.index')],
                             ['label' => 'Moderasi konten', 'placeholder' => 'Segera hadir'],
                         ],
                     ],
@@ -47,7 +48,9 @@
                         'label' => 'Pengelolaan platform',
                         'items' => [
                             ['label' => 'Template venue', 'href' => route('venue-templates.index')],
-                            ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Payout & rekening', 'href' => route('payouts.index')],
+                            ['label' => 'Refund & rekonsiliasi', 'href' => route('refunds.index')],
+                            ['label' => 'Langganan Owner', 'href' => route('subscriptions.index')],
                             ['label' => 'Pengaturan platform', 'placeholder' => 'Segera hadir'],
                         ],
                     ],
@@ -64,14 +67,15 @@
                         [
                             'label' => 'Operasional',
                             'items' => [
-                                ['label' => 'Pesanan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Booking masuk', 'href' => route('owner.bookings.index')],
                                 ['label' => 'Kalender', 'placeholder' => 'Segera hadir'],
                             ],
                         ],
                         [
                             'label' => 'Keuangan',
                             'items' => [
-                                ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Langganan', 'href' => route('owner.subscription')],
+                                ['label' => 'Rekening payout', 'href' => route('owner.payout-accounts.index')],
                                 ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
                             ],
                         ],
@@ -241,6 +245,7 @@
                 <a class="underline-offset-4 hover:underline" href="{{ route('home') }}#hasil">Jelajahi tempat</a>
                 @if ($currentUser)
                     @if ($currentUser->isSuperAdmin())
+                        <a class="underline-offset-4 hover:underline" href="{{ route('business-verifications.index') }}">Verifikasi usaha</a>
                         <a class="underline-offset-4 hover:underline" href="{{ route('business-revisions.index') }}">Peninjauan revisi</a>
                         <a class="underline-offset-4 hover:underline" href="{{ route('venue-templates.index') }}">Template venue</a>
                     @elseif ($currentUser->isOwner())

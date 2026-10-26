@@ -105,10 +105,14 @@ new #[Title('Kelola usaha')] class extends Component {
                 Atur profil usaha yang kamu miliki. Usaha dan venue hanya tampil di katalog publik setelah memenuhi persyaratan publikasi.
             </p>
         </div>
-        <button type="button" wire:click="startCreate" class="btn btn-primary w-full shrink-0 sm:w-auto">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
-            Tambah usaha
-        </button>
+        <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+            <a href="{{ route('owner.bookings.index') }}" class="btn btn-secondary w-full sm:w-auto">Booking masuk</a>
+            <a href="{{ route('owner.payout-accounts.index') }}" class="btn btn-secondary w-full sm:w-auto">Rekening payout</a>
+            <button type="button" wire:click="startCreate" class="btn btn-primary w-full sm:w-auto">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
+                Tambah usaha
+            </button>
+        </div>
     </header>
 
     @if (session('status'))
