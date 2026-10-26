@@ -4,6 +4,7 @@ use App\Models\Business;
 use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -21,6 +22,8 @@ new #[Title('Kelola venue')] class extends Component {
             ->businesses()
             ->where('public_id', $business)
             ->firstOrFail();
+
+        Gate::authorize('viewAny', [Venue::class, $record]);
 
         abort_unless($record->status !== Business::STATUS_SUSPENDED, 403);
 
