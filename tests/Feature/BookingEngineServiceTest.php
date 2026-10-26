@@ -68,15 +68,16 @@ class BookingEngineServiceTest extends TestCase
     {
         [$owner, $customer, $business, $venue] = $this->createVenueAndSubscription();
         $this->createHourlyPrice($venue);
-        $promotion = $venue->promotions()->create([
+        $promotion = VenuePromotion::query()->create([
+            'venue_id' => null,
             'business_id' => null,
             'code' => null,
-            'name' => 'Diskon penuh',
-            'funded_by' => 'owner',
+            'name' => 'Subsidi penuh platform',
+            'funded_by' => 'platform',
             'discount_type' => 'percentage',
             'discount_value' => 100,
             'max_discount_amount' => 100000,
-            'is_combinable_with_owner_promo' => false,
+            'is_combinable_with_owner_promo' => true,
             'max_quota' => 1,
             'used_count' => 0,
             'starts_at' => now('UTC')->subHour(),
@@ -101,6 +102,7 @@ class BookingEngineServiceTest extends TestCase
         $this->assertNull($result['payment']);
         $this->assertSame(BookingHold::STATUS_CONVERTED, $result['hold']->status);
         $this->assertDatabaseCount('payments', 0);
+        $this->assertDatabaseCount('ledger_entries', 2);
         $this->assertDatabaseHas('venue_promotions', [
             'id' => $promotion->getKey(),
             'used_count' => 1,
