@@ -47,12 +47,12 @@ new class extends Component {
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            $this->addError('email', 'Tautan reset tidak valid atau sudah kedaluwarsa. Periksa email dan tautan Anda, atau minta tautan baru.');
+            $this->addError('email', 'Tautan pemulihan tidak valid atau sudah kedaluwarsa. Periksa kembali tautan dari emailmu atau minta tautan baru.');
 
             return;
         }
 
-        session()->flash('status', 'Password berhasil diperbarui. Silakan masuk menggunakan password baru.');
+        session()->flash('status', 'Kata sandi berhasil diperbarui. Silakan masuk menggunakan kata sandi baru.');
 
         $this->redirect(route('login'), navigate: false);
     }
