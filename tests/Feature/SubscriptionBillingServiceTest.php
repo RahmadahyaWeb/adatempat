@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\PaymentWebhookEvent;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Subscriptions\SubscriptionBillingService;
+use App\Services\Payments\PaymentWebhookProcessor;
+use Carbon\CarbonImmutable;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -51,6 +54,75 @@ class SubscriptionBillingServiceTest extends TestCase
             'auditable_type' => Subscription::class,
             'auditable_id' => $result['subscription']->getKey(),
             'action' => 'subscription.purchase_started',
+        ]);
+    }
+
+    public function test_verified_paid_webhook_activates_subscription_and_pays_invoice(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $plan = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $checkout = app(SubscriptionBillingService::class)->checkoutPlan(
+            $owner,
+            $plan,
+            'subscription-webhook-success-001',
+        );
+
+        $result = app(PaymentWebhookProcessor::class)->process('mock', [
+            'event_id' => 'evt-subscription-success-001',
+            'gateway_transaction_id' => $checkout['payment']->gateway_transaction_id,
+            'status' => Payment::STATUS_PAID,
+            'paid_at' => CarbonImmutable::now('UTC')->toIso8601String(),
+            'gateway_fee_amount' => 0,
+            'amount' => $checkout['payment']->amount,
+        ]);
+
+        $this->assertSame(PaymentWebhookEvent::STATUS_PROCESSED, $result['status']);
+        $this->assertSame(Subscription::STATUS_ACTIVE, $checkout['subscription']->fresh()->status);
+        $this->assertSame(Payment::STATUS_PAID, $checkout['payment']->fresh()->status);
+        $this->assertSame(Invoice::STATUS_PAID, $checkout['invoice']->fresh()->status);
+        $this->assertDatabaseHas('ledger_entries', [
+            'reference_type' => 'invoice',
+            'reference_id' => $checkout['invoice']->getKey(),
+            'account_code' => 'subscription_revenue',
+            'entry_type' => 'credit',
+            'amount' => $checkout['invoice']->total_amount,
+        ]);
+    }
+
+    public function test_paid_webhook_with_wrong_amount_requires_reconciliation_without_activation(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $plan = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $checkout = app(SubscriptionBillingService::class)->checkoutPlan(
+            $owner,
+            $plan,
+            'subscription-webhook-wrong-amount-001',
+        );
+
+        $result = app(PaymentWebhookProcessor::class)->process('mock', [
+            'event_id' => 'evt-subscription-wrong-amount-001',
+            'gateway_transaction_id' => $checkout['payment']->gateway_transaction_id,
+            'status' => Payment::STATUS_PAID,
+            'paid_at' => CarbonImmutable::now('UTC')->toIso8601String(),
+            'gateway_fee_amount' => 0,
+            'amount' => max(1, (int) $checkout['payment']->amount - 1),
+        ]);
+
+        $this->assertSame(PaymentWebhookEvent::STATUS_PROCESSED, $result['status']);
+        $this->assertSame(Subscription::STATUS_PENDING_PAYMENT, $checkout['subscription']->fresh()->status);
+        $this->assertSame(Payment::STATUS_RECONCILIATION_REQUIRED, $checkout['payment']->fresh()->status);
+        $this->assertSame(Invoice::STATUS_UNPAID, $checkout['invoice']->fresh()->status);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'gateway_event_id' => 'evt-subscription-wrong-amount-001',
+            'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
         ]);
     }
 
