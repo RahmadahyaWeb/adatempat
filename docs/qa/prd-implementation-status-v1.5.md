@@ -17,7 +17,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Kerangka setup dan challenge MFA TOTP Super Admin; pengujian manualnya dilewati atas permintaan pengguna.
 
 ### Belum lengkap
-- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi di `main` masih mencakup sebagian kecil skema tersebut; tabel `subscription_plans` dan `platform_settings` sudah tersedia, tetapi alur siklus langganan belum diimplementasikan.
+- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi di `main` saat ini masih mencakup sebagian kecil skema tersebut; tabel `subscription_plans` dan `platform_settings` sudah tersedia, tetapi alur langganannya belum dibangun.
 - Laravel Policies untuk seluruh domain belum lengkap. BusinessPolicy dan VenuePolicy kini dibuat serta dihubungkan ke aksi daftar, lihat, buat, dan ubah owner; policy untuk domain lain masih harus ditambahkan.
 - Google OAuth belum tersedia di alur login/registrasi dan laravel/socialite tidak tercantum pada dependensi.
 - Seeder paket Starter/Business dan nilai awal `platform_settings` tersedia. UI pengaturan Super Admin dan alur siklus langganan belum tersedia.
@@ -33,7 +33,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 
 ### Parsial / pekerjaan yang dilanjutkan
 - Revisi identitas usaha aktif: Owner dapat mengajukan perubahan identitas tanpa langsung mengubah data publik; Super Admin dapat menyetujui/menolak, termasuk kota/provinsi/koordinat, dan keputusan dicatat ke `audit_logs`.
-- Alur verifikasi usaha baru sedang dikerjakan di PR #21 (belum merged): pengajuan Owner, antrean Super Admin, keputusan dengan alasan wajib, dan audit log. Persetujuan tetap tidak menerbitkan profil ke publik sampai aturan langganan/publikasi tersedia.
+- Alur pengajuan verifikasi usaha baru kini tersedia secara parsial: Owner melengkapi alamat, kota/provinsi, koordinat, dan minimal satu venue Draft lalu mengajukan verifikasi; Super Admin dapat menyetujui atau menolak dengan alasan wajib, dan tindakan dicatat ke `audit_logs`.
 - Fondasi template kategori dan field dinamis venue sedang dikerjakan di PR #22: tabel template/field, template awal untuk kategori Acara, Meeting, Foto, dan Outdoor, validasi server berdasarkan tipe, penyimpanan nilai bertipe, kapasitas, fasilitas standar, dan tampilan nilai pada profil publik. Pengujian PR #22 belum dijalankan.
 - UI Super Admin untuk mengelola template/field dan custom field Owner masih belum tersedia.
 - Media/foto, harga, jam operasional, availability, blok waktu, dan promosi belum tersedia di formulir pengelolaan.
@@ -55,7 +55,7 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah tersedia
 ## Urutan pengembangan berikutnya
 
 1. Melanjutkan fondasi Tahap 1: menambah skema database secara terkelola mengikuti inventaris PRD, model/relasi, Policies isolasi tenant, dan seeder konfigurasi yang belum tersedia.
-2. Menyelesaikan alur Tahap 2: merge dan tinjau PR #21 serta #22, lanjutkan UI Super Admin untuk mengelola template/field, custom fields Owner, media/foto, harga, jadwal, availability, dan promosi.
+2. Menyelesaikan alur Tahap 2: selesaikan konflik lalu merge PR #22, lanjutkan UI Super Admin untuk mengelola template/field, custom fields Owner, media/foto, harga, jadwal, availability, dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
