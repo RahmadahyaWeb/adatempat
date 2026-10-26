@@ -131,6 +131,7 @@ class DisputeResolutionService
                 );
             }
 
+            $beforeDisputeStatus = $lockedDispute->status;
             $account = PayoutAccount::query()
                 ->where('owner_id', $booking->business->owner_id)
                 ->where('verification_status', PayoutAccount::STATUS_VERIFIED)
@@ -146,6 +147,7 @@ class DisputeResolutionService
                 ]);
             }
 
+            $beforePayoutStatus = $payout?->status;
             $payoutStatus = $payoutAmount === 0
                 ? Payout::STATUS_CANCELLED
                 : ($refundAmount > 0
@@ -202,9 +204,9 @@ class DisputeResolutionService
                 'auditable_id' => $lockedDispute->getKey(),
                 'reason' => $resolutionNotes,
                 'before_state_json' => [
-                    'dispute_status' => Dispute::STATUS_UNDER_REVIEW,
+                    'dispute_status' => $beforeDisputeStatus,
                     'booking_status' => $beforeBookingStatus,
-                    'payout_status' => $payout->getOriginal('status'),
+                    'payout_status' => $beforePayoutStatus,
                 ],
                 'after_state_json' => [
                     'dispute_status' => $decision,
