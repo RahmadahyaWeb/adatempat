@@ -299,7 +299,7 @@ new #[Title('Profil usaha')] class extends Component {
         </section>
 
         <aside class="rounded-2xl bg-[var(--surface-soft)] p-5 sm:p-6">
-            @if ($business->status === \\App\\Models\\Business::STATUS_ACTIVE)
+            @if ($business->status === \App\Models\Business::STATUS_ACTIVE)
                 @if ($business->published_at)
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Profil publik</p>
                     <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Profil usaha sudah aktif</h2>
@@ -326,17 +326,17 @@ new #[Title('Profil usaha')] class extends Component {
                         </div>
                     </div>
                 </div>
-            @elseif ($business->status === \\App\\Models\\Business::STATUS_PENDING_VERIFICATION)
+            @elseif ($business->status === \App\Models\Business::STATUS_PENDING_VERIFICATION)
                 <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
                 <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Menunggu verifikasi</h2>
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Identitas usaha sedang menunggu keputusan. Perubahan identitas dikunci selama status ini berlangsung.</p>
                 <p class="mt-5 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">Halaman ini belum menyediakan alur pengajuan ulang verifikasi. Status akan tetap mengikuti data yang tercatat di sistem.</p>
-            @elseif ($business->status === \\App\\Models\\Business::STATUS_REJECTED)
+            @elseif ($business->status === \App\Models\Business::STATUS_REJECTED)
                 <p class="eyebrow"><span class="eyebrow-dot"></span> Perlu tindakan</p>
                 <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Perbaiki profil usaha</h2>
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Kamu dapat memperbaiki nama dan alamat lalu menyimpan perubahan. Penyimpanan tidak otomatis mengajukan ulang verifikasi.</p>
                 <p class="mt-5 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">Alur pengajuan ulang verifikasi belum tersedia pada versi ini.</p>
-            @elseif ($business->status === \\App\\Models\\Business::STATUS_DRAFT)
+            @elseif ($business->status === \App\Models\Business::STATUS_DRAFT)
                 <p class="eyebrow"><span class="eyebrow-dot"></span> Langkah berikutnya</p>
                 <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Lengkapi profil usaha</h2>
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha berstatus draft belum tampil di katalog publik. Lengkapi identitas dan siapkan detail venue sebelum proses publikasi tersedia.</p>
@@ -357,12 +357,12 @@ new #[Title('Profil usaha')] class extends Component {
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Pengelolaan usaha dibatasi selama status penangguhan. Hubungi pengelola platform melalui kanal dukungan yang tersedia jika perlu meninjau status ini.</p>
             @endif
 
-            @if ($business->status !== \\App\\Models\\Business::STATUS_SUSPENDED)
+            @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
                 <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-primary mt-5 w-full">
                     Kelola venue
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
                 </a>
-                @if ($business->status === \\App\\Models\\Business::STATUS_ACTIVE && $business->published_at)
+                @if ($business->status === \App\Models\Business::STATUS_ACTIVE && $business->published_at)
                     <a href="{{ route('business.public', ['businessSlug' => $business->slug]) }}" class="btn btn-secondary mt-2 w-full">Lihat profil publik</a>
                 @endif
             @endif
