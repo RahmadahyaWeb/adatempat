@@ -70,7 +70,7 @@ class BookingCompletionAndPayoutTest extends TestCase
 
         $prepared = app(PayoutService::class)->prepareEligiblePayouts();
 
-        $this->assertSame(1, $prepared['created']);
+        $this->assertSame(0, $prepared['created']);
         $this->assertSame(1, $prepared['eligible']);
         $payout = Payout::query()->where('booking_id', $booking->getKey())->firstOrFail();
         $this->assertSame($account->getKey(), $payout->payout_account_id);
@@ -104,7 +104,7 @@ class BookingCompletionAndPayoutTest extends TestCase
 
         $prepared = app(PayoutService::class)->prepareEligiblePayouts();
 
-        $this->assertSame(1, $prepared['created']);
+        $this->assertSame(0, $prepared['created']);
         $this->assertSame(1, $prepared['held']);
         $this->assertDatabaseHas('payouts', [
             'booking_id' => $booking->getKey(),

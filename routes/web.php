@@ -109,6 +109,9 @@ Route::prefix('admin')
         Route::livewire('/payouts', 'pages::admin.payouts')
             ->name('payouts.index');
 
+        Route::livewire('/disputes', 'pages::admin.disputes')
+            ->name('disputes.index');
+
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
          * di dalam grup ini saat fitur tersebut dibuat.
@@ -160,6 +163,20 @@ Route::livewire('/reset-password/{token}', 'pages::auth.reset-password')
 |
 */
 
+Route::prefix('account')
+    ->name('customer.')
+    ->middleware([
+        'auth',
+        'account.active',
+        'verified',
+        'role:customer',
+    ])
+    ->group(function () {
+        Route::livewire('/bookings', 'pages::customer.bookings')
+            ->name('bookings.index');
+    });
+
+
 Route::prefix('owner')
     ->name('owner.')
     ->middleware([
@@ -178,6 +195,9 @@ Route::prefix('owner')
         Route::livewire('/payout-accounts', 'pages::owner.payout-accounts')
             ->middleware('owner.mfa')
             ->name('payout-accounts.index');
+
+        Route::livewire('/bookings', 'pages::owner.bookings')
+            ->name('bookings.index');
 
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');

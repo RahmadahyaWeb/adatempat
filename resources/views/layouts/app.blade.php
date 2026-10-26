@@ -40,6 +40,7 @@
                         'label' => 'Verifikasi & moderasi',
                         'items' => [
                             ['label' => 'Verifikasi usaha', 'href' => route('business-verifications.index')],
+                            ['label' => 'Sengketa booking', 'href' => route('disputes.index')],
                             ['label' => 'Moderasi konten', 'placeholder' => 'Segera hadir'],
                         ],
                     ],
@@ -47,6 +48,7 @@
                         'label' => 'Pengelolaan platform',
                         'items' => [
                             ['label' => 'Template venue', 'href' => route('venue-templates.index')],
+                            ['label' => 'Payout & rekening', 'href' => route('payouts.index')],
                             ['label' => 'Paket langganan', 'placeholder' => 'Segera hadir'],
                             ['label' => 'Pengaturan platform', 'placeholder' => 'Segera hadir'],
                         ],
@@ -64,7 +66,7 @@
                         [
                             'label' => 'Operasional',
                             'items' => [
-                                ['label' => 'Pesanan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Booking masuk', 'href' => route('owner.bookings.index')],
                                 ['label' => 'Kalender', 'placeholder' => 'Segera hadir'],
                             ],
                         ],
@@ -72,6 +74,7 @@
                             'label' => 'Keuangan',
                             'items' => [
                                 ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Rekening payout', 'href' => route('owner.payout-accounts.index')],
                                 ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
                             ],
                         ],

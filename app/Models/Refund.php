@@ -18,6 +18,14 @@ class Refund extends Model
     public const STATUS_SUCCEEDED = 'succeeded';
     public const STATUS_FAILED = 'failed';
 
+    public const OPEN_STATUSES = [
+        self::STATUS_REQUESTED,
+        self::STATUS_UNDER_REVIEW,
+        self::STATUS_APPROVED,
+        self::STATUS_PROCESSING,
+        self::STATUS_FAILED,
+    ];
+
     protected $fillable = [
         'reference_code',
         'booking_id',

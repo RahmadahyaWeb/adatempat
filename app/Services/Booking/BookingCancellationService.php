@@ -9,13 +9,17 @@ use App\Models\Refund;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Payments\RefundService;
+use App\Services\Finance\LedgerService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class BookingCancellationService
 {
-    public function __construct(private readonly RefundService $refunds)
+    public function __construct(
+        private readonly RefundService $refunds,
+        private readonly LedgerService $ledger,
+    )
     {
     }
 
@@ -94,6 +98,15 @@ class BookingCancellationService
                 'cancelled_at' => $now,
                 'slot_released_at' => $refundAmount > 0 ? null : $now,
             ]);
+
+            \App\Models\Payout::query()
+                ->where('booking_id', $lockedBooking->getKey())
+                ->whereIn('status', [
+                    \App\Models\Payout::STATUS_HELD,
+                    \App\Models\Payout::STATUS_ELIGIBLE,
+                    \App\Models\Payout::STATUS_PROCESSING,
+                ])
+                ->update(['status' => \App\Models\Payout::STATUS_ON_HOLD]);
 
             $this->auditCancellation(
                 $customer,
@@ -180,6 +193,33 @@ class BookingCancellationService
                 );
             }
 
+            $remainingOwnerEntitlement = max(
+                0,
+                (int) $lockedBooking->snapshot_net_owner_entitlement
+                    - min($actualPaid, (int) $lockedBooking->snapshot_net_owner_entitlement),
+            );
+
+            if ($remainingOwnerEntitlement > 0) {
+                $this->ledger->postBalancedGroup([
+                    [
+                        'account_code' => 'owner_payable',
+                        'entry_type' => 'debit',
+                        'amount' => $remainingOwnerEntitlement,
+                        'reference_type' => 'booking',
+                        'reference_id' => $lockedBooking->getKey(),
+                        'description' => 'Remove remaining Owner payable after Owner cancellation and full customer refund obligation.',
+                    ],
+                    [
+                        'account_code' => 'escrow_liability',
+                        'entry_type' => 'credit',
+                        'amount' => $remainingOwnerEntitlement,
+                        'reference_type' => 'booking',
+                        'reference_id' => $lockedBooking->getKey(),
+                        'description' => 'Hold residual settlement balance pending separately approved accounting disposition.',
+                    ],
+                ]);
+            }
+
             $lockedBooking->update([
                 'status' => Booking::STATUS_CANCELLED_BY_OWNER,
                 'cancellation_reason' => $reason,
@@ -187,6 +227,11 @@ class BookingCancellationService
                 'cancelled_at' => $now,
                 'slot_released_at' => $now,
             ]);
+
+            \App\Models\Payout::query()
+                ->where('booking_id', $lockedBooking->getKey())
+                ->whereNotIn('status', [\App\Models\Payout::STATUS_PAID, \App\Models\Payout::STATUS_CANCELLED])
+                ->update(['status' => \App\Models\Payout::STATUS_CANCELLED]);
 
             $this->auditCancellation(
                 $owner,
