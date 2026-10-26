@@ -12,3 +12,8 @@ Artisan::command('inspire', function () {
 Schedule::command('bookings:reconcile-expired-holds')
     ->everyMinute()
     ->withoutOverlapping();
+
+
+Schedule::command('refunds:reconcile')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
