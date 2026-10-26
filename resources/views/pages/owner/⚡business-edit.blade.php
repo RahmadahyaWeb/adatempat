@@ -53,11 +53,14 @@ new #[Title('Profil usaha')] class extends Component {
     #[Computed]
     public function latestRejectedRevision(): ?BusinessRevision
     {
-        return $this->currentBusiness
+        $latestRevision = $this->currentBusiness
             ->revisions()
-            ->where('status', BusinessRevision::STATUS_REJECTED)
             ->latest('created_at')
             ->first();
+
+        return $latestRevision?->status === BusinessRevision::STATUS_REJECTED
+            ? $latestRevision
+            : null;
     }
 
     public function canEditIdentity(): bool
