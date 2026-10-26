@@ -16,7 +16,7 @@ class AccountRecoveryAndSecurityUiTest extends TestCase
         Livewire::test('pages::auth.forgot-password')
             ->assertSee('Lupa kata sandi?')
             ->assertSee('Kirim instruksi pemulihan')
-            ->assertSee('alamat email terdaftar');
+            ->assertSee('tidak mengungkap apakah alamat email tertentu terdaftar.');
     }
 
     public function test_reset_password_page_uses_consistent_copy_and_fields(): void
