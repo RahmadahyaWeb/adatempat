@@ -21,7 +21,7 @@ class BookingCompletionService
             Venue::query()->whereKey($venueId)->lockForUpdate()->firstOrFail();
             $locked = Booking::query()->with('venue.business')->whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
 
-            abort_unless($owner->isOwner() && (int) $locked->venue->business->owner_id === (int) $owner->getKey(), 404);
+            abort_unless($owner->isOwner() && $owner->status === 'active' && $owner->email_verified_at !== null && (int) $locked->venue->business->owner_id === (int) $owner->getKey(), 404);
 
             if ($locked->status !== Booking::STATUS_CONFIRMED) {
                 throw ValidationException::withMessages([
@@ -90,7 +90,7 @@ class BookingCompletionService
             Venue::query()->whereKey($venueId)->lockForUpdate()->firstOrFail();
             $locked = Booking::query()->whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
 
-            abort_unless($customer->isCustomer() && (int) $locked->customer_id === (int) $customer->getKey(), 404);
+            abort_unless($customer->isCustomer() && $customer->status === 'active' && $customer->email_verified_at !== null && (int) $locked->customer_id === (int) $customer->getKey(), 404);
 
             if (
                 $locked->status !== Booking::STATUS_AWAITING_COMPLETION
