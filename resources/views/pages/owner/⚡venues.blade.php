@@ -230,6 +230,10 @@ new #[Title('Kelola venue')] class extends Component {
                                 Edit venue
                                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
                             </a>
+                            <a href="{{ route('owner.businesses.venues.promotions', ['business' => $business->public_id, 'venue' => $venue->public_id]) }}" class="btn btn-secondary w-full shrink-0 sm:w-auto">
+                                Kelola promosi
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m9 18 6-6-6-6"/></svg>
+                            </a>
                         @else
                             <span class="text-xs font-semibold text-[var(--muted)]">Venue diarsipkan</span>
                         @endif
