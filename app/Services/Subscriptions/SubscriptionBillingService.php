@@ -334,7 +334,7 @@ class SubscriptionBillingService
                 if ($action === 'renewal_downgrade' && $retainedBusinessId) {
                     Business::query()
                         ->where('owner_id', $lockedSubscription->owner_id)
-                        ->whereKeyNot($retainedBusinessId)
+                        ->where('id', '!=', $retainedBusinessId)
                         ->whereNotIn('status', [Business::STATUS_SUSPENDED, Business::STATUS_REJECTED])
                         ->update(['status' => Business::STATUS_ARCHIVED_BY_DOWNGRADE]);
                 }
