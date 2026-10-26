@@ -67,3 +67,5 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test sudah mencakup
 - Integrasi PR #27: blok jadwal venue oleh Owner; pengujian belum dijalankan.
 
 - Integrasi PR #28: promosi venue oleh Owner; pengujian belum dijalankan.
+
+- Integrasi PR #29: booking hold dan availability; pengujian belum dijalankan.
