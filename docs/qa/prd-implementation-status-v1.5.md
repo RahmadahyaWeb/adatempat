@@ -17,11 +17,11 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Kerangka setup dan challenge MFA TOTP Super Admin; pengujian manualnya dilewati atas permintaan pengguna.
 
 ### Belum lengkap
-- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi saat ini baru mencakup sebagian kecil skema tersebut.
+- Inventaris skema pada PRD mencakup 41 tabel fisik yang disebut eksplisit, ditambah beberapa entitas pendukung yang perlu direkonsiliasi. Migrasi saat ini masih mencakup sebagian kecil skema tersebut; branch ini menambahkan tabel `subscription_plans` dan `platform_settings`.
 - Laravel Policies untuk seluruh domain belum lengkap. BusinessPolicy dan VenuePolicy kini dibuat serta dihubungkan ke aksi daftar, lihat, buat, dan ubah owner; policy untuk domain lain masih harus ditambahkan.
 - Google OAuth belum tersedia di alur login/registrasi dan laravel/socialite tidak tercantum pada dependensi.
-- Seeder paket langganan dan platform_settings belum tersedia sebagai fondasi konfigurasi lengkap.
-- Audit log baru ditambahkan untuk keputusan revisi identitas dalam perubahan ini; kebutuhan audit lintas modul masih harus diterapkan sesuai PRD.
+- Seeder paket Starter/Business dan nilai awal `platform_settings` tersedia. UI pengaturan Super Admin dan alur siklus langganan belum tersedia.
+- Audit log saat ini mencatat keputusan revisi identitas usaha; cakupan audit lintas modul masih harus diterapkan sesuai PRD.
 
 ## Tahap 2 — Manajemen usaha, venue dinamis, dan katalog publik
 
@@ -32,7 +32,7 @@ Dokumen ini membedakan **terimplementasi**, **parsial**, dan **belum diimplement
 - Katalog dengan pencarian kata kunci, lokasi berbasis teks, dan kategori.
 
 ### Parsial / pekerjaan yang dilanjutkan
-- Revisi identitas usaha aktif: dalam perubahan ini owner dapat mengajukan nama/alamat baru tanpa langsung mengubah data publik; Super Admin dapat menyetujui atau menolak, dan keputusan dicatat ke audit_logs.
+- Revisi identitas usaha aktif: owner dapat mengajukan perubahan nama/alamat tanpa langsung mengubah data publik; Super Admin dapat menyetujui atau menolak, dan keputusan dicatat ke `audit_logs`.
 - Alur verifikasi usaha baru dan pengajuan identitas ke Super Admin masih perlu dibangun.
 - Template venue, template fields, owner custom fields, serta penyimpanan nilai field dinamis belum tersedia.
 - Media/foto, fasilitas, kapasitas, harga, jam operasional, availability, blok waktu, dan promosi belum tersedia di formulir pengelolaan.
@@ -57,4 +57,4 @@ Belum diimplementasikan sebagai alur produk lengkap. Test suite saat ini masih b
 2. Menyelesaikan alur Tahap 2: verifikasi usaha baru, template/custom fields venue, media, kapasitas, harga, jadwal, availability, dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
-**Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah diimplementasikan pada branch `feat/owner-authorization-policies`; belum diuji dan belum digabung ke `main`.
+**Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
