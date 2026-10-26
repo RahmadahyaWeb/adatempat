@@ -32,7 +32,7 @@ class PayoutService
             ->whereNotNull('completion_window_ends_at')
             ->where('completion_window_ends_at', '<=', now('UTC'))
             ->whereDoesntHave('payout')
-            ->whereDoesntHave('refunds', fn ($query) => $query->where('status', '!=', Refund::STATUS_REJECTED))
+            ->whereDoesntHave('refunds', fn ($query) => $query->whereIn('status', Refund::OPEN_STATUSES))
             ->orderBy('completion_window_ends_at')
             ->limit(max(1, min($limit, 500)))
             ->pluck('id');
@@ -57,15 +57,24 @@ class PayoutService
                     || $booking->completion_window_ends_at === null
                     || $booking->completion_window_ends_at->isFuture()
                     || Payout::query()->where('booking_id', $booking->getKey())->exists()
-                    || Refund::query()->where('booking_id', $booking->getKey())->where('status', '!=', Refund::STATUS_REJECTED)->exists()
+                    || Refund::query()->where('booking_id', $booking->getKey())->whereIn('status', Refund::OPEN_STATUSES)->exists()
                 ) {
                     return 'skipped';
                 }
 
-                $gross = max(0, (int) $booking->snapshot_base_amount - (int) $booking->snapshot_owner_discount_amount);
+                $baseGross = max(0, (int) $booking->snapshot_base_amount - (int) $booking->snapshot_owner_discount_amount);
                 $fee = max(0, (int) $booking->snapshot_gateway_fee_amount);
-                $net = max(0, $gross - $fee);
-                $expectedNet = (int) $booking->snapshot_net_owner_entitlement;
+                $resolvedDispute = \App\Models\Dispute::query()
+                    ->where('booking_id', $booking->getKey())
+                    ->where('status', \App\Models\Dispute::STATUS_RESOLVED)
+                    ->first();
+                $net = $resolvedDispute
+                    ? (int) $resolvedDispute->owner_payout_amount
+                    : max(0, $baseGross - $fee);
+                $gross = $resolvedDispute ? $net + $fee : $baseGross;
+                $expectedNet = $resolvedDispute
+                    ? (int) $resolvedDispute->owner_payout_amount
+                    : (int) $booking->snapshot_net_owner_entitlement;
 
                 $account = PayoutAccount::query()
                     ->where('owner_id', $booking->business->owner_id)
@@ -174,7 +183,7 @@ class PayoutService
                 ]);
             }
 
-            if (Refund::query()->where('booking_id', $locked->booking_id)->where('status', '!=', Refund::STATUS_REJECTED)->exists()) {
+            if (Refund::query()->where('booking_id', $locked->booking_id)->whereIn('status', Refund::OPEN_STATUSES)->exists()) {
                 throw ValidationException::withMessages([
                     'payout' => 'Payout tidak dapat diselesaikan selama kewajiban refund masih terbuka.',
                 ]);
@@ -233,7 +242,7 @@ class PayoutService
     private function promoteHeldPayouts(int $limit): void
     {
         $payoutIds = Payout::query()
-            ->where('status', Payout::STATUS_HELD)
+            ->whereIn('status', [Payout::STATUS_HELD, Payout::STATUS_ON_HOLD])
             ->whereNotNull('eligible_at')
             ->where('eligible_at', '<=', now('UTC'))
             ->orderBy('eligible_at')
