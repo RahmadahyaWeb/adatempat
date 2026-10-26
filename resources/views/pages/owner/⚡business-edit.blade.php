@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Business;
+use App\Models\AuditLog;
 use App\Models\BusinessRevision;
+use App\Models\Venue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -16,6 +18,14 @@ new #[Title('Profil usaha')] class extends Component {
 
     public string $address = '';
 
+    public string $city = '';
+
+    public string $province = '';
+
+    public string $latitude = '';
+
+    public string $longitude = '';
+
     public function mount(string $business): void
     {
         $record = auth()->user()
@@ -28,6 +38,10 @@ new #[Title('Profil usaha')] class extends Component {
         $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
         $this->address = (string) ($record->address ?? '');
+        $this->city = (string) ($record->city ?? '');
+        $this->province = (string) ($record->province ?? '');
+        $this->latitude = (string) ($record->latitude ?? '');
+        $this->longitude = (string) ($record->longitude ?? '');
     }
 
     #[Computed]
@@ -35,7 +49,10 @@ new #[Title('Profil usaha')] class extends Component {
     {
         return auth()->user()
             ->businesses()
-            ->withCount('venues')
+            ->withCount([
+                'venues',
+                'venues as draft_venues_count' => fn ($query) => $query->where('status', Venue::STATUS_DRAFT),
+            ])
             ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
     }
@@ -62,17 +79,142 @@ new #[Title('Profil usaha')] class extends Component {
 
     public function canEditIdentity(): bool
     {
-        return in_array(
-            $this->currentBusiness->status,
-            [Business::STATUS_DRAFT, Business::STATUS_REJECTED],
-            true,
-        );
+        $business = $this->currentBusiness;
+
+        return in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true)
+            || ($business->status === Business::STATUS_ACTIVE && $business->published_at === null);
     }
 
     public function canSubmitRevision(): bool
     {
         return $this->currentBusiness->status === Business::STATUS_ACTIVE
+            && $this->currentBusiness->published_at !== null
             && $this->pendingRevision === null;
+    }
+
+    public function canSubmitVerification(): bool
+    {
+        return in_array($this->currentBusiness->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true);
+    }
+
+    public function submitForVerification(): void
+    {
+        $owner = auth()->user();
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $business = $owner->businesses()
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
+
+        Gate::authorize('update', $business);
+        abort_unless(in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true), 403);
+
+        $validated = $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:2000'],
+            'city' => ['required', 'string', 'max:100'],
+            'province' => ['required', 'string', 'max:100'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ], [
+            'name.required' => 'Nama usaha wajib diisi sebelum mengajukan verifikasi.',
+            'address.required' => 'Alamat lengkap wajib diisi sebelum mengajukan verifikasi.',
+            'city.required' => 'Kota atau kabupaten wajib diisi.',
+            'province.required' => 'Provinsi wajib diisi.',
+            'latitude.required' => 'Koordinat lintang wajib diisi.',
+            'latitude.between' => 'Koordinat lintang harus berada di antara -90 dan 90.',
+            'longitude.required' => 'Koordinat bujur wajib diisi.',
+            'longitude.between' => 'Koordinat bujur harus berada di antara -180 dan 180.',
+        ]);
+
+        $submitted = DB::transaction(function () use ($owner, $validated): bool {
+            $lockedBusiness = $owner->businesses()
+                ->where('public_id', $this->businessPublicId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(in_array($lockedBusiness->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true), 403);
+
+            if (! $lockedBusiness->venues()->where('status', Venue::STATUS_DRAFT)->exists()) {
+                return false;
+            }
+
+            $beforeState = [
+                'status' => $lockedBusiness->status,
+                'slug' => $lockedBusiness->slug,
+                'rejection_reason' => $lockedBusiness->rejection_reason,
+                'name' => $lockedBusiness->name,
+                'address' => $lockedBusiness->address,
+                'city' => $lockedBusiness->city,
+                'province' => $lockedBusiness->province,
+                'latitude' => $lockedBusiness->latitude,
+                'longitude' => $lockedBusiness->longitude,
+            ];
+
+            $slugBase = Str::slug(trim($validated['name'])) ?: 'usaha';
+            $slug = $slugBase;
+            $suffix = 2;
+
+            while (Business::query()
+                ->where('slug', $slug)
+                ->where('id', '!=', $lockedBusiness->getKey())
+                ->exists()) {
+                $slug = $slugBase . '-' . $suffix;
+                $suffix++;
+            }
+
+            $lockedBusiness->fill([
+                'status' => Business::STATUS_PENDING_VERIFICATION,
+                'slug' => $slug,
+                'name' => trim($validated['name']),
+                'address' => trim($validated['address']),
+                'city' => trim($validated['city']),
+                'province' => trim($validated['province']),
+                'latitude' => (float) $validated['latitude'],
+                'longitude' => (float) $validated['longitude'],
+                'rejection_reason' => null,
+                'verification_submitted_at' => now(),
+                'verification_reviewed_at' => null,
+                'verification_reviewed_by' => null,
+                'verified_at' => null,
+                'verified_by' => null,
+                'published_at' => null,
+            ])->save();
+
+            AuditLog::create([
+                'actor_user_id' => $owner->getKey(),
+                'actor_role' => $owner->role,
+                'action' => 'business_verification.submitted',
+                'auditable_type' => Business::class,
+                'auditable_id' => $lockedBusiness->getKey(),
+                'reason' => null,
+                'before_state_json' => $beforeState,
+                'after_state_json' => [
+                    'status' => $lockedBusiness->status,
+                    'slug' => $lockedBusiness->slug,
+                    'name' => $lockedBusiness->name,
+                    'address' => $lockedBusiness->address,
+                    'city' => $lockedBusiness->city,
+                    'province' => $lockedBusiness->province,
+                    'latitude' => $lockedBusiness->latitude,
+                    'longitude' => $lockedBusiness->longitude,
+                    'verification_submitted_at' => $lockedBusiness->verification_submitted_at?->toISOString(),
+                ],
+                'ip_hash' => hash_hmac('sha256', (string) request()->ip(), (string) config('app.key')),
+                'created_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        if (! $submitted) {
+            $this->addError('verification', 'Tambahkan setidaknya satu venue berstatus Draft sebelum mengajukan verifikasi.');
+            return;
+        }
+
+        $this->resetValidation();
+        unset($this->currentBusiness, $this->pendingRevision, $this->latestRevision);
+        session()->flash('status', 'Usaha berhasil diajukan untuk verifikasi. Profil belum akan tampil ke publik sampai persyaratan publikasi terpenuhi.');
     }
 
     public function save(): void
@@ -100,19 +242,31 @@ new #[Title('Profil usaha')] class extends Component {
             [
                 'name' => ['required', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:2000'],
+                'city' => ['nullable', 'string', 'max:100'],
+                'province' => ['nullable', 'string', 'max:100'],
+                'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+                'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             ],
             [
                 'name.required' => 'Nama usaha wajib diisi.',
                 'name.max' => 'Nama usaha maksimal 255 karakter.',
                 'address.max' => 'Alamat maksimal 2.000 karakter.',
+                'city.max' => 'Kota/kabupaten maksimal 100 karakter.',
+                'province.max' => 'Provinsi maksimal 100 karakter.',
+                'latitude.between' => 'Koordinat lintang harus berada di antara -90 dan 90.',
+                'longitude.between' => 'Koordinat bujur harus berada di antara -180 dan 180.',
             ],
         );
 
         $businessName = trim($validated['name']);
         $businessAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+        $businessCity = trim((string) ($validated['city'] ?? '')) ?: null;
+        $businessProvince = trim((string) ($validated['province'] ?? '')) ?: null;
+        $businessLatitude = trim((string) ($validated['latitude'] ?? '')) !== '' ? (float) $validated['latitude'] : null;
+        $businessLongitude = trim((string) ($validated['longitude'] ?? '')) !== '' ? (float) $validated['longitude'] : null;
 
-        if ($business->status === Business::STATUS_ACTIVE) {
-            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress): ?BusinessRevision {
+        if ($business->status === Business::STATUS_ACTIVE && $business->published_at !== null) {
+            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress, $businessCity, $businessProvince, $businessLatitude, $businessLongitude): ?BusinessRevision {
                 $lockedBusiness = $owner->businesses()
                     ->whereKey($business->getKey())
                     ->lockForUpdate()
@@ -129,6 +283,10 @@ new #[Title('Profil usaha')] class extends Component {
                 if (
                     $businessName === $lockedBusiness->name
                     && $businessAddress === ($lockedBusiness->address ?: null)
+                    && $businessCity === ($lockedBusiness->city ?: null)
+                    && $businessProvince === ($lockedBusiness->province ?: null)
+                    && $businessLatitude === ($lockedBusiness->latitude !== null ? (float) $lockedBusiness->latitude : null)
+                    && $businessLongitude === ($lockedBusiness->longitude !== null ? (float) $lockedBusiness->longitude : null)
                 ) {
                     session()->flash('status', 'Tidak ada perubahan identitas untuk diajukan.');
 
@@ -139,8 +297,10 @@ new #[Title('Profil usaha')] class extends Component {
                     'submitted_by' => $owner->getKey(),
                     'proposed_name' => $businessName,
                     'proposed_address' => $businessAddress,
-                    'proposed_latitude' => $lockedBusiness->latitude,
-                    'proposed_longitude' => $lockedBusiness->longitude,
+                    'proposed_city' => $businessCity,
+                    'proposed_province' => $businessProvince,
+                    'proposed_latitude' => $businessLatitude,
+                    'proposed_longitude' => $businessLongitude,
                 ]);
             });
 
@@ -174,6 +334,10 @@ new #[Title('Profil usaha')] class extends Component {
             'name' => $businessName,
             'slug' => $slug,
             'address' => $businessAddress,
+            'city' => $businessCity,
+            'province' => $businessProvince,
+            'latitude' => $businessLatitude,
+            'longitude' => $businessLongitude,
         ])->save();
 
         $this->resetValidation();
@@ -191,7 +355,9 @@ new #[Title('Profil usaha')] class extends Component {
         $statusMeta = match ($business->status) {
             'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
             'pending_verification' => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
-            'active' => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
+            'active' => $business->published_at
+                ? ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]']
+                : ['Terverifikasi · Belum tayang', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
             'suspended' => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
             'rejected' => ['Ditolak', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
             default => [$business->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
@@ -200,6 +366,7 @@ new #[Title('Profil usaha')] class extends Component {
         $canSubmit = $canEdit || $this->canSubmitRevision();
         $pendingRevision = $this->pendingRevision;
         $latestRevision = $this->latestRevision;
+        $hasDraftVenue = $business->draft_venues_count > 0;
     @endphp
 
     <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
@@ -231,10 +398,15 @@ new #[Title('Profil usaha')] class extends Component {
 
             @if (!$canEdit)
                 <div class="status-note mt-5">
-                    @if ($business->status === 'active')
-                        Usaha ini sedang aktif. Perubahan nama atau alamat akan diajukan sebagai revisi dan harus disetujui Super Admin. Data publik yang sudah disetujui tidak akan berubah sebelum peninjauan selesai.
+                    @if ($business->status === 'active' && $business->published_at)
+                        Usaha ini sudah terverifikasi dan ditampilkan ke publik. Perubahan identitas utama akan diajukan sebagai revisi dan harus disetujui Super Admin.
+                    @elseif ($business->status === 'active')
+                        Usaha ini sudah terverifikasi. Profil belum ditampilkan ke publik karena pengelolaan status langganan belum tersedia pada versi ini. Perubahan identitas utama tetap harus ditinjau Super Admin.
                     @elseif ($business->status === 'pending_verification')
-                        Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.
+                        <p>Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.</p>
+                        @if ($business->verification_submitted_at)
+                            <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Diajukan pada {{ $business->verification_submitted_at->format('d/m/Y H:i') }}.</p>
+                        @endif
                     @elseif ($business->status === 'suspended')
                         Usaha sedang ditangguhkan. Informasi ini hanya dapat ditinjau dari halaman ini.
                     @else
@@ -243,7 +415,14 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @elseif ($business->status === 'rejected')
                 <div class="status-note mt-5">
-                    Profil dapat diperbaiki. Menyimpan perubahan tidak mengubah status penolakan atau otomatis mengajukan ulang verifikasi.
+                    <p class="font-bold">Usaha perlu diperbaiki</p>
+                    @if ($business->rejection_reason)
+                        <p class="mt-2 text-sm leading-6">Alasan: {{ $business->rejection_reason }}</p>
+                    @endif
+                    @if ($business->verification_reviewed_at)
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Ditinjau pada {{ $business->verification_reviewed_at->format('d/m/Y H:i') }}.</p>
+                    @endif
+                    <p class="mt-2 text-xs leading-5">Perbaiki informasi lalu ajukan ulang verifikasi. Menyimpan perubahan saja tidak mengirim pengajuan baru.</p>
                 </div>
             @endif
 
@@ -278,23 +457,85 @@ new #[Title('Profil usaha')] class extends Component {
             <form wire:submit="save" class="mt-6 space-y-5">
                 <div>
                     <label for="business-name" class="ui-label">Nama usaha</label>
-                    <input id="business-name" type="text" wire:model="name" required maxlength="255" class="ui-input" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
+                    <input id="business-name" type="text" wire:model.blur="name" required maxlength="255" class="ui-input" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
                     @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label for="business-address" class="ui-label">Alamat usaha</label>
-                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Jalan, area, kota" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
+                    <label for="business-address" class="ui-label">Alamat lengkap</label>
+                    <textarea id="business-address" wire:model.blur="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Nama jalan, nomor, kelurahan, dan area" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
                     @error('address') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="business-city" class="ui-label">Kota / kabupaten</label>
+                        <input id="business-city" type="text" wire:model.blur="city" maxlength="100" class="ui-input" placeholder="Contoh: Banjarbaru" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}">
+                        @error('city') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="business-province" class="ui-label">Provinsi</label>
+                        <input id="business-province" type="text" wire:model.blur="province" maxlength="100" class="ui-input" placeholder="Contoh: Kalimantan Selatan" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('province') ? 'true' : 'false' }}">
+                        @error('province') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <fieldset class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <legend class="px-1 text-sm font-extrabold text-[var(--ink)]">Koordinat lokasi</legend>
+                    <p class="mb-4 text-sm leading-6 text-[var(--ink-soft)]">Masukkan koordinat desimal yang ditunjukkan pada peta. Contoh format koordinat di Kalimantan Selatan: -3.4429, 114.8355.</p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="business-latitude" class="ui-label">Lintang (latitude)</label>
+                            <input id="business-latitude" type="number" step="any" min="-90" max="90" wire:model.blur="latitude" class="ui-input" placeholder="-3.4429" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}">
+                            @error('latitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="business-longitude" class="ui-label">Bujur (longitude)</label>
+                            <input id="business-longitude" type="number" step="any" min="-180" max="180" wire:model.blur="longitude" class="ui-input" placeholder="114.8355" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}">
+                            @error('longitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <a href="https://www.openstreetmap.org/search?query={{ urlencode(trim($address . ', ' . $city . ', ' . $province)) }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex min-h-9 items-center gap-2 text-sm font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                        Buka peta untuk mencari koordinat
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
+                    </a>
+                </fieldset>
+
+                @error('verification')
+                    <div role="alert" class="status-note mt-4">{{ $message }}</div>
+                @enderror
+
+                @if ($canEdit)
+                    <section aria-labelledby="verification-readiness-heading" class="rounded-xl bg-[var(--surface-soft)] p-4 sm:p-5">
+                        <h3 id="verification-readiness-heading" class="text-sm font-extrabold text-[var(--ink)]">Persiapan pengajuan verifikasi</h3>
+                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi data dasar dan buat minimal satu venue Draft sebelum mengajukan usaha untuk ditinjau.</p>
+                        <ul class="mt-4 space-y-2 text-sm">
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ trim($name) !== '' && trim($address) !== '' ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ trim($name) !== '' && trim($address) !== '' ? '✓' : '○' }}</span><span>Nama usaha dan alamat lengkap</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ trim($city) !== '' && trim($province) !== '' ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ trim($city) !== '' && trim($province) !== '' ? '✓' : '○' }}</span><span>Kota / kabupaten dan provinsi</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ is_numeric($latitude) && is_numeric($longitude) && (float) $latitude >= -90 && (float) $latitude <= 90 && (float) $longitude >= -180 && (float) $longitude <= 180 ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ is_numeric($latitude) && is_numeric($longitude) && (float) $latitude >= -90 && (float) $latitude <= 90 && (float) $longitude >= -180 && (float) $longitude <= 180 ? '✓' : '○' }}</span><span>Koordinat lokasi valid</span></li>
+                            <li class="flex items-start gap-2"><span aria-hidden="true" class="mt-px {{ $hasDraftVenue ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ $hasDraftVenue ? '✓' : '○' }}</span><span>Minimal satu venue berstatus Draft</span></li>
+                        </ul>
+                        @if (!$hasDraftVenue)
+                            <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-secondary mt-4 w-full sm:w-auto">Tambah venue Draft</a>
+                        @endif
+                    </section>
+                @endif
+
                 @if ($canSubmit)
-                    <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
+                    <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:flex-wrap sm:justify-end">
                         <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full sm:w-auto">Kembali</a>
-                        <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
-                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
+                        <button type="submit" wire:loading.attr="disabled" class="btn btn-secondary w-full sm:w-auto">
+                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE && $business->published_at !== null ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
                             <span wire:loading wire:target="save">Menyimpan...</span>
                         </button>
+                        @if ($this->canSubmitVerification())
+                            <button type="button" wire:click="submitForVerification" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
+                                <span wire:loading.remove wire:target="submitForVerification">Ajukan verifikasi</span>
+                                <span wire:loading wire:target="submitForVerification">Mengirim pengajuan...</span>
+                            </button>
+                        @endif
                     </div>
                 @endif
+
             </form>
         </section>
 
@@ -306,8 +547,11 @@ new #[Title('Profil usaha')] class extends Component {
                     <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Nama dan alamat di profil publik mengikuti identitas yang disetujui. Perubahan identitas berikutnya perlu ditinjau Super Admin sebelum tampil ke publik.</p>
                 @else
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
-                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Identitas usaha berstatus aktif</h2>
-                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Tanggal publikasi belum tercatat. Pastikan status publikasi sudah benar sebelum membagikan tautan profil.</p>
+                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Usaha terverifikasi · Belum tayang</h2>
+                    <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha telah terverifikasi, tetapi belum tampil ke publik karena persyaratan langganan belum dikelola oleh versi ini. Jangan membagikan profil sebagai tautan publik sebelum status publikasi aktif.</p>
+                    @if ($business->verified_at)
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Diverifikasi pada {{ $business->verified_at->format('d/m/Y H:i') }}.</p>
+                    @endif
                 @endif
 
                 <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
