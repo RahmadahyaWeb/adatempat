@@ -3,7 +3,11 @@
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\Venue;
+use App\Models\VenueTemplate;
+use App\Models\TemplateField;
+use App\Models\VenueFieldValue;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -22,6 +26,14 @@ new #[Title('Data venue')] class extends Component {
 
     public string $description = '';
 
+    public string $venueTemplateId = '';
+
+    public string $capacityPersons = '';
+
+    public array $facilities = [];
+
+    public array $templateValues = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -37,7 +49,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with('category')
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -49,6 +61,10 @@ new #[Title('Data venue')] class extends Component {
             $this->name = $record->name;
             $this->categoryId = (string) $record->category_id;
             $this->description = (string) ($record->description ?? '');
+            $this->venueTemplateId = (string) ($record->venue_template_id ?? '');
+            $this->capacityPersons = (string) ($record->capacity_persons ?? '');
+            $this->facilities = array_values($record->facilities_json ?? []);
+            $this->loadTemplateValuesFromVenue($record);
         }
     }
 
@@ -82,6 +98,112 @@ new #[Title('Data venue')] class extends Component {
             ->active()
             ->orderBy('name')
             ->get();
+    }
+
+    #[Computed]
+    public function templates(): Collection
+    {
+        if ($this->categoryId === '' || ! ctype_digit($this->categoryId)) {
+            return new Collection();
+        }
+
+        $currentTemplateId = ctype_digit($this->venueTemplateId) ? (int) $this->venueTemplateId : null;
+
+        return VenueTemplate::query()
+            ->with('fields')
+            ->where('category_id', (int) $this->categoryId)
+            ->where(function ($query) use ($currentTemplateId): void {
+                $query->where('is_active', true);
+
+                if ($currentTemplateId !== null) {
+                    $query->orWhereKey($currentTemplateId);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function updatedCategoryId(): void
+    {
+        $this->resetValidation(['categoryId', 'venueTemplateId', 'templateValues']);
+        $this->templateValues = [];
+
+        $template = VenueTemplate::query()
+            ->where('category_id', ctype_digit($this->categoryId) ? (int) $this->categoryId : 0)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->first();
+
+        $this->venueTemplateId = $template ? (string) $template->getKey() : '';
+        $this->resetTemplateValuesForSelectedTemplate();
+        unset($this->templates);
+    }
+
+    public function updatedVenueTemplateId(): void
+    {
+        $this->resetValidation('templateValues');
+        $this->templateValues = [];
+        $this->resetTemplateValuesForSelectedTemplate();
+        unset($this->templates);
+    }
+
+    private function resetTemplateValuesForSelectedTemplate(): void
+    {
+        if ($this->venueTemplateId === '' || ! ctype_digit($this->venueTemplateId)) {
+            $this->templateValues = [];
+
+            return;
+        }
+
+        $template = VenueTemplate::query()
+            ->with('fields')
+            ->whereKey((int) $this->venueTemplateId)
+            ->where('category_id', ctype_digit($this->categoryId) ? (int) $this->categoryId : 0)
+            ->where('is_active', true)
+            ->first();
+
+        if ($template === null) {
+            return;
+        }
+
+        foreach ($template->fields as $field) {
+            $this->templateValues[$field->field_key] = match ($field->input_type) {
+                TemplateField::TYPE_BOOLEAN => false,
+                TemplateField::TYPE_MULTISELECT => [],
+                default => '',
+            };
+        }
+    }
+
+    private function loadTemplateValuesFromVenue(Venue $venue): void
+    {
+        foreach ($venue->fieldValues as $fieldValue) {
+            $field = $fieldValue->templateField;
+
+            if ($field === null) {
+                continue;
+            }
+
+            $this->templateValues[$field->field_key] = match ($field->input_type) {
+                TemplateField::TYPE_BOOLEAN => (bool) ($fieldValue->value_boolean ?? false),
+                TemplateField::TYPE_NUMBER => $fieldValue->value_number !== null ? (string) $fieldValue->value_number : '',
+                TemplateField::TYPE_MULTISELECT => $fieldValue->value_json ?? [],
+                default => (string) ($fieldValue->value_text ?? ''),
+            };
+        }
+    }
+
+    public function availableFacilities(): array
+    {
+        return [
+            'Wi-Fi',
+            'AC',
+            'Parkir',
+            'Toilet',
+            'Mushola',
+            'Akses kursi roda',
+            'Ruang ganti',
+        ];
     }
 
     public function save(): void
