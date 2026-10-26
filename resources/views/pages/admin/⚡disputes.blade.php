@@ -32,6 +32,7 @@ new #[Title('Sengketa booking')] class extends Component {
         return Dispute::query()
             ->with([
                 'openedBy:id,name,email,role',
+                'auditLogs',
                 'booking:id,reference_code,customer_id,venue_id,booking_start,booking_end,status,snapshot_actual_paid_amount,snapshot_net_owner_entitlement',
                 'booking.customer:id,name,email',
                 'booking.venue:id,name,business_id',
@@ -196,6 +197,12 @@ new #[Title('Sengketa booking')] class extends Component {
                             </div>
                             <p class="mt-2 text-sm font-semibold">{{ $dispute->category }}</p>
                             <p class="mt-1 whitespace-pre-line text-sm leading-6 text-[var(--ink-soft)]">{{ $dispute->description }}</p>
+                            @foreach ($dispute->auditLogs->where('action', 'booking.dispute_owner_response_submitted') as $responseLog)
+                                <div class="mt-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm">
+                                    <p class="font-semibold text-sky-950">Tanggapan Owner · {{ $responseLog->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
+                                    <p class="mt-1 whitespace-pre-line leading-6 text-sky-950">{{ $responseLog->reason }}</p>
+                                </div>
+                            @endforeach
                             <div class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3 text-sm">
                                 <p><span class="font-semibold">Booking:</span> {{ $dispute->booking?->reference_code }} · {{ $dispute->booking?->venue?->name }}</p>
                                 <p class="mt-1"><span class="font-semibold">Usaha:</span> {{ $dispute->booking?->venue?->business?->name }}</p>
