@@ -1647,7 +1647,6 @@ new #[Title('Data venue')] class extends Component {
                             <button type="button" wire:click="addSessionPrice" class="btn btn-secondary w-full sm:w-auto">Tambah sesi</button>
                         </div>
                     @else
-                        @php($priceRow = $priceRows[0] ?? $this->blankPriceRow())
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label for="price-amount" class="ui-label">{{ $pricingUnit === 'hourly' ? 'Harga per jam (Rp)' : 'Harga per hari (Rp)' }}</label>
