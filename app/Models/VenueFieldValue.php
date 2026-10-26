@@ -13,6 +13,7 @@ class VenueFieldValue extends Model
     protected $fillable = [
         'venue_id',
         'template_field_id',
+        'owner_custom_field_id',
         'value_text',
         'value_number',
         'value_boolean',
@@ -36,5 +37,10 @@ class VenueFieldValue extends Model
     public function templateField(): BelongsTo
     {
         return $this->belongsTo(TemplateField::class);
+    }
+
+    public function ownerCustomField(): BelongsTo
+    {
+        return $this->belongsTo(OwnerCustomField::class);
     }
 }
