@@ -403,7 +403,10 @@ new #[Title('Profil usaha')] class extends Component {
                     @elseif ($business->status === 'active')
                         Usaha ini sudah terverifikasi. Profil belum ditampilkan ke publik karena pengelolaan status langganan belum tersedia pada versi ini. Perubahan identitas utama tetap harus ditinjau Super Admin.
                     @elseif ($business->status === 'pending_verification')
-                        Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.
+                        <p>Usaha sedang menunggu verifikasi. Informasi identitas dikunci selama proses peninjauan.</p>
+                        @if ($business->verification_submitted_at)
+                            <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Diajukan pada {{ $business->verification_submitted_at->format('d/m/Y H:i') }}.</p>
+                        @endif
                     @elseif ($business->status === 'suspended')
                         Usaha sedang ditangguhkan. Informasi ini hanya dapat ditinjau dari halaman ini.
                     @else
@@ -415,6 +418,9 @@ new #[Title('Profil usaha')] class extends Component {
                     <p class="font-bold">Usaha perlu diperbaiki</p>
                     @if ($business->rejection_reason)
                         <p class="mt-2 text-sm leading-6">Alasan: {{ $business->rejection_reason }}</p>
+                    @endif
+                    @if ($business->verification_reviewed_at)
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Ditinjau pada {{ $business->verification_reviewed_at->format('d/m/Y H:i') }}.</p>
                     @endif
                     <p class="mt-2 text-xs leading-5">Perbaiki informasi lalu ajukan ulang verifikasi. Menyimpan perubahan saja tidak mengirim pengajuan baru.</p>
                 </div>
@@ -543,6 +549,9 @@ new #[Title('Profil usaha')] class extends Component {
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
                     <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Usaha terverifikasi · Belum tayang</h2>
                     <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha telah terverifikasi, tetapi belum tampil ke publik karena persyaratan langganan belum dikelola oleh versi ini. Jangan membagikan profil sebagai tautan publik sebelum status publikasi aktif.</p>
+                    @if ($business->verified_at)
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Diverifikasi pada {{ $business->verified_at->format('d/m/Y H:i') }}.</p>
+                    @endif
                 @endif
 
                 <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
