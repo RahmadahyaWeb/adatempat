@@ -102,6 +102,9 @@ class PaymentWebhookProcessor
                         ? Payment::STATUS_EXPIRED
                         : Payment::STATUS_FAILED;
 
+                    $paymentStatusBefore = $lockedPayment->status;
+                    $bookingStatusBefore = $lockedBooking->status;
+                    $holdStatusBefore = $lockedHold->status;
                     $lockedPayment->update([
                         'status' => $paymentStatus,
                         'qris_payload' => null,
@@ -119,8 +122,8 @@ class PaymentWebhookProcessor
                         'auditable_type' => Payment::class,
                         'auditable_id' => $lockedPayment->getKey(),
                         'reason' => 'Gateway confirmed the payment failed or expired.',
-                        'before_state_json' => ['status' => $lockedPayment->getOriginal('status')],
-                        'after_state_json' => ['status' => $paymentStatus],
+                        'before_state_json' => ['payment_status' => $paymentStatusBefore, 'booking_status' => $bookingStatusBefore, 'hold_status' => $holdStatusBefore],
+                        'after_state_json' => ['payment_status' => $paymentStatus, 'booking_status' => Booking::STATUS_EXPIRED, 'hold_status' => BookingHold::STATUS_RELEASED],
                         'ip_hash' => null,
                         'created_at' => now('UTC'),
                     ]);
