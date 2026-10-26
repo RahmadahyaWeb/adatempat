@@ -27,3 +27,8 @@ Schedule::command('bookings:auto-complete-expired')
 Schedule::command('payouts:prepare-eligible')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+
+Schedule::command('notifications:dispatch')
+    ->everyMinute()
+    ->withoutOverlapping();
