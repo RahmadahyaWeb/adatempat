@@ -262,7 +262,7 @@ class PayoutService
                 $booking = Booking::query()->whereKey($payout->booking_id)->lockForUpdate()->firstOrFail();
 
                 if (
-                    $payout->status !== Payout::STATUS_HELD
+                    ! in_array($payout->status, [Payout::STATUS_HELD, Payout::STATUS_ON_HOLD], true)
                     || $booking->status !== Booking::STATUS_COMPLETED
                     || $payout->eligible_at === null
                     || $payout->eligible_at->isFuture()
