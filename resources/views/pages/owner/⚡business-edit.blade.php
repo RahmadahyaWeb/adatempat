@@ -448,24 +448,24 @@ new #[Title('Profil usaha')] class extends Component {
             <form wire:submit="save" class="mt-6 space-y-5">
                 <div>
                     <label for="business-name" class="ui-label">Nama usaha</label>
-                    <input id="business-name" type="text" wire:model="name" required maxlength="255" class="ui-input" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
+                    <input id="business-name" type="text" wire:model.blur="name" required maxlength="255" class="ui-input" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
                     @error('name') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label for="business-address" class="ui-label">Alamat lengkap</label>
-                    <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Nama jalan, nomor, kelurahan, dan area" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
+                    <textarea id="business-address" wire:model.blur="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Nama jalan, nomor, kelurahan, dan area" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
                     @error('address') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label for="business-city" class="ui-label">Kota / kabupaten</label>
-                        <input id="business-city" type="text" wire:model="city" maxlength="100" class="ui-input" placeholder="Contoh: Banjarbaru" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}">
+                        <input id="business-city" type="text" wire:model.blur="city" maxlength="100" class="ui-input" placeholder="Contoh: Banjarbaru" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('city') ? 'true' : 'false' }}">
                         @error('city') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <label for="business-province" class="ui-label">Provinsi</label>
-                        <input id="business-province" type="text" wire:model="province" maxlength="100" class="ui-input" placeholder="Contoh: Kalimantan Selatan" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('province') ? 'true' : 'false' }}">
+                        <input id="business-province" type="text" wire:model.blur="province" maxlength="100" class="ui-input" placeholder="Contoh: Kalimantan Selatan" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('province') ? 'true' : 'false' }}">
                         @error('province') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -476,16 +476,16 @@ new #[Title('Profil usaha')] class extends Component {
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label for="business-latitude" class="ui-label">Lintang (latitude)</label>
-                            <input id="business-latitude" type="number" step="any" min="-90" max="90" wire:model="latitude" class="ui-input" placeholder="-3.4429" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}">
+                            <input id="business-latitude" type="number" step="any" min="-90" max="90" wire:model.blur="latitude" class="ui-input" placeholder="-3.4429" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}">
                             @error('latitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label for="business-longitude" class="ui-label">Bujur (longitude)</label>
-                            <input id="business-longitude" type="number" step="any" min="-180" max="180" wire:model="longitude" class="ui-input" placeholder="114.8355" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}">
+                            <input id="business-longitude" type="number" step="any" min="-180" max="180" wire:model.blur="longitude" class="ui-input" placeholder="114.8355" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}">
                             @error('longitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                    <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex min-h-9 items-center gap-2 text-sm font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                    <a href="https://www.openstreetmap.org/search?query={{ urlencode(trim($address . ', ' . $city . ', ' . $province)) }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex min-h-9 items-center gap-2 text-sm font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
                         Buka peta untuk mencari koordinat
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>
                     </a>
