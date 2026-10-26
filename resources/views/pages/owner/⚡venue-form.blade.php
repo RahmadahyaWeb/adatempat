@@ -585,6 +585,115 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </div>
 
+                @if ($categoryId !== '' && $templates->isNotEmpty())
+                    <div>
+                        <label for="venue-template" class="ui-label">Template informasi</label>
+                        <select id="venue-template" wire:model.live="venueTemplateId" class="ui-input" aria-invalid="{{ $errors->has('venueTemplateId') ? 'true' : 'false' }}">
+                            <option value="">Pilih template sesuai kategori</option>
+                            @foreach ($templates as $templateOption)
+                                <option value="{{ $templateOption->id }}">{{ $templateOption->name }} · v{{ $templateOption->version }}</option>
+                            @endforeach
+                        </select>
+                        @error('venueTemplateId') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Field tambahan berubah sesuai kategori dan template yang dipilih.</p>
+                    </div>
+                @elseif ($categoryId !== '')
+                    <p class="status-note">Belum ada template aktif untuk kategori ini. Informasi dasar tetap dapat disimpan.</p>
+                @endif
+
+                <div>
+                    <label for="venue-capacity" class="ui-label">Kapasitas orang</label>
+                    <input id="venue-capacity" type="number" min="1" max="100000" step="1" wire:model="capacityPersons" class="ui-input" placeholder="Contoh: 80" aria-invalid="{{ $errors->has('capacityPersons') ? 'true' : 'false' }}">
+                    @error('capacityPersons') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Kosongkan jika kapasitas belum diketahui.</p>
+                </div>
+
+                <fieldset class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <legend class="px-1 text-sm font-extrabold text-[var(--ink)]">Fasilitas standar</legend>
+                    <p class="mb-3 text-sm leading-6 text-[var(--ink-soft)]">Pilih fasilitas yang benar-benar tersedia di venue.</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        @foreach ($facilityOptions as $facility)
+                            <label class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                <input type="checkbox" wire:model="facilities" value="{{ $facility }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                <span>{{ $facility }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('facilities') <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                    @error('facilities.*') <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                </fieldset>
+
+                @if ($selectedTemplate && $selectedTemplate->fields->isNotEmpty())
+                    <section aria-labelledby="dynamic-template-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                        <div class="mb-4">
+                            <h3 id="dynamic-template-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Detail khusus kategori</h3>
+                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi informasi tambahan untuk {{ $category->name ?? 'kategori ini' }}.</p>
+                        </div>
+
+                        <div class="space-y-5">
+                            @foreach ($selectedTemplate->fields as $field)
+                                @php
+                                    $fieldInputId = 'template-field-' . $field->field_key;
+                                    $fieldValue = $templateValues[$field->field_key] ?? ($field->input_type === 'boolean' ? false : ($field->input_type === 'multiselect' ? [] : ''));
+                                    $fieldOptions = $field->options_json ?? [];
+                                    $fieldValidation = $field->validation_rules_json ?? [];
+                                @endphp
+                                <div wire:key="template-field-{{ $field->id }}">
+                                    @if ($field->input_type === 'boolean')
+                                        <label for="{{ $fieldInputId }}" class="flex cursor-pointer items-start gap-3 text-sm text-[var(--ink-soft)]">
+                                            <input id="{{ $fieldInputId }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                            <span>
+                                                <span class="block font-bold text-[var(--ink)]">{{ $field->label }}</span>
+                                                @if ($field->unit_label)
+                                                    <span class="mt-1 block text-xs text-[var(--muted)]">{{ $field->unit_label }}</span>
+                                                @endif
+                                            </span>
+                                        </label>
+                                    @else
+                                        <label for="{{ $fieldInputId }}" class="ui-label">
+                                            {{ $field->label }}
+                                            @if ($field->is_required)
+                                                <span class="text-[var(--danger-ink)]">*</span>
+                                            @endif
+                                            @if ($field->unit_label)
+                                                <span class="font-medium text-[var(--muted)]">({{ $field->unit_label }})</span>
+                                            @endif
+                                        </label>
+
+                                        @if ($field->input_type === 'text')
+                                            <input id="{{ $fieldInputId }}" type="text" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" maxlength="{{ $fieldValidation['max_length'] ?? 2000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                        @elseif ($field->input_type === 'textarea')
+                                            <textarea id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" rows="3" class="ui-input resize-y" maxlength="{{ $fieldValidation['max_length'] ?? 10000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}"></textarea>
+                                        @elseif ($field->input_type === 'number')
+                                            <input id="{{ $fieldInputId }}" type="number" step="any" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if(isset($fieldValidation['min'])) min="{{ $fieldValidation['min'] }}" @endif @if(isset($fieldValidation['max'])) max="{{ $fieldValidation['max'] }}" @endif placeholder="Masukkan angka" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                        @elseif ($field->input_type === 'select')
+                                            <select id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                                <option value="">Pilih {{ strtolower($field->label) }}</option>
+                                                @foreach ($fieldOptions as $option)
+                                                    <option value="{{ $option }}">{{ $option }}</option>
+                                                @endforeach
+                                            </select>
+                                        @elseif ($field->input_type === 'multiselect')
+                                            <div class="grid gap-3 sm:grid-cols-2">
+                                                @foreach ($fieldOptions as $optionIndex => $option)
+                                                    <label for="{{ $fieldInputId }}-{{ $optionIndex }}" class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                                        <input id="{{ $fieldInputId }}-{{ $optionIndex }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" value="{{ $option }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                                        <span>{{ $option }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endif
+
+                                    @error("templateValues.{$field->field_key}")
+                                        <p role="alert" class="ui-error mt-2">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
                 <div>
                     <label for="venue-description" class="ui-label">Deskripsi venue</label>
                     <textarea id="venue-description" wire:model="description" rows="5" maxlength="10000" class="ui-input resize-y" placeholder="Jelaskan suasana, penggunaan ruang, atau informasi yang penting bagi pengunjung.">{{ $description }}</textarea>
