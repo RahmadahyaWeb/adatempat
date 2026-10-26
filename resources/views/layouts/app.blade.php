@@ -39,7 +39,7 @@
                     [
                         'label' => 'Verifikasi & moderasi',
                         'items' => [
-                            ['label' => 'Verifikasi usaha', 'placeholder' => 'Segera hadir'],
+                            ['label' => 'Verifikasi usaha', 'href' => route('business-verifications.index')],
                             ['label' => 'Moderasi konten', 'placeholder' => 'Segera hadir'],
                         ],
                     ],
@@ -240,6 +240,7 @@
                 <a class="underline-offset-4 hover:underline" href="{{ route('home') }}#hasil">Jelajahi tempat</a>
                 @if ($currentUser)
                     @if ($currentUser->isSuperAdmin())
+                        <a class="underline-offset-4 hover:underline" href="{{ route('business-verifications.index') }}">Verifikasi usaha</a>
                         <a class="underline-offset-4 hover:underline" href="{{ route('business-revisions.index') }}">Peninjauan revisi</a>
                     @elseif ($currentUser->isOwner())
                         @if ($currentUser->hasVerifiedEmail())
