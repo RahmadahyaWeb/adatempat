@@ -49,12 +49,12 @@ Belum diimplementasikan sebagai alur produk. Termasuk subscription lifecycle, in
 
 ## Tahap 5 — Chat, ulasan, iklan, moderasi, dan pengujian otomatis
 
-Belum diimplementasikan sebagai alur produk lengkap. Test suite saat ini masih berupa kerangka Laravel dasar; pengujian otomatis Feature/Concurrency Tests yang diminta PRD belum dibangun.
+Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah tersedia untuk regresi revisi identitas; PR ini menambahkan test validasi/penyimpanan template venue dan rendering profil publik. Test baru belum dijalankan. Test concurrency untuk booking/payment dan suite domain finansial masih belum tersedia.
 
 ## Urutan pengembangan berikutnya
 
 1. Melanjutkan fondasi Tahap 1: menambah skema database secara terkelola mengikuti inventaris PRD, model/relasi, Policies isolasi tenant, dan seeder konfigurasi yang belum tersedia.
-2. Menyelesaikan alur Tahap 2: verifikasi usaha baru, template/custom fields venue, media, kapasitas, harga, jadwal, availability, dan promosi.
+2. Menyelesaikan alur Tahap 2: merge dan uji verifikasi usaha baru (PR #21), UI Super Admin untuk mengelola template/field, custom fields Owner, media/foto, harga, jadwal, availability, dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
