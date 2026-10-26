@@ -36,7 +36,7 @@ class VenueBlockService
         });
     }
 
-    public function delete(User $owner, Venue $venue, int $blockId): void
+    public function delete(Venue $venue, int $blockId): void
     {
         DB::transaction(function () use ($venue, $blockId): void {
             $lockedVenue = Venue::query()->whereKey($venue->getKey())->lockForUpdate()->firstOrFail();
