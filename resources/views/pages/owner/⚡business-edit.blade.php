@@ -262,7 +262,7 @@ new #[Title('Profil usaha')] class extends Component {
                     @if ($latestRevision->reviewed_at)
                         <p class="mt-2 text-xs leading-5">Disetujui pada {{ $latestRevision->reviewed_at->format('d/m/Y H:i') }}.</p>
                     @endif
-                    <p class="mt-2 text-xs leading-5">Informasi publik kini menggunakan identitas yang disetujui. Tautan profil tetap menggunakan slug sebelumnya.</p>
+                    <p class="mt-2 text-xs leading-5">Data usaha kini menggunakan identitas yang disetujui. Jika profil sudah dipublikasikan, informasi ini menjadi identitas yang tampil ke publik. Tautan profil tetap menggunakan slug sebelumnya.</p>
                 </div>
             @endif
 
