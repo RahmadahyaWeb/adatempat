@@ -149,7 +149,7 @@ new #[Title('Profil usaha')] class extends Component {
 
                             @php
                                 $displayCustomValues = $venue->fieldValues
-                                    ->filter(fn ($fieldValue) => $fieldValue->ownerCustomField !== null && $fieldValue->ownerCustomField->moderation_status === \\App\\Models\\OwnerCustomField::STATUS_ACTIVE)
+                                    ->filter(fn ($fieldValue) => $fieldValue->ownerCustomField !== null && $fieldValue->ownerCustomField->moderation_status === \App\Models\OwnerCustomField::STATUS_ACTIVE)
                                     ->map(function ($fieldValue) {
                                         $field = $fieldValue->ownerCustomField;
                                         $value = match ($field->input_type) {
