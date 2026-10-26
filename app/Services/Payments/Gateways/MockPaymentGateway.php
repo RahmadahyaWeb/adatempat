@@ -38,6 +38,26 @@ class MockPaymentGateway implements PaymentGatewayContract, PaymentWebhookContra
         ];
     }
 
+    public function createRefund(Payment $payment, int $amount, string $idempotencyKey): array
+    {
+        if ($amount < 1 || $amount > (int) $payment->amount || trim($idempotencyKey) === '') {
+            throw new PaymentGatewayException('Invalid refund amount or idempotency key.', true);
+        }
+
+        return [
+            'gateway_refund_id' => 'MOCK-REFUND-' . strtoupper(substr(hash('sha256', $idempotencyKey), 0, 20)),
+            'status' => \App\Models\Refund::STATUS_PROCESSING,
+        ];
+    }
+
+    public function getRefundStatus(\App\Models\Refund $refund): array
+    {
+        return [
+            'gateway_refund_id' => $refund->gateway_refund_id,
+            'status' => \App\Models\Refund::STATUS_PROCESSING,
+        ];
+    }
+
     public function verifyWebhookSignature(string $rawBody, ?string $signature): bool
     {
         if (! is_string($signature) || trim($signature) === '') {

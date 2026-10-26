@@ -31,4 +31,18 @@ interface PaymentGatewayContract
      * }
      */
     public function getChargeStatus(Payment $payment): array;
+
+    /**
+     * Create a refund using a stable idempotency key.
+     *
+     * @return array{gateway_refund_id:string,status:string}
+     */
+    public function createRefund(Payment $payment, int $amount, string $idempotencyKey): array;
+
+    /**
+     * Query an existing refund without creating a second refund.
+     *
+     * @return array{gateway_refund_id:?string,status:string}
+     */
+    public function getRefundStatus(\App\Models\Refund $refund): array;
 }
