@@ -89,7 +89,7 @@ new #[Title('Kelola usaha')] class extends Component {
     @php
         $businesses = $this->businesses;
         $draftCount = $businesses->where('status', 'draft')->count();
-        $publishedCount = $businesses->filter(fn (Business $business) => $business->status === Business::STATUS_ACTIVE && $business->published_at !== null)->count();
+        $activeCount = $businesses->where('status', 'active')->count();
         $venueCount = $businesses->sum('venues_count');
     @endphp
 
@@ -121,8 +121,8 @@ new #[Title('Kelola usaha')] class extends Component {
             <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $businesses->count() }}</p>
         </div>
         <div>
-            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Tayang di publik</p>
-            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $publishedCount }}</p>
+            <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Usaha aktif</p>
+            <p class="mt-1 text-2xl font-extrabold tracking-[-0.05em] sm:text-3xl">{{ $activeCount }}</p>
         </div>
         <div class="col-span-2 sm:col-span-1">
             <p class="text-xs font-semibold text-[var(--muted)] sm:text-sm">Total venue</p>
@@ -195,22 +195,10 @@ new #[Title('Kelola usaha')] class extends Component {
                         $statusMeta = match ($business->status) {
                             'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
                             'pending_verification' => ['Menunggu verifikasi', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
-                            'active' => $business->published_at
-                                ? ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]']
-                                : ['Terverifikasi · Belum tayang', 'bg-[var(--warning-bg)] text-[var(--warning-ink)]'],
+                            'active' => ['Aktif', 'bg-[var(--success-bg)] text-[var(--success-ink)]'],
                             'suspended' => ['Ditangguhkan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
                             'rejected' => ['Perlu perbaikan', 'bg-[var(--danger-bg)] text-[var(--danger-ink)]'],
-                            default => ['Status belum dikenali', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
-                        };
-                        $statusDescription = match ($business->status) {
-                            'draft' => 'Lengkapi profil dasar dan siapkan minimal satu venue Draft sebelum mengajukan verifikasi.',
-                            'pending_verification' => 'Pengajuan sedang ditinjau Super Admin. Identitas dikunci selama proses ini.',
-                            'active' => $business->published_at
-                                ? 'Usaha sudah terverifikasi dan tampil di publik. Perubahan identitas utama harus ditinjau sebelum diterapkan.'
-                                : 'Usaha sudah terverifikasi, tetapi belum tayang. Publikasi menunggu persyaratan langganan dan kesiapan venue.',
-                            'rejected' => 'Periksa alasan penolakan di halaman profil usaha, perbaiki data, lalu ajukan ulang verifikasi.',
-                            'suspended' => 'Pengelolaan usaha dibatasi selama status penangguhan.',
-                            default => 'Periksa status usaha sebelum melanjutkan.',
+                            default => [$business->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
                         };
                     @endphp
                     <article wire:key="business-{{ $business->id }}" class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-6">
@@ -221,7 +209,6 @@ new #[Title('Kelola usaha')] class extends Component {
                             <div class="min-w-0">
                                 <h3 class="break-words text-base font-extrabold tracking-[-0.03em] sm:text-lg">{{ $business->name }}</h3>
                                 <p class="mt-1 break-words text-sm leading-5 text-[var(--muted)]">{{ $business->address ?: 'Alamat belum ditambahkan' }}</p>
-                                <p class="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">{{ $statusDescription }}</p>
                                 <div class="mt-3 flex flex-wrap items-center gap-2">
                                     <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                                     <span class="text-xs text-[var(--muted)]">{{ $business->venues_count }} venue</span>
