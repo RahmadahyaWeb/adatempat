@@ -212,13 +212,16 @@ new #[Title('Data venue')] class extends Component {
 
         abort_unless($user && $user->isOwner(), 403);
 
-        $business = $user->businesses()->where('public_id', $this->businessPublicId)
+        $business = $user->businesses()
+            ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
 
         $venue = $this->venuePublicId === null
             ? null
-            : $business->venues()->where('public_id', $this->venuePublicId)
-            ->firstOrFail();
+            : $business->venues()
+                ->with(['fieldValues.templateField'])
+                ->where('public_id', $this->venuePublicId)
+                ->firstOrFail();
 
         if ($venue === null) {
             Gate::authorize('create', [Venue::class, $business]);
@@ -226,15 +229,16 @@ new #[Title('Data venue')] class extends Component {
             Gate::authorize('update', $venue);
         }
 
+        $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
             [
                 'name' => ['required', 'string', 'max:255'],
-                'categoryId' => [
-                    'required',
-                    'integer',
-                    Rule::exists('categories', 'id'),
-                ],
+                'categoryId' => ['required', 'integer', Rule::exists('categories', 'id')],
                 'description' => ['nullable', 'string', 'max:10000'],
+                'venueTemplateId' => ['nullable', 'integer'],
+                'capacityPersons' => ['nullable', 'integer', 'min:1', 'max:100000'],
+                'facilities' => ['array'],
+                'facilities.*' => [Rule::in($facilityOptions)],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -243,6 +247,11 @@ new #[Title('Data venue')] class extends Component {
                 'categoryId.integer' => 'Kategori yang dipilih tidak valid.',
                 'categoryId.exists' => 'Kategori yang dipilih tidak ditemukan.',
                 'description.max' => 'Deskripsi maksimal 10.000 karakter.',
+                'venueTemplateId.integer' => 'Template yang dipilih tidak valid.',
+                'capacityPersons.integer' => 'Kapasitas harus berupa jumlah orang.',
+                'capacityPersons.min' => 'Kapasitas minimal 1 orang.',
+                'capacityPersons.max' => 'Kapasitas maksimal 100.000 orang.',
+                'facilities.*.in' => 'Pilih fasilitas dari daftar yang tersedia.',
             ],
         );
 
@@ -255,6 +264,115 @@ new #[Title('Data venue')] class extends Component {
             $this->addError('categoryId', 'Kategori ini tidak aktif. Pilih kategori lain yang tersedia.');
 
             return;
+        }
+
+        $template = null;
+        $selectedTemplateId = trim((string) ($validated['venueTemplateId'] ?? ''));
+
+        if ($selectedTemplateId !== '') {
+            $templateQuery = VenueTemplate::query()
+                ->with('fields')
+                ->whereKey((int) $selectedTemplateId)
+                ->where('category_id', $category->getKey());
+
+            $isCurrentTemplate = $venue !== null
+                && (int) $venue->venue_template_id === (int) $selectedTemplateId;
+
+            if ($isCurrentTemplate) {
+                $templateQuery->where(function ($query): void {
+                    $query->where('is_active', true)
+                        ->orWhereKey((int) $this->venueTemplateId);
+                });
+            } else {
+                $templateQuery->where('is_active', true);
+            }
+
+            $template = $templateQuery->first();
+
+            if ($template === null) {
+                $this->addError('venueTemplateId', 'Template tidak aktif atau tidak sesuai dengan kategori yang dipilih.');
+
+                return;
+            }
+        } elseif (VenueTemplate::query()
+            ->where('category_id', $category->getKey())
+            ->where('is_active', true)
+            ->exists()) {
+            $this->addError('venueTemplateId', 'Pilih template informasi sesuai kategori venue.');
+
+            return;
+        }
+
+        $templateRules = [];
+        $templateMessages = [];
+
+        if ($template !== null) {
+            foreach ($template->fields as $field) {
+                $key = 'templateValues.' . $field->field_key;
+                $fieldRules = [$field->is_required ? 'required' : 'nullable'];
+                $fieldOptions = $field->options_json ?? [];
+                $validation = $field->validation_rules_json ?? [];
+
+                switch ($field->input_type) {
+                    case TemplateField::TYPE_TEXT:
+                    case TemplateField::TYPE_TEXTAREA:
+                        $fieldRules[] = 'string';
+
+                        if (isset($validation['max_length'])) {
+                            $fieldRules[] = 'max:' . (int) $validation['max_length'];
+                        }
+
+                        break;
+
+                    case TemplateField::TYPE_NUMBER:
+                        $fieldRules[] = 'numeric';
+
+                        if (isset($validation['min'])) {
+                            $fieldRules[] = 'min:' . $validation['min'];
+                        }
+
+                        if (isset($validation['max'])) {
+                            $fieldRules[] = 'max:' . $validation['max'];
+                        }
+
+                        break;
+
+                    case TemplateField::TYPE_BOOLEAN:
+                        $fieldRules[] = 'boolean';
+                        break;
+
+                    case TemplateField::TYPE_SELECT:
+                        $fieldRules[] = Rule::in($fieldOptions);
+                        break;
+
+                    case TemplateField::TYPE_MULTISELECT:
+                        $fieldRules = [$field->is_required ? 'required' : 'nullable', 'array'];
+
+                        if ($field->is_required) {
+                            $fieldRules[] = 'min:1';
+                        }
+
+                        $templateRules[$key . '.*'] = [Rule::in($fieldOptions)];
+                        $templateMessages[$key . '.required'] = $field->label . ' wajib diisi.';
+                        $templateMessages[$key . '.min'] = 'Pilih minimal satu opsi untuk ' . $field->label . '.';
+                        $templateMessages[$key . '.*.in'] = 'Pilihan ' . $field->label . ' tidak valid.';
+
+                        break;
+                }
+
+                $templateRules[$key] = $fieldRules;
+                $templateMessages[$key . '.required'] = $field->label . ' wajib diisi.';
+                $templateMessages[$key . '.string'] = $field->label . ' harus berupa teks.';
+                $templateMessages[$key . '.numeric'] = $field->label . ' harus berupa angka.';
+                $templateMessages[$key . '.boolean'] = $field->label . ' harus berupa pilihan ya/tidak.';
+                $templateMessages[$key . '.in'] = 'Pilihan ' . $field->label . ' tidak valid.';
+                $templateMessages[$key . '.max'] = $field->label . ' melebihi batas maksimum.';
+                $templateMessages[$key . '.min'] = $field->label . ' belum memenuhi nilai minimum.';
+            }
+        }
+
+        if ($templateRules !== []) {
+            $this->validate($templateRules, $templateMessages);
         }
 
         $venueName = trim($validated['name']);
@@ -274,29 +392,92 @@ new #[Title('Data venue')] class extends Component {
             'name' => $venueName,
             'slug' => $slug,
             'category_id' => $category->getKey(),
+            'venue_template_id' => $template?->getKey(),
+            'capacity_persons' => trim((string) ($validated['capacityPersons'] ?? '')) !== ''
+                ? (int) $validated['capacityPersons']
+                : null,
+            'facilities_json' => array_values(array_unique($validated['facilities'] ?? [])),
+            'refund_policy_json' => $venue?->refund_policy_json,
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        if ($venue === null) {
-            $venue = $business->venues()->create($attributes + [
-                'status' => Venue::STATUS_DRAFT,
-                'published_at' => null,
-            ]);
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template): Venue {
+            if ($venue === null) {
+                $savedVenue = $business->venues()->create($attributes + [
+                    'status' => Venue::STATUS_DRAFT,
+                    'published_at' => null,
+                ]);
+            } else {
+                $venue->fill($attributes)->save();
+                $savedVenue = $venue;
+            }
 
+            $templateFieldIds = $template?->fields->modelKeys() ?? [];
+            $staleValues = $savedVenue->fieldValues()->whereNotNull('template_field_id');
+
+            if ($templateFieldIds !== []) {
+                $staleValues->whereNotIn('template_field_id', $templateFieldIds);
+            }
+
+            $staleValues->delete();
+
+            if ($template !== null) {
+                foreach ($template->fields as $field) {
+                    $rawValue = $this->templateValues[$field->field_key] ?? null;
+                    $typedValue = [
+                        'value_text' => null,
+                        'value_number' => null,
+                        'value_boolean' => null,
+                        'value_json' => null,
+                    ];
+
+                    switch ($field->input_type) {
+                        case TemplateField::TYPE_TEXT:
+                        case TemplateField::TYPE_TEXTAREA:
+                        case TemplateField::TYPE_SELECT:
+                            $typedValue['value_text'] = trim((string) ($rawValue ?? '')) !== ''
+                                ? trim((string) $rawValue)
+                                : null;
+                            break;
+
+                        case TemplateField::TYPE_NUMBER:
+                            $typedValue['value_number'] = trim((string) ($rawValue ?? '')) !== ''
+                                ? (float) $rawValue
+                                : null;
+                            break;
+
+                        case TemplateField::TYPE_BOOLEAN:
+                            $typedValue['value_boolean'] = (bool) ($rawValue ?? false);
+                            break;
+
+                        case TemplateField::TYPE_MULTISELECT:
+                            $typedValue['value_json'] = array_values(is_array($rawValue) ? $rawValue : []);
+                            break;
+                    }
+
+                    $savedVenue->fieldValues()->updateOrCreate(
+                        ['template_field_id' => $field->getKey()],
+                        $typedValue,
+                    );
+                }
+            }
+
+            return $savedVenue;
+        });
+
+        if ($venue === null) {
             session()->flash('status', 'Venue berhasil dibuat sebagai draft. Venue belum tampil di katalog publik.');
         } else {
-            $venue->fill($attributes)->save();
-
-            session()->flash('status', $venue->status === Venue::STATUS_PUBLISHED
+            session()->flash('status', $savedVenue->status === Venue::STATUS_PUBLISHED
                 ? 'Perubahan tersimpan dan berlaku pada informasi venue yang dipublikasikan.'
                 : 'Perubahan informasi venue tersimpan. Status venue tidak berubah.');
         }
 
-        unset($this->currentBusiness, $this->currentVenue, $this->categories);
+        unset($this->currentBusiness, $this->currentVenue, $this->categories, $this->templates);
 
         $this->redirectRoute(
             'owner.businesses.venues.edit',
-            ['business' => $business->public_id, 'venue' => $venue->public_id],
+            ['business' => $business->public_id, 'venue' => $savedVenue->public_id],
             navigate: false,
         );
     }
