@@ -331,6 +331,60 @@ class RefundService
         }, attempts: 3);
     }
 
+    public function recordManualTransfer(
+        Refund $refund,
+        \App\Models\User $admin,
+        string $transferReference,
+        string $reason,
+        bool $verifiedNoGatewayRefund,
+    ): Refund {
+        abort_unless($admin->isSuperAdmin() && $admin->status === 'active', 403);
+
+        $transferReference = trim($transferReference);
+        $reason = trim($reason);
+
+        if (
+            ! in_array($refund->status, [
+                Refund::STATUS_REQUESTED,
+                Refund::STATUS_APPROVED,
+                Refund::STATUS_FAILED,
+            ], true)
+            || $transferReference === ''
+            || mb_strlen($transferReference) > 120
+            || $reason === ''
+            || mb_strlen($reason) < 12
+            || mb_strlen($reason) > 2000
+            || ! $verifiedNoGatewayRefund
+        ) {
+            throw ValidationException::withMessages([
+                'manualTransfer' => 'Refund tidak memenuhi syarat transfer manual atau konfirmasi verifikasi belum lengkap.',
+            ]);
+        }
+
+        $updated = $this->markSucceeded($refund, null, $transferReference, (int) $admin->getKey());
+
+        AuditLog::query()->create([
+            'actor_user_id' => $admin->getKey(),
+            'actor_role' => $admin->role,
+            'action' => 'refund.manual_transfer_recorded',
+            'auditable_type' => Refund::class,
+            'auditable_id' => $updated->getKey(),
+            'reason' => $reason,
+            'before_state_json' => ['status' => $refund->status],
+            'after_state_json' => [
+                'status' => $updated->status,
+                'amount' => $updated->amount,
+                'manual_transfer_reference' => $updated->manual_transfer_reference,
+                'gateway_refund_id' => $updated->gateway_refund_id,
+                'verified_no_gateway_refund' => true,
+            ],
+            'ip_hash' => request()->ip() ? hash('sha256', (string) request()->ip()) : null,
+            'created_at' => now('UTC'),
+        ]);
+
+        return $updated;
+    }
+
     private function markFailed(Refund $refund, string $reason): Refund
     {
         $refund->update(['status' => Refund::STATUS_FAILED]);
