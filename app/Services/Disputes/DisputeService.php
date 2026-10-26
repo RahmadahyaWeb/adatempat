@@ -50,6 +50,7 @@ class DisputeService
 
         return DB::transaction(function () use ($actor, $booking, $reasonType, $description, $venueId): Dispute {
             Venue::query()->whereKey($venueId)->lockForUpdate()->firstOrFail();
+            $payout = Payout::query()->where('booking_id', $booking->getKey())->lockForUpdate()->first();
             $locked = Booking::query()->with('venue.business')->whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== Booking::STATUS_AWAITING_COMPLETION || $locked->completion_window_ends_at === null || $locked->completion_window_ends_at->isPast()) {
@@ -71,8 +72,6 @@ class DisputeService
                     'booking' => 'Booking ini sudah memiliki catatan sengketa.',
                 ]);
             }
-
-            $payout = Payout::query()->where('booking_id', $locked->getKey())->lockForUpdate()->first();
 
             if ($payout && in_array($payout->status, [Payout::STATUS_PAID, Payout::STATUS_CANCELLED], true)) {
                 throw ValidationException::withMessages([
