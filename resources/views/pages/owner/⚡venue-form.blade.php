@@ -6,6 +6,7 @@ use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
 use App\Models\OwnerCustomField;
+use App\Models\VenuePrice;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -150,7 +151,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields', 'media', 'availabilityRules', 'prices'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
