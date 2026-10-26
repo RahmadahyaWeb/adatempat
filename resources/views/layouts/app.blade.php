@@ -34,7 +34,7 @@
                 $primaryNavigationItems = [
                     ['label' => 'Revisi identitas', 'href' => route('business-revisions.index')],
                 ];
-                $roleMenuLabel = 'Menu admin';
+                $roleMenuLabel = 'Administrasi';
                 $roleMenuGroups = [
                     [
                         'label' => 'Verifikasi & moderasi',
@@ -58,7 +58,7 @@
                     $primaryNavigationItems = [
                         ['label' => 'Usaha & venue', 'href' => route('owner.businesses.index')],
                     ];
-                    $roleMenuLabel = 'Menu owner';
+                    $roleMenuLabel = 'Aktivitas usaha';
                     $roleMenuGroups = [
                         [
                             'label' => 'Operasional',
@@ -68,7 +68,7 @@
                             ],
                         ],
                         [
-                            'label' => 'Bisnis',
+                            'label' => 'Keuangan',
                             'items' => [
                                 ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
                                 ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
@@ -87,10 +87,10 @@
                     ['label' => 'Jelajahi tempat', 'href' => route('home') . '#hasil'],
                     ['label' => 'Kategori', 'href' => route('home') . '#kategori'],
                 ];
-                $roleMenuLabel = 'Aktivitas saya';
+                $roleMenuLabel = 'Aktivitas';
                 $roleMenuGroups = [
                     [
-                        'label' => 'Akun pelanggan',
+                        'label' => 'Pesanan & interaksi',
                         'items' => [
                             ['label' => 'Pesanan saya', 'placeholder' => 'Segera hadir'],
                             ['label' => 'Favorit', 'placeholder' => 'Segera hadir'],
