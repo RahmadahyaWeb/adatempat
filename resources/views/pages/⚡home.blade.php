@@ -251,7 +251,7 @@ new class extends Component {
                         <p class="mt-1.5 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
                         @php($activePrices = $venue->prices->where('is_active', true)->values())
                         @if ($activePrices->isNotEmpty())
-                            @php($displayPrice = $activePrices->min('price_amount'))
+                            @php($displayPrice = $activePrices->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])->filter(fn ($amount) => $amount !== null)->min())
                             <p class="mt-2 text-sm font-extrabold text-[var(--brand-forest)]">
                                 Mulai Rp {{ number_format((int) $displayPrice, 0, ',', '.') }}
                                 / {{ match ($activePrices->first()->pricing_unit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' } }}
