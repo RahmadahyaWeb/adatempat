@@ -6,7 +6,6 @@ use App\Models\Venue;
 use App\Models\VenuePrice;
 use App\Models\VenuePromotion;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
