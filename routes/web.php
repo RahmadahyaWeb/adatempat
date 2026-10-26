@@ -6,6 +6,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+Route::livewire('/bookings/{booking}/dispute', 'pages::disputes.show')
+    ->where('booking', '[0-9]+')
+    ->middleware(['auth', 'account.active', 'verified'])
+    ->name('bookings.dispute.show');
+
+Route::get('/disputes/evidence/{evidence}', [DisputeEvidenceController::class, 'download'])
+    ->where('evidence', '[0-9]+')
+    ->middleware(['auth', 'account.active', 'verified'])
+    ->name('disputes.evidence.download');
+
 Route::livewire('/', 'pages::home')->name('home');
 
 Route::livewire('/register', 'pages::auth.register')
@@ -105,6 +115,10 @@ Route::prefix('admin')
 
         Route::livewire('/payouts', 'pages::admin.payouts')
             ->name('payouts.index');
+
+        Route::get('/disputes/evidence/{evidence}', [DisputeEvidenceController::class, 'download'])
+            ->where('evidence', '[0-9]+')
+            ->name('disputes.evidence.download-admin');
 
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
