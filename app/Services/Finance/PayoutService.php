@@ -137,6 +137,65 @@ class PayoutService
         return $result;
     }
 
+    public function reviewPayoutAccount(PayoutAccount $account, User $admin, string $decision, string $reason): PayoutAccount
+    {
+        abort_unless($admin->isSuperAdmin() && $admin->status === 'active', 403);
+
+        $reason = trim($reason);
+
+        if (
+            ! in_array($decision, [PayoutAccount::STATUS_VERIFIED, PayoutAccount::STATUS_REJECTED], true)
+            || $reason === ''
+            || mb_strlen($reason) > 2000
+        ) {
+            throw ValidationException::withMessages([
+                'accountReview' => 'Keputusan verifikasi tidak valid atau alasan wajib diisi.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($account, $admin, $decision, $reason): PayoutAccount {
+            $locked = PayoutAccount::query()->whereKey($account->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->verification_status !== PayoutAccount::STATUS_PENDING) {
+                throw ValidationException::withMessages([
+                    'accountReview' => 'Hanya rekening yang menunggu verifikasi dapat diproses.',
+                ]);
+            }
+
+            $before = $locked->verification_status;
+            $locked->update([
+                'verification_status' => $decision,
+                'verified_by' => $admin->getKey(),
+                'verified_at' => $decision === PayoutAccount::STATUS_VERIFIED ? now('UTC') : null,
+            ]);
+
+            AuditLog::query()->create([
+                'actor_user_id' => $admin->getKey(),
+                'actor_role' => $admin->role,
+                'action' => $decision === PayoutAccount::STATUS_VERIFIED
+                    ? 'payout_account.verified'
+                    : 'payout_account.rejected',
+                'auditable_type' => PayoutAccount::class,
+                'auditable_id' => $locked->getKey(),
+                'reason' => $reason,
+                'before_state_json' => [
+                    'verification_status' => $before,
+                ],
+                'after_state_json' => [
+                    'verification_status' => $decision,
+                    'owner_id' => $locked->owner_id,
+                    'bank_code' => $locked->bank_code,
+                    'account_number_last4' => $locked->account_number_last4,
+                    'account_holder_name' => $locked->account_holder_name,
+                ],
+                'ip_hash' => request()->ip() ? hash('sha256', (string) request()->ip()) : null,
+                'created_at' => now('UTC'),
+            ]);
+
+            return $locked->refresh();
+        }, attempts: 3);
+    }
+
     public function markPaid(Payout $payout, User $admin, string $transferReference): Payout
     {
         abort_unless($admin->isSuperAdmin() && $admin->status === 'active', 403);
