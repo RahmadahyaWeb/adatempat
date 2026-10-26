@@ -119,7 +119,12 @@ new #[Title('Profil usaha')] class extends Component {
                                         $value = match ($field->input_type) {
                                             'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
                                             'number' => $fieldValue->value_number !== null
-                                                ? number_format((float) $fieldValue->value_number, 2, ',', '.') . ($field->unit_label ? ' ' . $field->unit_label : '')
+                                                ? number_format(
+                                                    (float) $fieldValue->value_number,
+                                                    fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2,
+                                                    ',',
+                                                    '.',
+                                                ) . ($field->unit_label ? ' ' . $field->unit_label : '')
                                                 : '',
                                             'multiselect' => collect($fieldValue->value_json ?? [])->implode(', '),
                                             default => (string) ($fieldValue->value_text ?? ''),
