@@ -315,11 +315,12 @@ new #[Title('Data venue')] class extends Component {
         Gate::authorize('update', $venue);
 
         $validated = $this->validate([
-            'mediaUpload' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'mediaUpload' => ['required', 'file', 'image', 'mimetypes:image/jpeg,image/png,image/webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'mediaAltText' => ['required', 'string', 'max:180'],
             'mediaIsCover' => ['boolean'],
         ], [
             'mediaUpload.required' => 'Pilih foto yang akan diunggah.',
+            'mediaUpload.image' => 'File harus berupa gambar yang valid.',
             'mediaUpload.mimetypes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
             'mediaUpload.mimes' => 'Format foto harus JPEG, PNG, atau WebP. SVG tidak diperbolehkan.',
             'mediaUpload.max' => 'Ukuran foto maksimal 5 MB.',
