@@ -25,6 +25,11 @@ class Category extends Model
         return $this->hasMany(Venue::class);
     }
 
+    public function venueTemplates(): HasMany
+    {
+        return $this->hasMany(VenueTemplate::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);

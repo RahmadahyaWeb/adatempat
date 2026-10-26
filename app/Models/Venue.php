@@ -30,6 +30,10 @@ class Venue extends Model
     protected $fillable = [
         'business_id',
         'category_id',
+        'venue_template_id',
+        'capacity_persons',
+        'facilities_json',
+        'refund_policy_json',
         'name',
         'slug',
         'description',
@@ -41,6 +45,9 @@ class Venue extends Model
     {
         return [
             'published_at' => 'datetime',
+            'capacity_persons' => 'integer',
+            'facilities_json' => 'array',
+            'refund_policy_json' => 'array',
         ];
     }
 
@@ -57,6 +64,16 @@ class Venue extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function venueTemplate(): BelongsTo
+    {
+        return $this->belongsTo(VenueTemplate::class);
+    }
+
+    public function fieldValues(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VenueFieldValue::class);
     }
 
     public function scopePublished(Builder $query): Builder

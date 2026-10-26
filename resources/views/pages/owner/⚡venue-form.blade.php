@@ -3,7 +3,10 @@
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\Venue;
+use App\Models\VenueTemplate;
+use App\Models\TemplateField;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -22,6 +25,14 @@ new #[Title('Data venue')] class extends Component {
 
     public string $description = '';
 
+    public string $venueTemplateId = '';
+
+    public string $capacityPersons = '';
+
+    public array $facilities = [];
+
+    public array $templateValues = [];
+
     public function mount(string $business, ?string $venue = null): void
     {
         $businessRecord = auth()->user()
@@ -37,7 +48,7 @@ new #[Title('Data venue')] class extends Component {
 
         if ($venue !== null) {
             $record = $businessRecord->venues()
-                ->with('category')
+                ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
                 ->where('public_id', $venue)
                 ->firstOrFail();
 
@@ -49,6 +60,22 @@ new #[Title('Data venue')] class extends Component {
             $this->name = $record->name;
             $this->categoryId = (string) $record->category_id;
             $this->description = (string) ($record->description ?? '');
+            $this->venueTemplateId = (string) ($record->venue_template_id ?? '');
+            $this->capacityPersons = (string) ($record->capacity_persons ?? '');
+            $this->facilities = array_values($record->facilities_json ?? []);
+
+            if ($this->venueTemplateId === '') {
+                $defaultTemplateId = VenueTemplate::query()
+                    ->where('category_id', $record->category_id)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->value('id');
+
+                $this->venueTemplateId = $defaultTemplateId !== null ? (string) $defaultTemplateId : '';
+            }
+
+            $this->resetTemplateValuesForSelectedTemplate();
+            $this->loadTemplateValuesFromVenue($record);
         }
     }
 
@@ -70,7 +97,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with('category')
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -84,19 +111,130 @@ new #[Title('Data venue')] class extends Component {
             ->get();
     }
 
+    #[Computed]
+    public function templates(): Collection
+    {
+        if ($this->categoryId === '' || ! ctype_digit($this->categoryId)) {
+            return new Collection();
+        }
+
+        $currentTemplateId = ctype_digit($this->venueTemplateId) ? (int) $this->venueTemplateId : null;
+
+        return VenueTemplate::query()
+            ->with('fields')
+            ->where('category_id', (int) $this->categoryId)
+            ->where(function ($query) use ($currentTemplateId): void {
+                $query->where('is_active', true);
+
+                if ($currentTemplateId !== null) {
+                    $query->orWhereKey($currentTemplateId);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function updatedCategoryId(): void
+    {
+        $this->resetValidation('categoryId');
+        $this->resetValidation('venueTemplateId');
+        $this->resetValidation('templateValues');
+        $this->templateValues = [];
+
+        $template = VenueTemplate::query()
+            ->where('category_id', ctype_digit($this->categoryId) ? (int) $this->categoryId : 0)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->first();
+
+        $this->venueTemplateId = $template ? (string) $template->getKey() : '';
+        $this->resetTemplateValuesForSelectedTemplate();
+        unset($this->templates);
+    }
+
+    public function updatedVenueTemplateId(): void
+    {
+        $this->resetValidation('templateValues');
+        $this->templateValues = [];
+        $this->resetTemplateValuesForSelectedTemplate();
+        unset($this->templates);
+    }
+
+    private function resetTemplateValuesForSelectedTemplate(): void
+    {
+        if ($this->venueTemplateId === '' || ! ctype_digit($this->venueTemplateId)) {
+            $this->templateValues = [];
+
+            return;
+        }
+
+        $template = VenueTemplate::query()
+            ->with('fields')
+            ->whereKey((int) $this->venueTemplateId)
+            ->where('category_id', ctype_digit($this->categoryId) ? (int) $this->categoryId : 0)
+            ->where('is_active', true)
+            ->first();
+
+        if ($template === null) {
+            return;
+        }
+
+        foreach ($template->fields as $field) {
+            $this->templateValues[$field->field_key] = match ($field->input_type) {
+                TemplateField::TYPE_BOOLEAN => false,
+                TemplateField::TYPE_MULTISELECT => [],
+                default => '',
+            };
+        }
+    }
+
+    private function loadTemplateValuesFromVenue(Venue $venue): void
+    {
+        foreach ($venue->fieldValues as $fieldValue) {
+            $field = $fieldValue->templateField;
+
+            if ($field === null) {
+                continue;
+            }
+
+            $this->templateValues[$field->field_key] = match ($field->input_type) {
+                TemplateField::TYPE_BOOLEAN => (bool) ($fieldValue->value_boolean ?? false),
+                TemplateField::TYPE_NUMBER => $fieldValue->value_number !== null ? (string) $fieldValue->value_number : '',
+                TemplateField::TYPE_MULTISELECT => $fieldValue->value_json ?? [],
+                default => (string) ($fieldValue->value_text ?? ''),
+            };
+        }
+    }
+
+    public function availableFacilities(): array
+    {
+        return [
+            'Wi-Fi',
+            'AC',
+            'Parkir',
+            'Toilet',
+            'Mushola',
+            'Akses kursi roda',
+            'Ruang ganti',
+        ];
+    }
+
     public function save(): void
     {
         $user = auth()->user();
 
         abort_unless($user && $user->isOwner(), 403);
 
-        $business = $user->businesses()->where('public_id', $this->businessPublicId)
+        $business = $user->businesses()
+            ->where('public_id', $this->businessPublicId)
             ->firstOrFail();
 
         $venue = $this->venuePublicId === null
             ? null
-            : $business->venues()->where('public_id', $this->venuePublicId)
-            ->firstOrFail();
+            : $business->venues()
+                ->with(['fieldValues.templateField'])
+                ->where('public_id', $this->venuePublicId)
+                ->firstOrFail();
 
         if ($venue === null) {
             Gate::authorize('create', [Venue::class, $business]);
@@ -104,15 +242,16 @@ new #[Title('Data venue')] class extends Component {
             Gate::authorize('update', $venue);
         }
 
+        $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
             [
                 'name' => ['required', 'string', 'max:255'],
-                'categoryId' => [
-                    'required',
-                    'integer',
-                    Rule::exists('categories', 'id'),
-                ],
+                'categoryId' => ['required', 'integer', Rule::exists('categories', 'id')],
                 'description' => ['nullable', 'string', 'max:10000'],
+                'venueTemplateId' => ['nullable', 'integer'],
+                'capacityPersons' => ['nullable', 'integer', 'min:1', 'max:100000'],
+                'facilities' => ['array'],
+                'facilities.*' => [Rule::in($facilityOptions)],
             ],
             [
                 'name.required' => 'Nama venue wajib diisi.',
@@ -121,6 +260,11 @@ new #[Title('Data venue')] class extends Component {
                 'categoryId.integer' => 'Kategori yang dipilih tidak valid.',
                 'categoryId.exists' => 'Kategori yang dipilih tidak ditemukan.',
                 'description.max' => 'Deskripsi maksimal 10.000 karakter.',
+                'venueTemplateId.integer' => 'Template yang dipilih tidak valid.',
+                'capacityPersons.integer' => 'Kapasitas harus berupa jumlah orang.',
+                'capacityPersons.min' => 'Kapasitas minimal 1 orang.',
+                'capacityPersons.max' => 'Kapasitas maksimal 100.000 orang.',
+                'facilities.*.in' => 'Pilih fasilitas dari daftar yang tersedia.',
             ],
         );
 
@@ -133,6 +277,116 @@ new #[Title('Data venue')] class extends Component {
             $this->addError('categoryId', 'Kategori ini tidak aktif. Pilih kategori lain yang tersedia.');
 
             return;
+        }
+
+        $template = null;
+        $selectedTemplateId = trim((string) ($validated['venueTemplateId'] ?? ''));
+
+        if ($selectedTemplateId !== '') {
+            $templateQuery = VenueTemplate::query()
+                ->with('fields')
+                ->whereKey((int) $selectedTemplateId)
+                ->where('category_id', $category->getKey());
+
+            $isCurrentTemplate = $venue !== null
+                && (int) $venue->venue_template_id === (int) $selectedTemplateId;
+
+            if ($isCurrentTemplate) {
+                $templateQuery->where(function ($query): void {
+                    $query->where('is_active', true)
+                        ->orWhereKey((int) $this->venueTemplateId);
+                });
+            } else {
+                $templateQuery->where('is_active', true);
+            }
+
+            $template = $templateQuery->first();
+
+            if ($template === null) {
+                $this->addError('venueTemplateId', 'Template tidak aktif atau tidak sesuai dengan kategori yang dipilih.');
+
+                return;
+            }
+        } elseif (VenueTemplate::query()
+            ->where('category_id', $category->getKey())
+            ->where('is_active', true)
+            ->exists()) {
+            $this->addError('venueTemplateId', 'Pilih template informasi sesuai kategori venue.');
+
+            return;
+        }
+
+        $templateRules = [];
+        $templateMessages = [];
+
+        if ($template !== null) {
+            foreach ($template->fields as $field) {
+                $key = 'templateValues.' . $field->field_key;
+                $validation = $field->validation_rules_json ?? [];
+                $isRequired = $field->is_required || (bool) ($validation['required'] ?? false);
+                $fieldRules = [$isRequired ? 'required' : 'nullable'];
+                $fieldOptions = $field->options_json ?? [];
+
+                switch ($field->input_type) {
+                    case TemplateField::TYPE_TEXT:
+                    case TemplateField::TYPE_TEXTAREA:
+                        $fieldRules[] = 'string';
+
+                        if (isset($validation['max_length'])) {
+                            $fieldRules[] = 'max:' . (int) $validation['max_length'];
+                        }
+
+                        break;
+
+                    case TemplateField::TYPE_NUMBER:
+                        $fieldRules[] = 'numeric';
+
+                        if (isset($validation['min'])) {
+                            $fieldRules[] = 'min:' . $validation['min'];
+                        }
+
+                        if (isset($validation['max'])) {
+                            $fieldRules[] = 'max:' . $validation['max'];
+                        }
+
+                        break;
+
+                    case TemplateField::TYPE_BOOLEAN:
+                        $fieldRules[] = 'boolean';
+                        break;
+
+                    case TemplateField::TYPE_SELECT:
+                        $fieldRules[] = Rule::in($fieldOptions);
+                        break;
+
+                    case TemplateField::TYPE_MULTISELECT:
+                        $fieldRules = [$isRequired ? 'required' : 'nullable', 'array'];
+
+                        if ($isRequired) {
+                            $fieldRules[] = 'min:1';
+                        }
+
+                        $templateRules[$key . '.*'] = [Rule::in($fieldOptions)];
+                        $templateMessages[$key . '.required'] = $field->label . ' wajib diisi.';
+                        $templateMessages[$key . '.min'] = 'Pilih minimal satu opsi untuk ' . $field->label . '.';
+                        $templateMessages[$key . '.*.in'] = 'Pilihan ' . $field->label . ' tidak valid.';
+
+                        break;
+                }
+
+                $templateRules[$key] = $fieldRules;
+                $templateMessages[$key . '.required'] = $field->label . ' wajib diisi.';
+                $templateMessages[$key . '.string'] = $field->label . ' harus berupa teks.';
+                $templateMessages[$key . '.numeric'] = $field->label . ' harus berupa angka.';
+                $templateMessages[$key . '.boolean'] = $field->label . ' harus berupa pilihan ya/tidak.';
+                $templateMessages[$key . '.in'] = 'Pilihan ' . $field->label . ' tidak valid.';
+                $templateMessages[$key . '.max'] = $field->label . ' melebihi batas maksimum.';
+                $templateMessages[$key . '.min'] = $field->label . ' belum memenuhi nilai minimum.';
+            }
+        }
+
+        if ($templateRules !== []) {
+            $this->validate($templateRules, $templateMessages);
         }
 
         $venueName = trim($validated['name']);
@@ -152,29 +406,92 @@ new #[Title('Data venue')] class extends Component {
             'name' => $venueName,
             'slug' => $slug,
             'category_id' => $category->getKey(),
+            'venue_template_id' => $template?->getKey(),
+            'capacity_persons' => trim((string) ($validated['capacityPersons'] ?? '')) !== ''
+                ? (int) $validated['capacityPersons']
+                : null,
+            'facilities_json' => array_values(array_unique($validated['facilities'] ?? [])),
+            'refund_policy_json' => $venue?->refund_policy_json,
             'description' => trim((string) ($validated['description'] ?? '')) ?: null,
         ];
 
-        if ($venue === null) {
-            $venue = $business->venues()->create($attributes + [
-                'status' => Venue::STATUS_DRAFT,
-                'published_at' => null,
-            ]);
+        $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template): Venue {
+            if ($venue === null) {
+                $savedVenue = $business->venues()->create($attributes + [
+                    'status' => Venue::STATUS_DRAFT,
+                    'published_at' => null,
+                ]);
+            } else {
+                $venue->fill($attributes)->save();
+                $savedVenue = $venue;
+            }
 
+            $templateFieldIds = $template?->fields->modelKeys() ?? [];
+            $staleValues = $savedVenue->fieldValues()->whereNotNull('template_field_id');
+
+            if ($templateFieldIds !== []) {
+                $staleValues->whereNotIn('template_field_id', $templateFieldIds);
+            }
+
+            $staleValues->delete();
+
+            if ($template !== null) {
+                foreach ($template->fields as $field) {
+                    $rawValue = $this->templateValues[$field->field_key] ?? null;
+                    $typedValue = [
+                        'value_text' => null,
+                        'value_number' => null,
+                        'value_boolean' => null,
+                        'value_json' => null,
+                    ];
+
+                    switch ($field->input_type) {
+                        case TemplateField::TYPE_TEXT:
+                        case TemplateField::TYPE_TEXTAREA:
+                        case TemplateField::TYPE_SELECT:
+                            $typedValue['value_text'] = trim((string) ($rawValue ?? '')) !== ''
+                                ? trim((string) $rawValue)
+                                : null;
+                            break;
+
+                        case TemplateField::TYPE_NUMBER:
+                            $typedValue['value_number'] = trim((string) ($rawValue ?? '')) !== ''
+                                ? (float) $rawValue
+                                : null;
+                            break;
+
+                        case TemplateField::TYPE_BOOLEAN:
+                            $typedValue['value_boolean'] = (bool) ($rawValue ?? false);
+                            break;
+
+                        case TemplateField::TYPE_MULTISELECT:
+                            $typedValue['value_json'] = array_values(is_array($rawValue) ? $rawValue : []);
+                            break;
+                    }
+
+                    $savedVenue->fieldValues()->updateOrCreate(
+                        ['template_field_id' => $field->getKey()],
+                        $typedValue,
+                    );
+                }
+            }
+
+            return $savedVenue;
+        });
+
+        if ($venue === null) {
             session()->flash('status', 'Venue berhasil dibuat sebagai draft. Venue belum tampil di katalog publik.');
         } else {
-            $venue->fill($attributes)->save();
-
-            session()->flash('status', $venue->status === Venue::STATUS_PUBLISHED
+            session()->flash('status', $savedVenue->status === Venue::STATUS_PUBLISHED
                 ? 'Perubahan tersimpan dan berlaku pada informasi venue yang dipublikasikan.'
                 : 'Perubahan informasi venue tersimpan. Status venue tidak berubah.');
         }
 
-        unset($this->currentBusiness, $this->currentVenue, $this->categories);
+        unset($this->currentBusiness, $this->currentVenue, $this->categories, $this->templates);
 
         $this->redirectRoute(
             'owner.businesses.venues.edit',
-            ['business' => $business->public_id, 'venue' => $venue->public_id],
+            ['business' => $business->public_id, 'venue' => $savedVenue->public_id],
             navigate: false,
         );
     }
@@ -186,6 +503,10 @@ new #[Title('Data venue')] class extends Component {
         $business = $this->currentBusiness;
         $venue = $this->currentVenue;
         $categories = $this->categories;
+        $templates = $this->templates;
+        $selectedTemplate = $templates->firstWhere('id', ctype_digit($this->venueTemplateId) ? (int) $this->venueTemplateId : 0);
+        $selectedCategory = $categories->firstWhere('id', ctype_digit($categoryId) ? (int) $categoryId : 0);
+        $facilityOptions = $this->availableFacilities();
         $isEditing = $venue !== null;
         $statusMeta = [
             'draft' => ['Draft', 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'],
@@ -252,7 +573,7 @@ new #[Title('Data venue')] class extends Component {
 
                 <div>
                     <label for="venue-category" class="ui-label">Kategori <span class="text-[var(--danger-ink)]">*</span></label>
-                    <select id="venue-category" wire:model="categoryId" required class="ui-input" aria-invalid="{{ $errors->has('categoryId') ? 'true' : 'false' }}">
+                    <select id="venue-category" wire:model.live="categoryId" required class="ui-input" aria-invalid="{{ $errors->has('categoryId') ? 'true' : 'false' }}">
                         <option value="">Pilih kategori</option>
                         @if ($isEditing && $venue->category && $venue->category->status !== \App\Models\Category::STATUS_ACTIVE)
                             <option value="{{ $venue->category->id }}">{{ $venue->category->name }} (kategori saat ini — tidak aktif)</option>
@@ -266,6 +587,115 @@ new #[Title('Data venue')] class extends Component {
                         <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Belum ada kategori aktif. Tambahkan atau aktifkan kategori terlebih dahulu sebelum membuat venue baru.</p>
                     @endif
                 </div>
+
+                @if ($categoryId !== '' && $templates->isNotEmpty())
+                    <div>
+                        <label for="venue-template" class="ui-label">Template informasi</label>
+                        <select id="venue-template" wire:model.live="venueTemplateId" class="ui-input" aria-invalid="{{ $errors->has('venueTemplateId') ? 'true' : 'false' }}">
+                            <option value="">Pilih template sesuai kategori</option>
+                            @foreach ($templates as $templateOption)
+                                <option value="{{ $templateOption->id }}">{{ $templateOption->name }} · v{{ $templateOption->version }}</option>
+                            @endforeach
+                        </select>
+                        @error('venueTemplateId') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Field tambahan berubah sesuai kategori dan template yang dipilih.</p>
+                    </div>
+                @elseif ($categoryId !== '')
+                    <p class="status-note">Belum ada template aktif untuk kategori ini. Informasi dasar tetap dapat disimpan.</p>
+                @endif
+
+                <div>
+                    <label for="venue-capacity" class="ui-label">Kapasitas orang</label>
+                    <input id="venue-capacity" type="number" min="1" max="100000" step="1" wire:model="capacityPersons" class="ui-input" placeholder="Contoh: 80" aria-invalid="{{ $errors->has('capacityPersons') ? 'true' : 'false' }}">
+                    @error('capacityPersons') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Kosongkan jika kapasitas belum diketahui.</p>
+                </div>
+
+                <fieldset class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <legend class="px-1 text-sm font-extrabold text-[var(--ink)]">Fasilitas standar</legend>
+                    <p class="mb-3 text-sm leading-6 text-[var(--ink-soft)]">Pilih fasilitas yang benar-benar tersedia di venue.</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        @foreach ($facilityOptions as $facility)
+                            <label class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                <input type="checkbox" wire:model="facilities" value="{{ $facility }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                <span>{{ $facility }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('facilities') <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                    @error('facilities.*') <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
+                </fieldset>
+
+                @if ($selectedTemplate && $selectedTemplate->fields->isNotEmpty())
+                    <section aria-labelledby="dynamic-template-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                        <div class="mb-4">
+                            <h3 id="dynamic-template-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Detail khusus kategori</h3>
+                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi informasi tambahan untuk {{ $selectedCategory?->name ?? 'kategori ini' }}.</p>
+                        </div>
+
+                        <div class="space-y-5">
+                            @foreach ($selectedTemplate->fields as $field)
+                                @php
+                                    $fieldInputId = 'template-field-' . $field->field_key;
+                                    $fieldValue = $templateValues[$field->field_key] ?? ($field->input_type === 'boolean' ? false : ($field->input_type === 'multiselect' ? [] : ''));
+                                    $fieldOptions = $field->options_json ?? [];
+                                    $fieldValidation = $field->validation_rules_json ?? [];
+                                @endphp
+                                <div wire:key="template-field-{{ $field->id }}">
+                                    @if ($field->input_type === 'boolean')
+                                        <label for="{{ $fieldInputId }}" class="flex cursor-pointer items-start gap-3 text-sm text-[var(--ink-soft)]">
+                                            <input id="{{ $fieldInputId }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                            <span>
+                                                <span class="block font-bold text-[var(--ink)]">{{ $field->label }}</span>
+                                                @if ($field->unit_label)
+                                                    <span class="mt-1 block text-xs text-[var(--muted)]">{{ $field->unit_label }}</span>
+                                                @endif
+                                            </span>
+                                        </label>
+                                    @else
+                                        <label for="{{ $fieldInputId }}" class="ui-label">
+                                            {{ $field->label }}
+                                            @if ($field->is_required)
+                                                <span class="text-[var(--danger-ink)]">*</span>
+                                            @endif
+                                            @if ($field->unit_label)
+                                                <span class="font-medium text-[var(--muted)]">({{ $field->unit_label }})</span>
+                                            @endif
+                                        </label>
+
+                                        @if ($field->input_type === 'text')
+                                            <input id="{{ $fieldInputId }}" type="text" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" maxlength="{{ $fieldValidation['max_length'] ?? 2000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                        @elseif ($field->input_type === 'textarea')
+                                            <textarea id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" rows="3" class="ui-input resize-y" maxlength="{{ $fieldValidation['max_length'] ?? 10000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}"></textarea>
+                                        @elseif ($field->input_type === 'number')
+                                            <input id="{{ $fieldInputId }}" type="number" step="any" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if(isset($fieldValidation['min'])) min="{{ $fieldValidation['min'] }}" @endif @if(isset($fieldValidation['max'])) max="{{ $fieldValidation['max'] }}" @endif placeholder="Masukkan angka" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                        @elseif ($field->input_type === 'select')
+                                            <select id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                                <option value="">Pilih {{ strtolower($field->label) }}</option>
+                                                @foreach ($fieldOptions as $option)
+                                                    <option value="{{ $option }}">{{ $option }}</option>
+                                                @endforeach
+                                            </select>
+                                        @elseif ($field->input_type === 'multiselect')
+                                            <div class="grid gap-3 sm:grid-cols-2">
+                                                @foreach ($fieldOptions as $optionIndex => $option)
+                                                    <label for="{{ $fieldInputId }}-{{ $optionIndex }}" class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                                        <input id="{{ $fieldInputId }}-{{ $optionIndex }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" value="{{ $option }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                                        <span>{{ $option }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endif
+
+                                    @error("templateValues.{$field->field_key}")
+                                        <p role="alert" class="ui-error mt-2">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
 
                 <div>
                     <label for="venue-description" class="ui-label">Deskripsi venue</label>
