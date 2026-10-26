@@ -5,6 +5,7 @@ use App\Models\BusinessRevision;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -15,6 +16,8 @@ new #[Title('Profil usaha')] class extends Component {
     public string $name = '';
 
     public string $address = '';
+
+    public string $timezone = 'Asia/Jakarta';
 
     public function mount(string $business): void
     {
@@ -28,6 +31,7 @@ new #[Title('Profil usaha')] class extends Component {
         $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
         $this->address = (string) ($record->address ?? '');
+        $this->timezone = (string) ($record->timezone ?: 'Asia/Jakarta');
     }
 
     #[Computed]
@@ -73,6 +77,45 @@ new #[Title('Profil usaha')] class extends Component {
     {
         return $this->currentBusiness->status === Business::STATUS_ACTIVE
             && $this->pendingRevision === null;
+    }
+
+    public function saveTimezone(): void
+    {
+        $owner = auth()->user();
+
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $business = $owner->businesses()
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
+
+        Gate::authorize('update', $business);
+
+        abort_unless(
+            in_array($business->status, [
+                Business::STATUS_DRAFT,
+                Business::STATUS_REJECTED,
+                Business::STATUS_ACTIVE,
+            ], true),
+            403,
+        );
+
+        $validated = $this->validate([
+            'timezone' => ['required', 'string', Rule::in([
+                'Asia/Jakarta',
+                'Asia/Makassar',
+                'Asia/Jayapura',
+            ])],
+        ], [
+            'timezone.required' => 'Pilih zona waktu usaha.',
+            'timezone.in' => 'Zona waktu yang dipilih tidak didukung.',
+        ]);
+
+        $business->update(['timezone' => $validated['timezone']]);
+
+        $this->resetValidation('timezone');
+        unset($this->currentBusiness);
+        session()->flash('status', 'Zona waktu usaha berhasil diperbarui. Jam operasional venue akan menggunakan zona waktu ini.');
     }
 
     public function save(): void
@@ -296,6 +339,32 @@ new #[Title('Profil usaha')] class extends Component {
                     </div>
                 @endif
             </form>
+            <section aria-labelledby="business-timezone-heading" class="mt-7 border-t border-[var(--border)] pt-6">
+                <div>
+                    <h3 id="business-timezone-heading" class="text-base font-extrabold text-[var(--ink)]">Zona waktu usaha</h3>
+                    <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Jam operasional dan sesi venue menggunakan zona waktu ini. Pilih zona waktu lokal yang sesuai dengan lokasi usaha.</p>
+                </div>
+                @if (in_array($business->status, ['draft', 'rejected', 'active'], true))
+                    <form wire:submit="saveTimezone" class="mt-4 space-y-3">
+                        <div>
+                            <label for="business-timezone" class="ui-label">Zona waktu</label>
+                            <select id="business-timezone" wire:model="timezone" class="ui-input" required>
+                                <option value="Asia/Jakarta">WIB — Asia/Jakarta</option>
+                                <option value="Asia/Makassar">WITA — Asia/Makassar</option>
+                                <option value="Asia/Jayapura">WIT — Asia/Jayapura</option>
+                            </select>
+                            @error('timezone') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <button type="submit" wire:loading.attr="disabled" class="btn btn-secondary w-full sm:w-auto">
+                            <span wire:loading.remove wire:target="saveTimezone">Simpan zona waktu</span>
+                            <span wire:loading wire:target="saveTimezone">Menyimpan...</span>
+                        </button>
+                    </form>
+                @else
+                    <p class="mt-3 text-sm text-[var(--muted)]">Zona waktu tidak dapat diubah selama proses verifikasi atau penangguhan.</p>
+                @endif
+            </section>
+
         </section>
 
         <aside class="rounded-2xl bg-[var(--surface-soft)] p-5 sm:p-6">
