@@ -132,4 +132,14 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(DisputeMessage::class, 'sender_user_id');
     }
+
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'recipient_user_id');
+    }
+
+    public function convertedGuestSessions(): HasMany
+    {
+        return $this->hasMany(GuestSession::class, 'converted_to_user_id');
+    }
 }
