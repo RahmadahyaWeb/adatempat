@@ -5,6 +5,7 @@ return [
     'payment_gateway' => [
         'driver' => env('PAYMENT_GATEWAY_DRIVER', 'mock'),
         'webhook_secret' => env('PAYMENT_GATEWAY_WEBHOOK_SECRET', 'local-webhook-secret'),
+        'invoice_payment_ttl_minutes' => (int) env('INVOICE_PAYMENT_TTL_MINUTES', 60),
     ],
 
     /*
