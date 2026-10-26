@@ -55,7 +55,7 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test telah tersedia
 ## Urutan pengembangan berikutnya
 
 1. Melanjutkan fondasi Tahap 1: menambah skema database secara terkelola mengikuti inventaris PRD, model/relasi, Policies isolasi tenant, dan seeder konfigurasi yang belum tersedia.
-2. Menyelesaikan alur Tahap 2: merge dan tinjau PR #21 serta #22, lanjutkan UI Super Admin untuk mengelola template/field, custom fields Owner, media/foto, harga, jadwal, availability, dan promosi.
+2. Menyelesaikan alur Tahap 2: tinjau dan merge PR #21, #22, lalu #23 sesuai dependensi; lanjutkan custom fields Owner, media/foto, harga, jadwal, availability, dan promosi.
 3. Setelah fondasi data dan pengelolaan venue memadai, membangun booking engine dan pembayaran dengan driver mock sesuai Tahap 3, lalu melanjutkan Tahap 4 dan 5 secara berurutan.
 
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
