@@ -16,9 +16,9 @@ class SubscriptionLifecycleService
     {
         abort_unless($admin->isSuperAdmin() && $admin->status === 'active', 403);
 
-        if (! $owner->isOwner() || $owner->status !== 'active' || ! $owner->hasVerifiedEmail() || ! $plan->is_active) {
+        if (! $owner->isOwner() || $owner->status !== 'active' || ! $owner->hasVerifiedEmail() || ! $plan->is_active || $plan->slug !== 'starter' || (int) $plan->duration_days !== 30) {
             throw ValidationException::withMessages([
-                'subscription' => 'Owner harus aktif dan terverifikasi, serta paket harus aktif.',
+                'subscription' => 'Trial manual hanya tersedia untuk paket Starter aktif berdurasi 30 hari dan Owner aktif terverifikasi.',
             ]);
         }
 
