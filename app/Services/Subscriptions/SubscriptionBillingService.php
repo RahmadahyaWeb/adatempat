@@ -47,9 +47,7 @@ class SubscriptionBillingService
         if ($existingPayment) {
             $invoice = Invoice::query()
                 ->where('reference_id', $existingPayment->payable_id)
-                ->whereIn('invoice_type', [Invoice::TYPE_SUBSCRIPTION, Invoice::TYPE_SUBSCRIPTION_UPGRADE])
-                ->where('status', Invoice::STATUS_UNPAID)
-                ->latest('id')
+                ->whereJsonContains('line_items_json->payment_idempotency_key', $paymentKey)
                 ->first();
 
             return [
@@ -319,7 +317,7 @@ class SubscriptionBillingService
 
     private function createPayment(User $owner, Subscription $subscription, Invoice $invoice, string $paymentKey): Payment
     {
-        return Payment::query()->create([
+        $payment = Payment::query()->create([
             'payable_type' => Payment::TYPE_SUBSCRIPTION,
             'payable_id' => $subscription->getKey(),
             'payer_user_id' => $owner->getKey(),
@@ -333,6 +331,12 @@ class SubscriptionBillingService
             'paid_at' => null,
             'expires_at' => now('UTC')->addMinutes(max(15, (int) config('services.payment_gateway.invoice_payment_ttl_minutes', 60))),
         ]);
+
+        $lineItems = $invoice->line_items_json ?? [];
+        $lineItems['payment_idempotency_key'] = $paymentKey;
+        $invoice->update(['line_items_json' => $lineItems]);
+
+        return $payment;
     }
 
     private function audit(User $owner, Subscription $subscription, string $action, string $reason, array $after): void
