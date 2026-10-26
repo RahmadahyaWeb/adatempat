@@ -63,3 +63,5 @@ Belum diimplementasikan sebagai alur produk lengkap. Feature Test sudah mencakup
 **Catatan status:** rangkaian 20 poin pengujian manual sebelumnya tetap tercatat lulus. Pengujian tambahan yang dilewati tetap berstatus *belum diuji secara manual*, bukan dianggap lulus. Business/Venue Policies telah di-merge melalui PR #14 tetapi belum diuji; fondasi `subscription_plans` dan `platform_settings` pada perubahan ini juga belum diuji.
 
 - Integrasi PR #26: harga venue dan jam operasional mingguan; pengujian belum dijalankan.
+
+- Integrasi PR #27: blok jadwal venue oleh Owner; pengujian belum dijalankan.
