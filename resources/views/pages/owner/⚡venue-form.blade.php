@@ -655,6 +655,15 @@ new #[Title('Data venue')] class extends Component {
         $this->customFields = array_values($this->customFields);
         $this->customFieldValues = array_values($this->customFieldValues);
 
+        $this->availabilityRules = array_values($this->availabilityRules);
+        $this->priceRows = array_values($this->priceRows);
+
+        foreach ($this->priceRows as $index => $priceRow) {
+            if (trim((string) ($priceRow['weekend_price_amount'] ?? '')) === '') {
+                $this->priceRows[$index]['weekend_price_amount'] = null;
+            }
+        }
+
         $facilityOptions = $this->availableFacilities();
         $validated = $this->validate(
             [
