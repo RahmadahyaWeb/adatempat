@@ -186,6 +186,9 @@ Route::prefix('owner')
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');
 
+        Route::livewire('/bookings', 'pages::owner.bookings')
+            ->name('bookings.index');
+
         Route::livewire('/payout-account', 'pages::owner.payout-account')
             ->name('payout-account');
 
