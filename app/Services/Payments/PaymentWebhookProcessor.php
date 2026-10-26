@@ -93,7 +93,8 @@ class PaymentWebhookProcessor
 
                 if (in_array($event['status'], [Payment::STATUS_FAILED, Payment::STATUS_EXPIRED], true)) {
                     if ($lockedPayment->status === Payment::STATUS_PAID) {
-                        $this->markReconciliation($lockedPayment, $lockedBooking, $lockedHold, $lockedEvent, 'A non-paid webhook conflicts with an already-paid payment.');
+                        $this->markEventProcessed($lockedEvent, 'Conflicting non-paid event arrived after a paid state; existing payment state was not downgraded.');
+
                         return PaymentWebhookEvent::STATUS_PROCESSED;
                     }
 
@@ -344,10 +345,16 @@ class PaymentWebhookProcessor
         PaymentWebhookEvent $event,
         string $reason,
     ): void {
-        $payment->update([
-            'status' => Payment::STATUS_RECONCILIATION_REQUIRED,
-            'qris_payload' => null,
-        ]);
+        $paymentStatusBefore = $payment->status;
+        $bookingStatusBefore = $booking->status;
+        $holdStatusBefore = $hold?->status;
+
+        if ($payment->status !== Payment::STATUS_PAID) {
+            $payment->update([
+                'status' => Payment::STATUS_RECONCILIATION_REQUIRED,
+                'qris_payload' => null,
+            ]);
+        }
         $booking->update(['status' => Booking::STATUS_RECONCILIATION_REQUIRED]);
 
         if ($hold && in_array($hold->status, [BookingHold::STATUS_ACTIVE, BookingHold::STATUS_EXPIRED, BookingHold::STATUS_RELEASED], true)) {
@@ -361,8 +368,8 @@ class PaymentWebhookProcessor
             'auditable_type' => Payment::class,
             'auditable_id' => $payment->getKey(),
             'reason' => $reason,
-            'before_state_json' => ['status' => $payment->getOriginal('status')],
-            'after_state_json' => ['status' => Payment::STATUS_RECONCILIATION_REQUIRED],
+            'before_state_json' => ['payment_status' => $paymentStatusBefore, 'booking_status' => $bookingStatusBefore, 'hold_status' => $holdStatusBefore],
+            'after_state_json' => ['payment_status' => $payment->status, 'booking_status' => Booking::STATUS_RECONCILIATION_REQUIRED, 'hold_status' => $hold?->status],
             'ip_hash' => null,
             'created_at' => now('UTC'),
         ]);
