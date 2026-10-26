@@ -593,7 +593,7 @@ new #[Title('Data venue')] class extends Component {
         abort_unless($venue !== null, 404);
         Gate::authorize('update', $venue);
 
-        $venueBlockService->delete($owner, $venue, $blockId);
+        $venueBlockService->delete($venue, $blockId);
 
         unset($this->currentVenue);
         session()->flash('status', 'Blokir jadwal berhasil dihapus.');
