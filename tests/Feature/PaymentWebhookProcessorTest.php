@@ -18,6 +18,7 @@ use App\Models\VenueAvailabilityRule;
 use App\Models\VenuePrice;
 use App\Services\Booking\BookingEngineService;
 use App\Services\Payments\PaymentWebhookProcessor;
+use App\Services\Payments\PaymentReconciliationService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -219,6 +220,40 @@ class PaymentWebhookProcessorTest extends TestCase
         $this->assertDatabaseHas('booking_holds', [
             'id' => $checkout['hold']->getKey(),
             'status' => BookingHold::STATUS_RELEASED,
+        ]);
+    }
+
+    public function test_expired_hold_is_marked_reconciling_before_gateway_status_is_checked(): void
+    {
+        [$customer, $venue, $acceptance] = $this->createCheckoutContext();
+        [$starts, $ends] = $this->futureRange();
+        $checkout = app(BookingEngineService::class)->createCheckout(
+            $customer,
+            $venue,
+            $starts->utc(),
+            $ends->utc(),
+            $acceptance->getKey(),
+            'webhook-expiry-reconcile-001',
+        );
+
+        $checkout['hold']->update(['expires_at' => now('UTC')->subMinute()]);
+
+        $result = app(PaymentReconciliationService::class)->reconcileExpiredHolds();
+
+        $this->assertSame(1, $result['scanned']);
+        $this->assertSame(0, $result['released']);
+        $this->assertSame(1, $result['reconciling']);
+        $this->assertDatabaseHas('booking_holds', [
+            'id' => $checkout['hold']->getKey(),
+            'status' => BookingHold::STATUS_RECONCILING,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $checkout['booking']->getKey(),
+            'status' => Booking::STATUS_RECONCILIATION_REQUIRED,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'id' => $checkout['payment']->getKey(),
+            'status' => Payment::STATUS_RECONCILIATION_REQUIRED,
         ]);
     }
 
