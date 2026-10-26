@@ -561,7 +561,8 @@ new #[Title('Data venue')] class extends Component {
 
     public function updatedPricingUnit(): void
     {
-        $this->resetValidation(['pricingUnit', 'priceRows']);
+        $this->resetValidation('pricingUnit');
+        $this->resetValidation('priceRows');
 
         if ($this->pricingUnit === '') {
             $this->priceRows = [];
