@@ -110,10 +110,19 @@ new #[Title('Promosi venue')] class extends Component {
         }
 
         $timezone = $this->currentBusiness->timezone ?: 'Asia/Jakarta';
-        $startsAtUtc = CarbonImmutable::parse($validated['startsAt'], $timezone)->utc();
-        $endsAtUtc = CarbonImmutable::parse($validated['endsAt'], $timezone)->utc();
+        $startsAtLocal = CarbonImmutable::parse($validated['startsAt'], $timezone);
+        $endsAtLocal = CarbonImmutable::parse($validated['endsAt'], $timezone);
 
-        $promotion = DB::transaction(function () use ($owner, $validated, $startsAtUtc, $endsAtUtc): VenuePromotion {
+        if (! $startsAtLocal->isFuture()) {
+            $this->addError('startsAt', 'Waktu mulai promosi harus berada di masa depan.');
+
+            return;
+        }
+
+        $startsAtUtc = $startsAtLocal->utc();
+        $endsAtUtc = $endsAtLocal->utc();
+
+        DB::transaction(function () use ($owner, $validated, $startsAtUtc, $endsAtUtc): VenuePromotion {
             $promotion = $this->currentVenue->promotions()->create([
                 'business_id' => null,
                 'code' => filled($validated['code']) ? strtoupper(trim($validated['code'])) : null,
@@ -170,7 +179,7 @@ new #[Title('Promosi venue')] class extends Component {
         abort_unless($owner && $owner->isOwner(), 403);
         Gate::authorize('update', $this->currentVenue);
 
-        DB::transaction(function () use ($owner, $promotionId): void {
+        $changed = DB::transaction(function () use ($owner, $promotionId): bool {
             $promotion = $this->currentVenue->promotions()->whereKey($promotionId)->lockForUpdate()->firstOrFail();
             abort_unless($promotion->funded_by === VenuePromotion::FUNDED_BY_OWNER, 403);
             abort_unless($promotion->status !== VenuePromotion::STATUS_SUSPENDED, 403);
@@ -184,13 +193,13 @@ new #[Title('Promosi venue')] class extends Component {
                 if ($promotion->ends_at->isPast()) {
                     $this->addError('promotionStatus', 'Promosi yang sudah berakhir tidak dapat diaktifkan kembali.');
 
-                    return;
+                    return false;
                 }
 
                 if ($promotion->max_quota !== null && $promotion->used_count >= $promotion->max_quota) {
                     $this->addError('promotionStatus', 'Kuota promosi sudah habis dan tidak dapat diaktifkan kembali.');
 
-                    return;
+                    return false;
                 }
             }
 
@@ -208,7 +217,13 @@ new #[Title('Promosi venue')] class extends Component {
                 'ip_hash' => hash('sha256', (string) request()->ip()),
                 'created_at' => now(),
             ]);
+
+            return true;
         });
+
+        if (! $changed) {
+            return;
+        }
 
         unset($this->currentVenue);
         session()->flash('status', 'Status promosi diperbarui.');
