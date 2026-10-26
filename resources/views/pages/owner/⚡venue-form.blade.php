@@ -1066,8 +1066,11 @@ new #[Title('Data venue')] class extends Component {
                     'published_at' => null,
                 ]);
             } else {
-                $venue->fill($attributes)->save();
-                $savedVenue = $venue;
+                $savedVenue = $business->venues()
+                    ->whereKey($venue->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $savedVenue->fill($attributes)->save();
             }
 
             $templateFieldIds = $template?->fields->modelKeys() ?? [];
