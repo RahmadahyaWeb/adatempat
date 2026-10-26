@@ -15,7 +15,7 @@ new class extends Component {
                 'code' => ['required', 'digits:6'],
             ],
             [
-                'code.required' => 'Masukkan kode authenticator.',
+                'code.required' => 'Masukkan kode dari aplikasi autentikasi.',
                 'code.digits' => 'Kode harus terdiri dari enam digit.',
             ],
         );
@@ -43,7 +43,7 @@ new class extends Component {
         RateLimiter::hit($key, 60);
 
         if (!$mfaService->verify($user->mfa_secret, $this->code)) {
-            $this->addError('code', 'Kode tidak valid atau sudah kedaluwarsa.');
+            $this->addError('code', 'Kode tidak valid atau sudah kedaluwarsa. Periksa kode terbaru dari aplikasi autentikasi.');
 
             return;
         }
