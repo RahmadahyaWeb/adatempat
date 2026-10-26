@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use App\Models\AuditLog;
 use App\Services\Finance\LedgerService;
+use App\Services\Finance\PayoutService;
 use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\Payment;
@@ -23,6 +24,7 @@ class PaymentWebhookProcessor
         private readonly AvailabilityService $availability,
         private readonly SubscriptionEligibilityService $subscriptions,
         private readonly LedgerService $ledger,
+        private readonly PayoutService $payouts,
     ) {
     }
 
@@ -253,6 +255,7 @@ class PaymentWebhookProcessor
                 ]);
                 $lockedHold->update(['status' => BookingHold::STATUS_CONVERTED]);
                 $this->postBookingLedger($lockedBooking, $lockedPayment, $fee);
+                $this->payouts->holdForConfirmedBooking($lockedBooking);
 
                 AuditLog::query()->create([
                     'actor_user_id' => null,

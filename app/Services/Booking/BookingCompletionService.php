@@ -113,7 +113,7 @@ class BookingCompletionService
             $locked->update([
                 'status' => Booking::STATUS_COMPLETED,
                 'completed_at' => $now,
-                'completion_window_ends_at' => $now,
+                'completion_window_ends_at' => CarbonImmutable::instance($locked->booking_end)->utc()->addHours(24),
             ]);
 
             $this->audit($customer, $locked, 'booking.completed_by_customer', $before, Booking::STATUS_COMPLETED, 'Pelanggan mengonfirmasi penyelesaian booking.');

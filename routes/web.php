@@ -97,6 +97,9 @@ Route::prefix('admin')
         Route::livewire('/mfa/challenge', 'pages::admin.mfa.challenge')
             ->name('mfa.challenge');
 
+        Route::livewire('/business-verifications', 'pages::admin.business-verifications')
+            ->name('business-verifications.index');
+
         Route::livewire('/business-revisions', 'pages::admin.business-revisions')
             ->name('business-revisions.index');
 
