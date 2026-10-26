@@ -55,6 +55,9 @@ new #[Title('Profil usaha')] class extends Component {
                         <span>{{ $business->address }}</span>
                     </p>
                 @endif
+                @if ($business->city || $business->province)
+                    <p class="mt-2 text-sm leading-6 text-white/70">{{ collect([$business->city, $business->province])->filter()->implode(', ') }}</p>
+                @endif
             </div>
         </div>
     </section>

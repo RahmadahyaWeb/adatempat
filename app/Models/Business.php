@@ -34,10 +34,18 @@ class Business extends Model
         'name',
         'slug',
         'address',
+        'city',
+        'province',
         'latitude',
         'longitude',
         'status',
         'published_at',
+        'rejection_reason',
+        'verification_submitted_at',
+        'verification_reviewed_at',
+        'verification_reviewed_by',
+        'verified_at',
+        'verified_by',
     ];
 
     protected function casts(): array
@@ -46,6 +54,9 @@ class Business extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'published_at' => 'datetime',
+            'verification_submitted_at' => 'datetime',
+            'verification_reviewed_at' => 'datetime',
+            'verified_at' => 'datetime',
         ];
     }
 
@@ -67,6 +78,16 @@ class Business extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(BusinessRevision::class);
+    }
+
+    public function verificationReviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verification_reviewed_by');
+    }
+
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     public function scopeActive(Builder $query): Builder
