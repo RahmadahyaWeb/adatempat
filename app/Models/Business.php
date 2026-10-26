@@ -64,6 +64,11 @@ class Business extends Model
         return $this->hasMany(Venue::class);
     }
 
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(BusinessRevision::class);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
