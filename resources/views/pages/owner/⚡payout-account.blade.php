@@ -5,6 +5,9 @@ use App\Models\PayoutAccount;
 use App\Models\Payout;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -18,6 +21,8 @@ new #[Title('Rekening payout')] class extends Component {
     public string $accountNumber = '';
 
     public string $accountHolderName = '';
+
+    public string $currentPassword = '';
 
     #[Computed]
     public function accounts()
@@ -58,6 +63,7 @@ new #[Title('Rekening payout')] class extends Component {
         $owner = $this->requireOwner();
 
         $data = $this->validate([
+            'currentPassword' => ['required', 'string', 'max:255'],
             'bankCode' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9_-]+$/'],
             'bankName' => ['required', 'string', 'max:100'],
             'accountNumber' => ['required', 'string', 'min:5', 'max:40', 'regex:/^[0-9]+$/'],
@@ -72,6 +78,24 @@ new #[Title('Rekening payout')] class extends Component {
             'accountNumber.regex' => 'Nomor rekening hanya boleh berisi angka.',
             'accountHolderName.required' => 'Nama pemilik rekening wajib diisi.',
         ]);
+
+        $stepUpKey = 'payout-account-step-up:' . $owner->getKey() . ':' . hash('sha256', (string) request()->ip());
+
+        if (RateLimiter::tooManyAttempts($stepUpKey, 5)) {
+            throw ValidationException::withMessages([
+                'currentPassword' => 'Terlalu banyak percobaan konfirmasi password. Coba lagi dalam ' . RateLimiter::availableIn($stepUpKey) . ' detik.',
+            ]);
+        }
+
+        RateLimiter::hit($stepUpKey, 60);
+
+        if (! Hash::check($data['currentPassword'], (string) $owner->password)) {
+            throw ValidationException::withMessages([
+                'currentPassword' => 'Password tidak sesuai; rekening tidak disimpan.',
+            ]);
+        }
+
+        RateLimiter::clear($stepUpKey);
 
         DB::transaction(function () use ($owner, $data): void {
             $account = PayoutAccount::query()->create([
@@ -106,7 +130,7 @@ new #[Title('Rekening payout')] class extends Component {
             ]);
         });
 
-        $this->reset(['bankCode', 'bankName', 'accountNumber', 'accountHolderName']);
+        $this->reset(['bankCode', 'bankName', 'accountNumber', 'accountHolderName', 'currentPassword']);
         unset($this->accounts);
         session()->flash('status', 'Rekening berhasil diajukan dan menunggu verifikasi Super Admin.');
     }
@@ -143,6 +167,11 @@ new #[Title('Rekening payout')] class extends Component {
                 <label class="ui-label" for="account-number">Nomor rekening</label>
                 <input id="account-number" type="password" inputmode="numeric" autocomplete="off" wire:model="accountNumber" class="ui-input w-full" maxlength="40" required>
                 @error('accountNumber') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="ui-label" for="current-password">Konfirmasi password saat ini</label>
+                <input id="current-password" type="password" autocomplete="current-password" wire:model="currentPassword" class="ui-input w-full" required>
+                @error('currentPassword') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="ui-label" for="account-holder">Nama pemilik rekening</label>
