@@ -37,7 +37,7 @@ class PayoutService
             ->limit(max(1, min($limit, 500)))
             ->pluck('id');
 
-        $result = ['created' => 0, 'eligible' => 0, 'held' => 0, 'skipped' => 0];
+        $result = ['created' => 0, 'eligible' => 0, 'held' => 0, 'cancelled' => 0, 'skipped' => 0];
 
         foreach ($bookingIds as $bookingId) {
             $initial = Booking::query()->with('venue')->find($bookingId);
@@ -122,7 +122,13 @@ class PayoutService
                 $result['skipped']++;
             } else {
                 $result['created']++;
-                $result[$outcome === Payout::STATUS_ELIGIBLE ? 'eligible' : 'held']++;
+                if ($outcome === Payout::STATUS_ELIGIBLE) {
+                    $result['eligible']++;
+                } elseif ($outcome === Payout::STATUS_CANCELLED) {
+                    $result['cancelled']++;
+                } else {
+                    $result['held']++;
+                }
             }
         }
 
@@ -162,7 +168,7 @@ class PayoutService
 
             $account = $locked->payoutAccount()->lockForUpdate()->first();
 
-            if (! $account || $account->verification_status !== PayoutAccount::STATUS_VERIFIED) {
+            if (! $account || $account->verification_status !== PayoutAccount::STATUS_VERIFIED || (int) $account->owner_id !== (int) $locked->owner_id) {
                 throw ValidationException::withMessages([
                     'payoutAccount' => 'Payout memerlukan rekening Owner yang sudah diverifikasi.',
                 ]);
@@ -243,6 +249,17 @@ class PayoutService
                 ->first();
 
             if (! $account) {
+                continue;
+            }
+
+            $booking = $payout->booking;
+            $expectedNet = max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted);
+
+            if (
+                ! $booking
+                || (int) $payout->net_amount !== $expectedNet
+                || Refund::query()->where('booking_id', $payout->booking_id)->where('status', '!=', Refund::STATUS_REJECTED)->exists()
+            ) {
                 continue;
             }
 
