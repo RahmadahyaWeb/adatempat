@@ -103,6 +103,9 @@ Route::prefix('admin')
         Route::livewire('/venue-templates', 'pages::admin.venue-templates')
             ->name('venue-templates.index');
 
+        Route::livewire('/payouts', 'pages::admin.payouts')
+            ->name('payouts.index');
+
         /*
          * Tambahkan rute dashboard dan fitur Super Admin
          * di dalam grup ini saat fitur tersebut dibuat.
@@ -163,6 +166,16 @@ Route::prefix('owner')
         'role:owner',
     ])
     ->group(function () {
+        Route::livewire('/mfa/setup', 'pages::owner.mfa.setup')
+            ->name('mfa.setup');
+
+        Route::livewire('/mfa/challenge', 'pages::owner.mfa.challenge')
+            ->name('mfa.challenge');
+
+        Route::livewire('/payout-accounts', 'pages::owner.payout-accounts')
+            ->middleware('owner.mfa')
+            ->name('payout-accounts.index');
+
         Route::livewire('/businesses', 'pages::owner.businesses')
             ->name('businesses.index');
 
