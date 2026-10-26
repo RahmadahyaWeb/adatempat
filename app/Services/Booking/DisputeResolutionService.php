@@ -12,13 +12,17 @@ use App\Models\Refund;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Payments\RefundService;
+use App\Services\Finance\LedgerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class DisputeResolutionService
 {
-    public function __construct(private readonly RefundService $refunds)
+    public function __construct(
+        private readonly RefundService $refunds,
+        private readonly LedgerService $ledger,
+    )
     {
     }
 
@@ -132,6 +136,51 @@ class DisputeResolutionService
             }
 
             $beforeDisputeStatus = $lockedDispute->status;
+            $ownerRemainingAfterRefund = max(0, $normalOwnerEntitlement - min($refundAmount, $normalOwnerEntitlement));
+            $allocationEntries = [];
+
+            if ($ownerRemainingAfterRefund > $payoutAmount) {
+                $unawardedOwnerBalance = $ownerRemainingAfterRefund - $payoutAmount;
+                $allocationEntries[] = [
+                    'account_code' => 'owner_payable',
+                    'entry_type' => 'debit',
+                    'amount' => $unawardedOwnerBalance,
+                    'reference_type' => 'dispute',
+                    'reference_id' => $lockedDispute->getKey(),
+                    'description' => 'Remove Owner payable not awarded by the final dispute resolution.',
+                ];
+                $allocationEntries[] = [
+                    'account_code' => 'escrow_liability',
+                    'entry_type' => 'credit',
+                    'amount' => $unawardedOwnerBalance,
+                    'reference_type' => 'dispute',
+                    'reference_id' => $lockedDispute->getKey(),
+                    'description' => 'Hold unallocated dispute residual pending a separately approved accounting disposition.',
+                ];
+            } elseif ($payoutAmount > $ownerRemainingAfterRefund) {
+                $platformFundedAward = $payoutAmount - $ownerRemainingAfterRefund;
+                $allocationEntries[] = [
+                    'account_code' => 'platform_subsidy_expense',
+                    'entry_type' => 'debit',
+                    'amount' => $platformFundedAward,
+                    'reference_type' => 'dispute',
+                    'reference_id' => $lockedDispute->getKey(),
+                    'description' => 'Platform funds the additional Owner award authorized by dispute resolution.',
+                ];
+                $allocationEntries[] = [
+                    'account_code' => 'owner_payable',
+                    'entry_type' => 'credit',
+                    'amount' => $platformFundedAward,
+                    'reference_type' => 'dispute',
+                    'reference_id' => $lockedDispute->getKey(),
+                    'description' => 'Recognize additional Owner payable awarded by Super Admin.',
+                ];
+            }
+
+            if ($allocationEntries !== []) {
+                $this->ledger->postBalancedGroup($allocationEntries);
+            }
+
             $account = PayoutAccount::query()
                 ->where('owner_id', $booking->business->owner_id)
                 ->where('verification_status', PayoutAccount::STATUS_VERIFIED)
