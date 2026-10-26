@@ -111,4 +111,9 @@ class Booking extends Model
     {
         return $this->hasMany(BookingHold::class);
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'payable_id')->where('payable_type', Payment::TYPE_BOOKING);
+    }
 }
