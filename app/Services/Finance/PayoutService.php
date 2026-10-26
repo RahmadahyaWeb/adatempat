@@ -232,41 +232,70 @@ class PayoutService
 
     private function promoteHeldPayouts(int $limit): void
     {
-        $payouts = Payout::query()
+        $payoutIds = Payout::query()
             ->where('status', Payout::STATUS_HELD)
             ->whereNotNull('eligible_at')
             ->where('eligible_at', '<=', now('UTC'))
             ->orderBy('eligible_at')
             ->limit($limit)
-            ->get();
+            ->pluck('id');
 
-        foreach ($payouts as $payout) {
-            $account = PayoutAccount::query()
-                ->where('owner_id', $payout->owner_id)
-                ->where('verification_status', PayoutAccount::STATUS_VERIFIED)
-                ->orderByDesc('verified_at')
-                ->orderByDesc('id')
-                ->first();
+        foreach ($payoutIds as $payoutId) {
+            $initial = Payout::query()->with('booking')->find($payoutId);
 
-            if (! $account) {
+            if (! $initial || ! $initial->booking) {
                 continue;
             }
 
-            $booking = $payout->booking;
-            $expectedNet = max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted);
+            DB::transaction(function () use ($initial): void {
+                Venue::query()->whereKey($initial->booking->venue_id)->lockForUpdate()->firstOrFail();
+                $payout = Payout::query()->whereKey($initial->getKey())->lockForUpdate()->firstOrFail();
+                $booking = Booking::query()->whereKey($payout->booking_id)->lockForUpdate()->firstOrFail();
 
-            if (
-                ! $booking
-                || (int) $payout->net_amount !== $expectedNet
-                || Refund::query()->where('booking_id', $payout->booking_id)->where('status', '!=', Refund::STATUS_REJECTED)->exists()
-            ) {
-                continue;
-            }
+                if (
+                    $payout->status !== Payout::STATUS_HELD
+                    || $booking->status !== Booking::STATUS_COMPLETED
+                    || $payout->eligible_at === null
+                    || $payout->eligible_at->isFuture()
+                    || (int) $payout->net_amount !== max(0, (int) $payout->gross_amount - (int) $payout->gateway_fee_deducted)
+                    || Refund::query()->where('booking_id', $booking->getKey())->where('status', '!=', Refund::STATUS_REJECTED)->exists()
+                ) {
+                    return;
+                }
 
-            $payout->update([
-                'payout_account_id' => $account->getKey(),
-                'status' => Payout::STATUS_ELIGIBLE,
-            ]);
+                $account = PayoutAccount::query()
+                    ->where('owner_id', $payout->owner_id)
+                    ->where('verification_status', PayoutAccount::STATUS_VERIFIED)
+                    ->orderByDesc('verified_at')
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $account) {
+                    return;
+                }
+
+                $payout->update([
+                    'payout_account_id' => $account->getKey(),
+                    'status' => Payout::STATUS_ELIGIBLE,
+                ]);
+
+                AuditLog::query()->create([
+                    'actor_user_id' => null,
+                    'actor_role' => 'system',
+                    'action' => 'payout.became_eligible',
+                    'auditable_type' => Payout::class,
+                    'auditable_id' => $payout->getKey(),
+                    'reason' => 'A verified payout account became available for an otherwise eligible payout.',
+                    'before_state_json' => ['status' => Payout::STATUS_HELD],
+                    'after_state_json' => [
+                        'status' => Payout::STATUS_ELIGIBLE,
+                        'payout_account_id' => $account->getKey(),
+                    ],
+                    'ip_hash' => null,
+                    'created_at' => now('UTC'),
+                ]);
+            }, attempts: 3);
         }
     }
 }
