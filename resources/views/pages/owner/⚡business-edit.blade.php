@@ -141,6 +141,8 @@ new #[Title('Profil usaha')] class extends Component {
 
             $beforeState = [
                 'status' => $lockedBusiness->status,
+                'slug' => $lockedBusiness->slug,
+                'rejection_reason' => $lockedBusiness->rejection_reason,
                 'name' => $lockedBusiness->name,
                 'address' => $lockedBusiness->address,
                 'city' => $lockedBusiness->city,
@@ -189,6 +191,7 @@ new #[Title('Profil usaha')] class extends Component {
                 'before_state_json' => $beforeState,
                 'after_state_json' => [
                     'status' => $lockedBusiness->status,
+                    'slug' => $lockedBusiness->slug,
                     'name' => $lockedBusiness->name,
                     'address' => $lockedBusiness->address,
                     'city' => $lockedBusiness->city,
@@ -515,7 +518,7 @@ new #[Title('Profil usaha')] class extends Component {
                     <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:flex-wrap sm:justify-end">
                         <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full sm:w-auto">Kembali</a>
                         <button type="submit" wire:loading.attr="disabled" class="btn btn-secondary w-full sm:w-auto">
-                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan draft' }}</span>
+                            <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE && $business->published_at !== null ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
                             <span wire:loading wire:target="save">Menyimpan...</span>
                         </button>
                         @if ($this->canSubmitVerification())
@@ -538,7 +541,7 @@ new #[Title('Profil usaha')] class extends Component {
                     <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Nama dan alamat di profil publik mengikuti identitas yang disetujui. Perubahan identitas berikutnya perlu ditinjau Super Admin sebelum tampil ke publik.</p>
                 @else
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Status usaha</p>
-                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Identitas usaha berstatus aktif</h2>
+                    <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Usaha terverifikasi · Belum tayang</h2>
                     <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Usaha telah terverifikasi, tetapi belum tampil ke publik karena persyaratan langganan belum dikelola oleh versi ini. Jangan membagikan profil sebagai tautan publik sebelum status publikasi aktif.</p>
                 @endif
 
