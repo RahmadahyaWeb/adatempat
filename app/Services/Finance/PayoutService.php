@@ -25,6 +25,77 @@ class PayoutService
      *
      * @return array{created:int,eligible:int,held:int,skipped:int}
      */
+    public function holdForConfirmedBooking(Booking $booking): Payout
+    {
+        $lockedBooking = Booking::query()->whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
+
+        if (! in_array($lockedBooking->status, [
+            Booking::STATUS_CONFIRMED,
+            Booking::STATUS_IN_PROGRESS,
+            Booking::STATUS_AWAITING_COMPLETION,
+            Booking::STATUS_COMPLETED,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'payout' => 'Payout hanya dapat disiapkan setelah booking terkonfirmasi.',
+            ]);
+        }
+
+        $existing = Payout::query()->where('booking_id', $lockedBooking->getKey())->lockForUpdate()->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $gross = max(0, (int) $lockedBooking->snapshot_base_amount - (int) $lockedBooking->snapshot_owner_discount_amount);
+        $fee = max(0, (int) $lockedBooking->snapshot_gateway_fee_amount);
+        $net = max(0, $gross - $fee);
+
+        if ($net !== (int) $lockedBooking->snapshot_net_owner_entitlement) {
+            throw ValidationException::withMessages([
+                'payout' => 'Snapshot hak bersih Owner tidak konsisten; payout ditahan untuk rekonsiliasi.',
+            ]);
+        }
+
+        $payout = Payout::query()->create([
+            'reference_code' => 'PAY-' . now('UTC')->format('Ymd') . '-' . Str::upper(Str::random(8)),
+            'owner_id' => $lockedBooking->business->owner_id,
+            'booking_id' => $lockedBooking->getKey(),
+            'payout_account_id' => null,
+            'gross_amount' => $gross,
+            'gateway_fee_deducted' => $fee,
+            'net_amount' => $net,
+            'status' => $net === 0 ? Payout::STATUS_CANCELLED : Payout::STATUS_HELD,
+            'transfer_reference' => null,
+            'processed_by' => null,
+            'eligible_at' => $lockedBooking->booking_end->copy()->utc()->addHours(24),
+            'paid_at' => null,
+        ]);
+
+        AuditLog::query()->create([
+            'actor_user_id' => null,
+            'actor_role' => 'system',
+            'action' => 'payout.held_created',
+            'auditable_type' => Payout::class,
+            'auditable_id' => $payout->getKey(),
+            'reason' => $net === 0
+                ? 'Booking entitlement is zero; no payout is due.'
+                : 'A held payout aggregate was created at booking confirmation and cannot be released before the 24-hour dispute window closes.',
+            'before_state_json' => null,
+            'after_state_json' => [
+                'status' => $payout->status,
+                'booking_id' => $lockedBooking->getKey(),
+                'gross_amount' => $gross,
+                'gateway_fee_deducted' => $fee,
+                'net_amount' => $net,
+                'eligible_at' => $payout->eligible_at?->toISOString(),
+            ],
+            'ip_hash' => null,
+            'created_at' => now('UTC'),
+        ]);
+
+        return $payout;
+    }
+
     public function prepareEligiblePayouts(int $limit = 100): array
     {
         $bookingIds = Booking::query()
