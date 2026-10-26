@@ -123,10 +123,9 @@ new #[Title('Profil usaha')] class extends Component {
                                     @endif
                                 </div>
                             @endif
-                            @php($openDays = $venue->availabilityRules->where('is_open', true)->sortBy('day_of_week')->values())
                             @if ($venue->availabilityRules->isNotEmpty())
                                 <div class="mt-3 rounded-lg border border-[var(--border)] p-3">
-                                    <h4 class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Jam operasional</h4>
+                                    <h4 class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Jam operasional · {{ $business->timezone ?: 'Asia/Jakarta' }}</h4>
                                     <div class="mt-2 space-y-1.5">
                                         @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
                                         @foreach ($venue->availabilityRules->sortBy('day_of_week') as $availabilityRule)
