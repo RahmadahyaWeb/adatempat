@@ -34,6 +34,7 @@ class Business extends Model
         'name',
         'slug',
         'address',
+        'timezone',
         'latitude',
         'longitude',
         'status',
