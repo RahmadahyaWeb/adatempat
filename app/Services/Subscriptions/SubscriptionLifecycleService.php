@@ -35,17 +35,21 @@ class SubscriptionLifecycleService
 
             $hasCurrentSubscription = Subscription::query()
                 ->where('owner_id', $lockedOwner->getKey())
-                ->whereIn('status', [
-                    Subscription::STATUS_PENDING_PAYMENT,
-                    Subscription::STATUS_TRIALING,
-                    Subscription::STATUS_ACTIVE,
-                    Subscription::STATUS_GRACE_PERIOD,
-                    Subscription::STATUS_PENDING_REVERIFICATION,
-                ])
                 ->where(function ($query): void {
-                    $query->whereNull('ends_at')
-                        ->orWhere('ends_at', '>', now('UTC'))
-                        ->orWhere('status', Subscription::STATUS_GRACE_PERIOD);
+                    $query->where(function ($active): void {
+                        $active->whereIn('status', [
+                            Subscription::STATUS_PENDING_PAYMENT,
+                            Subscription::STATUS_TRIALING,
+                            Subscription::STATUS_ACTIVE,
+                            Subscription::STATUS_PENDING_REVERIFICATION,
+                        ])->where(function ($period): void {
+                            $period->whereNull('ends_at')
+                                ->orWhere('ends_at', '>', now('UTC'));
+                        });
+                    })->orWhere(function ($grace): void {
+                        $grace->where('status', Subscription::STATUS_GRACE_PERIOD)
+                            ->where('grace_ends_at', '>=', now('UTC'));
+                    });
                 })
                 ->lockForUpdate()
                 ->exists();
