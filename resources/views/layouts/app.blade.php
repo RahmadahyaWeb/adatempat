@@ -74,7 +74,7 @@
                         [
                             'label' => 'Keuangan',
                             'items' => [
-                                ['label' => 'Langganan', 'placeholder' => 'Segera hadir'],
+                                ['label' => 'Langganan', 'href' => route('owner.subscription')],
                                 ['label' => 'Rekening payout', 'href' => route('owner.payout-account')],
                                 ['label' => 'Pendapatan', 'placeholder' => 'Segera hadir'],
                             ],
