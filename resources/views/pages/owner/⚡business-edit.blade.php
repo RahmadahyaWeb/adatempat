@@ -79,16 +79,16 @@ new #[Title('Profil usaha')] class extends Component {
 
     public function canEditIdentity(): bool
     {
-        return in_array(
-            $this->currentBusiness->status,
-            [Business::STATUS_DRAFT, Business::STATUS_REJECTED],
-            true,
-        );
+        $business = $this->currentBusiness;
+
+        return in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true)
+            || ($business->status === Business::STATUS_ACTIVE && $business->published_at === null);
     }
 
     public function canSubmitRevision(): bool
     {
         return $this->currentBusiness->status === Business::STATUS_ACTIVE
+            && $this->currentBusiness->published_at !== null
             && $this->pendingRevision === null;
     }
 
@@ -262,7 +262,7 @@ new #[Title('Profil usaha')] class extends Component {
         $businessLatitude = trim((string) ($validated['latitude'] ?? '')) !== '' ? (float) $validated['latitude'] : null;
         $businessLongitude = trim((string) ($validated['longitude'] ?? '')) !== '' ? (float) $validated['longitude'] : null;
 
-        if ($business->status === Business::STATUS_ACTIVE) {
+        if ($business->status === Business::STATUS_ACTIVE && $business->published_at !== null) {
             $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress, $businessCity, $businessProvince, $businessLatitude, $businessLongitude): ?BusinessRevision {
                 $lockedBusiness = $owner->businesses()
                     ->whereKey($business->getKey())
