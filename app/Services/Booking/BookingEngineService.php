@@ -10,6 +10,7 @@ use App\Models\TermsAcceptance;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePromotion;
+use App\Services\Payments\PaymentService;
 use App\Services\Subscriptions\SubscriptionEligibilityService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -23,12 +24,12 @@ class BookingEngineService
         private readonly AvailabilityService $availability,
         private readonly PricingAndPromoService $pricing,
         private readonly SubscriptionEligibilityService $subscriptions,
+        private readonly PaymentService $payments,
     ) {
     }
 
     /**
-     * Creates a local checkout intent. Paid checkout returns a pending payment without QRIS
-     * until a PaymentGatewayContract is connected in the next implementation step.
+     * Creates the local checkout transaction first, then initializes the gateway charge after commit.
      *
      * @param array<int, int|string> $sessionPriceIds
      * @return array{booking:Booking, hold:BookingHold, payment:?Payment, quote:array, idempotent_replay:bool}
@@ -71,7 +72,7 @@ class BookingEngineService
         }
 
         try {
-            return DB::transaction(function () use (
+            $result = DB::transaction(function () use (
                 $customer,
                 $venue,
                 $startsAtUtc,
@@ -226,6 +227,14 @@ class BookingEngineService
 
             throw $exception;
         }
+
+        if (! $result['idempotent_replay'] && $result['payment'] instanceof Payment) {
+            $result['payment'] = $this->payments->initializeBookingPayment($result['payment']);
+            $result['booking']->refresh();
+            $result['hold']->refresh();
+        }
+
+        return $result;
     }
 
     private function replayOrReject(

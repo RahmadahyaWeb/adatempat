@@ -2,6 +2,10 @@
 
 return [
 
+    'payment_gateway' => [
+        'driver' => env('PAYMENT_GATEWAY_DRIVER', 'mock'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
