@@ -6,6 +6,7 @@ use App\Models\Venue;
 use App\Models\VenueTemplate;
 use App\Models\TemplateField;
 use App\Models\OwnerCustomField;
+use App\Models\OwnerCustomField;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -33,6 +34,10 @@ new #[Title('Data venue')] class extends Component {
     public array $facilities = [];
 
     public array $templateValues = [];
+
+    public array $customFields = [];
+
+    public array $customFieldValues = [];
 
     public array $ownerCustomFields = [];
 
@@ -82,6 +87,7 @@ new #[Title('Data venue')] class extends Component {
             $this->resetTemplateValuesForSelectedTemplate();
             $this->loadTemplateValuesFromVenue($record);
             $this->loadCustomFieldsFromVenue($record);
+            $this->loadCustomFieldsFromVenue($record);
         }
     }
 
@@ -103,7 +109,7 @@ new #[Title('Data venue')] class extends Component {
 
         return $this->currentBusiness
             ->venues()
-            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField'])
+            ->with(['category', 'venueTemplate.fields', 'fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
             ->where('public_id', $this->venuePublicId)
             ->firstOrFail();
     }
@@ -314,6 +320,68 @@ new #[Title('Data venue')] class extends Component {
         };
     }
 
+    private function loadCustomFieldsFromVenue(Venue $venue): void
+    {
+        $this->customFields = [];
+        $this->customFieldValues = [];
+
+        foreach ($venue->ownerCustomFields as $field) {
+            $this->customFields[] = [
+                'id' => $field->getKey(),
+                'field_key' => $field->field_key,
+                'label' => $field->label,
+                'input_type' => $field->input_type,
+                'options_text' => implode("\n", $field->options_json ?? []),
+                'sort_order' => $field->sort_order,
+            ];
+
+            $value = $venue->fieldValues->first(
+                fn ($fieldValue) => (int) $fieldValue->owner_custom_field_id === (int) $field->getKey(),
+            );
+
+            $this->customFieldValues[] = match ($field->input_type) {
+                OwnerCustomField::TYPE_BOOLEAN => (bool) ($value?->value_boolean ?? false),
+                OwnerCustomField::TYPE_NUMBER => $value?->value_number !== null ? (string) $value->value_number : '',
+                default => (string) ($value?->value_text ?? ''),
+            };
+        }
+    }
+
+    public function addCustomField(): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if (count($this->customFields) >= 30) {
+            $this->addError('customFields', 'Maksimal 30 custom field untuk satu venue.');
+
+            return;
+        }
+
+        $this->customFields[] = [
+            'id' => null,
+            'field_key' => '',
+            'label' => '',
+            'input_type' => OwnerCustomField::TYPE_TEXT,
+            'options_text' => '',
+            'sort_order' => (count($this->customFields) + 1) * 10,
+        ];
+        $this->customFieldValues[] = '';
+    }
+
+    public function removeCustomField(int $index): void
+    {
+        abort_unless(auth()->user()?->isOwner(), 403);
+
+        if (! array_key_exists($index, $this->customFields)) {
+            return;
+        }
+
+        unset($this->customFields[$index], $this->customFieldValues[$index]);
+        $this->customFields = array_values($this->customFields);
+        $this->customFieldValues = array_values($this->customFieldValues);
+        $this->resetValidation();
+    }
+
     public function availableFacilities(): array
     {
         return [
@@ -340,7 +408,7 @@ new #[Title('Data venue')] class extends Component {
         $venue = $this->venuePublicId === null
             ? null
             : $business->venues()
-                ->with(['fieldValues.templateField'])
+                ->with(['fieldValues.templateField', 'fieldValues.ownerCustomField', 'ownerCustomFields'])
                 ->where('public_id', $this->venuePublicId)
                 ->firstOrFail();
 
