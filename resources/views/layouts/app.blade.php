@@ -107,7 +107,7 @@
     </a>
 
     <header class="site-header">
-        <div class="site-container flex min-h-[4.25rem] items-center justify-between gap-3 sm:min-h-[4.75rem]">
+        <div class="site-container flex min-h-[4.25rem] items-center justify-start gap-3 sm:min-h-[4.75rem]">
             <a href="{{ route('home') }}" class="brand-wordmark shrink-0 rounded-lg py-2" aria-label="Adatempat — Beranda">
                 <span class="brand-symbol" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
@@ -118,13 +118,13 @@
             </a>
 
             @if ($compactHeader)
-                <a href="{{ route('home') }}" class="btn btn-secondary min-h-10 px-3 py-2 sm:px-4">
+                <a href="{{ route('home') }}" class="btn btn-secondary ml-auto min-h-10 px-3 py-2 sm:px-4">
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
                     <span class="hidden sm:inline">Kembali ke beranda</span>
                     <span class="sm:hidden">Beranda</span>
                 </a>
             @else
-                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-1 xl:flex">
+                <nav aria-label="Navigasi utama" class="hidden min-w-0 items-center gap-1 xl:ml-6 xl:mr-auto xl:flex">
                     @foreach ($primaryNavigationItems as $item)
                         <a href="{{ $item['href'] }}" class="site-nav-link whitespace-nowrap">{{ $item['label'] }}</a>
                     @endforeach
@@ -172,7 +172,7 @@
                     @endauth
                 </div>
 
-                <details class="mobile-menu xl:hidden">
+                <details class="mobile-menu ml-auto xl:hidden">
                     <summary aria-label="Buka menu navigasi">
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                     </summary>
