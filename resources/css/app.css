@@ -733,3 +733,165 @@
     .site-header .site-container { gap: 1.25rem; }
 }
 
+
+
+/*
+|--------------------------------------------------------------------------
+| UI-04 — Search / Discovery
+|--------------------------------------------------------------------------
+| Keep the approved homepage visual language while making discovery denser,
+| clearer and easier to operate on mobile and desktop.
+*/
+@layer components {
+    .discovery-filters {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+    }
+
+    .discovery-filters > summary {
+        display: flex;
+        min-height: 3.25rem;
+        cursor: pointer;
+        list-style: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 1rem;
+        color: var(--ink);
+        font-size: 0.875rem;
+        font-weight: 800;
+    }
+
+    .discovery-filters > summary::-webkit-details-marker { display: none; }
+
+    .discovery-filters > summary strong {
+        display: inline-flex;
+        min-width: 1.35rem;
+        min-height: 1.35rem;
+        align-items: center;
+        justify-content: center;
+        margin-left: 0.4rem;
+        border-radius: 999px;
+        background: var(--brand-forest);
+        color: white;
+        font-size: 0.68rem;
+    }
+
+    .discovery-filter-summary-hint {
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .discovery-filter-body {
+        border-top: 1px solid var(--border);
+        padding: 1rem;
+    }
+
+    .discovery-filter-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .discovery-facilities {
+        margin-top: 1.25rem;
+    }
+
+    .discovery-facilities legend {
+        color: var(--ink);
+        font-size: 0.8125rem;
+        font-weight: 700;
+    }
+
+    .discovery-facility-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 0.65rem;
+    }
+
+    .discovery-facility-options label {
+        display: inline-flex;
+        min-height: 2.5rem;
+        cursor: pointer;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 0.7rem;
+        background: var(--canvas);
+        padding: 0.55rem 0.75rem;
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .discovery-facility-options label:has(input:checked) {
+        border-color: var(--brand-forest);
+        background: var(--surface-lime);
+        color: var(--brand-forest-deep);
+    }
+
+    .discovery-facility-options input {
+        width: 1rem;
+        height: 1rem;
+        accent-color: var(--brand-forest);
+    }
+
+    .discovery-filter-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        margin-top: 1.25rem;
+    }
+
+    .discovery-results-status {
+        display: none;
+        align-items: center;
+        gap: 0.65rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 650;
+    }
+
+    .discovery-loading-dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--brand-forest);
+        animation: discovery-pulse 900ms ease-in-out infinite alternate;
+    }
+}
+
+@keyframes discovery-pulse {
+    from { opacity: 0.35; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@media (min-width: 640px) {
+    @layer components {
+        .discovery-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .discovery-filter-actions {
+            flex-direction: row;
+            justify-content: flex-end;
+        }
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .discovery-filter-body { padding: 1.25rem; }
+
+        .discovery-filter-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .discovery-loading-dot { animation: none; }
+}
