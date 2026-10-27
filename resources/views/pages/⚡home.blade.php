@@ -2,6 +2,8 @@
 
 use App\Models\Category;
 use App\Models\Venue;
+use App\Services\Booking\AvailabilityService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
@@ -14,9 +16,38 @@ new class extends Component {
 
     public string $category = '';
 
+    public string $minPrice = '';
+
+    public string $maxPrice = '';
+
+    public string $minCapacity = '';
+
+    public array $selectedFacilities = [];
+
+    public string $availabilityDate = '';
+
+    public string $startTime = '';
+
+    public string $endTime = '';
+
+    public string $sort = 'newest';
+
     public bool $hasSearched = false;
 
     public array $popularSearches = ['Pernikahan', 'Meeting', 'Ulang tahun', 'Outdoor'];
+
+    public function availableFacilities(): array
+    {
+        return [
+            'Wi-Fi',
+            'AC',
+            'Parkir',
+            'Toilet',
+            'Mushola',
+            'Akses kursi roda',
+            'Ruang ganti',
+        ];
+    }
 
     #[Computed]
     public function categories(): Collection
@@ -33,10 +64,19 @@ new class extends Component {
         $keyword = trim($this->keyword);
         $location = trim($this->location);
         $category = $this->category;
+        $minPrice = ctype_digit($this->minPrice) ? (int) $this->minPrice : null;
+        $maxPrice = ctype_digit($this->maxPrice) ? (int) $this->maxPrice : null;
+        $minCapacity = ctype_digit($this->minCapacity) ? (int) $this->minCapacity : null;
 
-        return Venue::query()
+        $venues = Venue::query()
             ->published()
-            ->with(['business', 'category', 'media', 'prices'])
+            ->with([
+                'business',
+                'category',
+                'media',
+                'prices',
+                'availabilityRules',
+            ])
             ->when($keyword !== '', function (Builder $query) use ($keyword): void {
                 $query->where(function (Builder $searchQuery) use ($keyword): void {
                     $searchQuery
@@ -64,16 +104,182 @@ new class extends Component {
                         ->where('categories.status', Category::STATUS_ACTIVE);
                 });
             })
+            ->when($minCapacity !== null, fn (Builder $query) => $query->where('venues.capacity_persons', '>=', $minCapacity))
+            ->when($minPrice !== null || $maxPrice !== null, function (Builder $query) use ($minPrice, $maxPrice): void {
+                $query->whereHas('prices', function (Builder $priceQuery) use ($minPrice, $maxPrice): void {
+                    $priceQuery->where('is_active', true)
+                        ->when($minPrice !== null, fn (Builder $q) => $q->where('price_amount', '>=', $minPrice))
+                        ->when($maxPrice !== null, fn (Builder $q) => $q->where('price_amount', '<=', $maxPrice));
+                });
+            });
+
+        foreach ($this->selectedFacilities as $facility) {
+            if (in_array($facility, $this->availableFacilities(), true)) {
+                $venues->whereJsonContains('venues.facilities_json', $facility);
+            }
+        }
+
+        $items = $venues
             ->orderByDesc('venues.published_at')
             ->orderByDesc('venues.id')
-            ->limit(6)
+            ->limit(60)
             ->get();
+
+        if ($this->hasCompleteAvailabilityFilter()) {
+            $availability = app(AvailabilityService::class);
+
+            $items = $items->filter(function (Venue $venue) use ($availability): bool {
+                $timezone = $venue->business?->timezone ?: 'Asia/Jakarta';
+
+                try {
+                    $startsAtUtc = CarbonImmutable::parse(
+                        $this->availabilityDate . ' ' . $this->startTime,
+                        $timezone,
+                    )->utc();
+
+                    $endsAtUtc = CarbonImmutable::parse(
+                        $this->availabilityDate . ' ' . $this->endTime,
+                        $timezone,
+                    )->utc();
+                } catch (\Throwable) {
+                    return false;
+                }
+
+                return $availability->isAvailable($venue, $startsAtUtc, $endsAtUtc);
+            })->values();
+        }
+
+        $items = match ($this->sort) {
+            'price_low' => $items->sortBy(fn (Venue $venue) => $this->displayPriceFor($venue) ?? PHP_INT_MAX)->values(),
+            'price_high' => $items->sortByDesc(fn (Venue $venue) => $this->displayPriceFor($venue) ?? -1)->values(),
+            'capacity_high' => $items->sortByDesc(fn (Venue $venue) => (int) ($venue->capacity_persons ?? 0))->values(),
+            default => $items,
+        };
+
+        return $items->take(18)->values();
     }
+
+    private function displayPriceFor(Venue $venue): ?int
+    {
+        $amounts = $venue->prices
+            ->where('is_active', true)
+            ->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])
+            ->filter(fn ($amount) => $amount !== null)
+            ->map(fn ($amount) => (int) $amount);
+
+        return $amounts->isEmpty() ? null : $amounts->min();
+    }
+
+    private function hasCompleteAvailabilityFilter(): bool
+    {
+        return $this->availabilityDate !== ''
+            && $this->startTime !== ''
+            && $this->endTime !== '';
+    }
+
+    private function validateDiscoveryFilters(): bool
+    {
+        $this->resetValidation();
+
+        if ($this->minPrice !== '' && (! ctype_digit($this->minPrice) || (int) $this->minPrice < 0)) {
+            $this->addError('minPrice', 'Harga minimum harus berupa angka yang valid.');
+        }
+
+        if ($this->maxPrice !== '' && (! ctype_digit($this->maxPrice) || (int) $this->maxPrice < 0)) {
+            $this->addError('maxPrice', 'Harga maksimum harus berupa angka yang valid.');
+        }
+
+        if (
+            ctype_digit($this->minPrice)
+            && ctype_digit($this->maxPrice)
+            && (int) $this->minPrice > (int) $this->maxPrice
+        ) {
+            $this->addError('maxPrice', 'Harga maksimum harus lebih besar atau sama dengan harga minimum.');
+        }
+
+        if ($this->minCapacity !== '' && (! ctype_digit($this->minCapacity) || (int) $this->minCapacity < 1)) {
+            $this->addError('minCapacity', 'Kapasitas minimum harus minimal 1 orang.');
+        }
+
+        if (! in_array($this->sort, ['newest', 'price_low', 'price_high', 'capacity_high'], true)) {
+            $this->addError('sort', 'Urutan hasil tidak valid.');
+        }
+
+        $timeParts = [
+            $this->availabilityDate !== '',
+            $this->startTime !== '',
+            $this->endTime !== '',
+        ];
+
+        if (in_array(true, $timeParts, true) && in_array(false, $timeParts, true)) {
+            $this->addError('availabilityDate', 'Tanggal, jam mulai, dan jam selesai harus diisi bersama.');
+        }
+
+        if ($this->hasCompleteAvailabilityFilter()) {
+            try {
+                $date = CarbonImmutable::createFromFormat('Y-m-d', $this->availabilityDate, 'Asia/Jakarta');
+            } catch (\Throwable) {
+                $date = null;
+            }
+
+            if ($date === null || $date->format('Y-m-d') !== $this->availabilityDate) {
+                $this->addError('availabilityDate', 'Tanggal pencarian tidak valid.');
+            } elseif ($date->startOfDay()->lessThan(CarbonImmutable::now('Asia/Jakarta')->startOfDay())) {
+                $this->addError('availabilityDate', 'Tanggal pencarian tidak boleh di masa lalu.');
+            }
+
+            if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $this->startTime)) {
+                $this->addError('startTime', 'Jam mulai tidak valid.');
+            }
+
+            if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $this->endTime)) {
+                $this->addError('endTime', 'Jam selesai tidak valid.');
+            }
+
+            if (
+                preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $this->startTime)
+                && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $this->endTime)
+                && $this->endTime <= $this->startTime
+            ) {
+                $this->addError('endTime', 'Jam selesai harus lebih akhir daripada jam mulai.');
+            }
+        }
+
+        foreach ($this->selectedFacilities as $facility) {
+            if (! in_array($facility, $this->availableFacilities(), true)) {
+                $this->addError('selectedFacilities', 'Fasilitas yang dipilih tidak valid.');
+                break;
+            }
+        }
+
+        return $this->getErrorBag()->isEmpty();
+    }
+
 
     public function search(): void
     {
+        if (! $this->validateDiscoveryFilters()) {
+            return;
+        }
+
         $this->hasSearched = true;
+        unset($this->venues);
         $this->scrollToResults();
+    }
+
+    public function applyDiscoveryFilters(): void
+    {
+        $this->search();
+    }
+
+    public function updatedSort(): void
+    {
+        if (! in_array($this->sort, ['newest', 'price_low', 'price_high', 'capacity_high'], true)) {
+            $this->sort = 'newest';
+        }
+
+        $this->hasSearched = true;
+        unset($this->venues);
     }
 
 
@@ -105,6 +311,7 @@ new class extends Component {
 
         $this->category = $this->category === $slug ? '' : $slug;
         $this->hasSearched = true;
+        unset($this->venues);
         $this->scrollToResults();
     }
 
@@ -116,13 +323,30 @@ new class extends Component {
 
         $this->keyword = $search;
         $this->hasSearched = true;
+        unset($this->venues);
         $this->scrollToResults();
     }
 
     public function resetSearch(): void
     {
-        $this->reset(['keyword', 'location', 'category']);
+        $this->reset([
+            'keyword',
+            'location',
+            'category',
+            'minPrice',
+            'maxPrice',
+            'minCapacity',
+            'selectedFacilities',
+            'availabilityDate',
+            'startTime',
+            'endTime',
+            'sort',
+        ]);
+
+        $this->sort = 'newest';
         $this->hasSearched = false;
+        $this->resetValidation();
+        unset($this->venues);
     }
 };
 ?>
