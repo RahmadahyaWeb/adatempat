@@ -80,7 +80,7 @@ new #[Title('Profil usaha')] class extends Component {
         @else
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($business->venues as $venue)
-                    <article wire:key="public-venue-{{ $venue->id }}" class="min-w-0 overflow-hidden rounded-2xl bg-white">
+                    <article class="min-w-0 overflow-hidden rounded-2xl bg-white">
                         @php
                             $coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first();
                         @endphp
