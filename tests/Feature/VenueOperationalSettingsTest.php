@@ -60,8 +60,8 @@ class VenueOperationalSettingsTest extends TestCase
             'venue_id' => $venue->getKey(),
             'day_of_week' => 1,
             'is_open' => 1,
-            'open_time' => '22:00:00',
-            'close_time' => '02:00:00',
+            'open_time' => '22:00',
+            'close_time' => '02:00',
             'buffer_minutes' => 30,
         ]);
 
@@ -179,6 +179,7 @@ class VenueOperationalSettingsTest extends TestCase
     {
         $owner = $this->createOwner();
         [$business, $venue] = $this->createVenue($owner, Business::STATUS_ACTIVE, Venue::STATUS_PUBLISHED);
+        $this->createEligibleSubscription($owner);
 
         $venue->prices()->create([
             'pricing_unit' => VenuePrice::UNIT_HOURLY,
