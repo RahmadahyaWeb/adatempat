@@ -208,7 +208,8 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'status' => Business::STATUS_ACTIVE,
             'published_at' => now(),
             'timezone' => 'Asia/Makassar',
-        ])->save();
+        ])->save()
+        $this->createEligibleSubscription($owner);;
         $category = Category::query()->where('slug', 'acara')->firstOrFail();
         $venue = $business->venues()->create([
             'category_id' => $category->getKey(),
