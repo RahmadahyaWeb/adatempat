@@ -41,6 +41,9 @@ jobs:
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
+          SUPER_ADMIN_NAME: QA Super Admin
+          SUPER_ADMIN_EMAIL: qa-super-admin@adatempat.test
+          SUPER_ADMIN_PASSWORD: AdatempatQa123!
         run: php artisan migrate:fresh --seed --force
 
       - name: Run PHPUnit
