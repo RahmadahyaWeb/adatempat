@@ -330,8 +330,12 @@ new #[Title('Data venue')] class extends Component {
         $this->resetValidation();
     }
 
-    public function updatedCustomFields(mixed $value, string $key): void
+    public function updatedCustomFields(mixed $value, ?string $key = null): void
     {
+        if ($key === null || $key === '') {
+            return;
+        }
+
         [$index, $property] = array_pad(explode('.', $key, 2), 2, null);
 
         if ($property !== 'input_type' || ! ctype_digit((string) $index) || ! isset($this->customFields[(int) $index])) {
