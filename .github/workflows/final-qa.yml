@@ -46,6 +46,21 @@ jobs:
           SUPER_ADMIN_PASSWORD: AdatempatQa123!
         run: php artisan migrate:fresh --seed --force
 
+      - name: Compile and lint Blade views
+        run: |
+          php artisan view:clear
+          php artisan view:cache
+          failed=0
+          for file in storage/framework/views/*.php; do
+            if ! php -l "$file" > /tmp/blade-lint.log 2>&1; then
+              cat /tmp/blade-lint.log
+              echo "---- $file ----"
+              nl -ba "$file"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
       - name: Run PHPUnit
         run: composer test
 
