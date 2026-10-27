@@ -35,10 +35,18 @@ class Business extends Model
         'name',
         'slug',
         'address',
+        'city',
+        'province',
         'timezone',
         'latitude',
         'longitude',
         'status',
+        'rejection_reason',
+        'verification_submitted_at',
+        'verification_reviewed_at',
+        'verification_reviewed_by',
+        'verified_at',
+        'verified_by',
         'published_at',
     ];
 
@@ -47,6 +55,9 @@ class Business extends Model
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'verification_submitted_at' => 'datetime',
+            'verification_reviewed_at' => 'datetime',
+            'verified_at' => 'datetime',
             'published_at' => 'datetime',
         ];
     }
