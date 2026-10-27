@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Auth\Events\Verified;
