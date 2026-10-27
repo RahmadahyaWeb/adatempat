@@ -81,7 +81,9 @@ new #[Title('Profil usaha')] class extends Component {
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($business->venues as $venue)
                     <article wire:key="public-venue-{{ $venue->id }}" class="min-w-0 overflow-hidden rounded-2xl bg-white">
-                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
+                        @php
+                            $coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first();
+                        @endphp
                         @if ($coverMedia)
                             <div class="aspect-[4/3] overflow-hidden bg-[var(--surface-soft)]">
                                 <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
@@ -97,7 +99,9 @@ new #[Title('Profil usaha')] class extends Component {
                         <div class="p-4 sm:p-5">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
                             <h3 class="mt-3 break-words text-lg font-extrabold leading-tight tracking-[-0.04em]">{{ $venue->name }}</h3>
-                            @php($activePrices = $venue->prices->where('is_active', true)->values())
+                            @php
+                                $activePrices = $venue->prices->where('is_active', true)->values();
+                            @endphp
                             @if ($activePrices->isNotEmpty())
                                 <div class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3">
                                     @if ($activePrices->first()->pricing_unit === 'session')
@@ -127,7 +131,9 @@ new #[Title('Profil usaha')] class extends Component {
                                 <div class="mt-3 rounded-lg border border-[var(--border)] p-3">
                                     <h4 class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Jam operasional · {{ $business->timezone ?: 'Asia/Jakarta' }}</h4>
                                     <div class="mt-2 space-y-1.5">
-                                        @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
+                                        @php
+                                            $dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'];
+                                        @endphp
                                         @foreach ($venue->availabilityRules->sortBy('day_of_week') as $availabilityRule)
                                             <div class="flex items-start justify-between gap-3 text-xs">
                                                 <span class="font-semibold text-[var(--ink-soft)]">{{ $dayLabels[$availabilityRule->day_of_week] ?? 'Hari' }}</span>
