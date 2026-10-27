@@ -71,8 +71,8 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'venue_id' => $venue->getKey(),
             'day_of_week' => 1,
             'is_open' => 1,
-            'open_time' => '08:00:00',
-            'close_time' => '22:00:00',
+            'open_time' => '08:00',
+            'close_time' => '22:00',
             'buffer_minutes' => 30,
         ]);
         $this->assertSame(7, $venue->availabilityRules()->count());
@@ -208,8 +208,8 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'status' => Business::STATUS_ACTIVE,
             'published_at' => now(),
             'timezone' => 'Asia/Makassar',
-        ])->save()
-        $this->createEligibleSubscription($owner);;
+        ])->save();
+        $this->createEligibleSubscription($owner);
         $category = Category::query()->where('slug', 'acara')->firstOrFail();
         $venue = $business->venues()->create([
             'category_id' => $category->getKey(),
