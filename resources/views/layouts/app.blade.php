@@ -113,12 +113,7 @@
 
     <header class="site-header">
         <div class="site-container flex min-h-[4.25rem] items-center justify-start gap-3 sm:min-h-[4.75rem]">
-            <a href="{{ route('home') }}" class="brand-wordmark shrink-0 rounded-lg py-2" aria-label="Adatempat — Beranda">
-                <span class="brand-symbol" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
-                        <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
-                    </svg>
-                </span>
+            <a href="{{ route('home') }}" class="brand-wordmark shrink-0 py-2" aria-label="Adatempat — Beranda">
                 <span>adatempat</span>
             </a>
 
@@ -228,40 +223,24 @@
     </main>
 
     <footer class="site-footer">
-        <div class="site-container grid gap-6 py-7 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-8 sm:py-9">
-            <div>
-                <a href="{{ route('home') }}" class="brand-wordmark text-lg">
-                    <span class="brand-symbol !h-7 !w-7 !rounded-md" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/></svg>
-                    </span>
-                    <span>adatempat</span>
-                </a>
-                <p class="mt-3 max-w-md text-sm leading-6 text-[var(--muted)]">
-                    Temukan tempat yang tepat untuk kebutuhanmu. Bandingkan informasi yang tersedia sebelum memilih tempat yang sesuai.
-                </p>
+        <div class="site-container site-footer-inner">
+            <div class="site-footer-brand">
+                <a href="{{ route('home') }}" class="brand-wordmark" aria-label="Adatempat — Beranda">adatempat</a>
+                <p>Temukan, bandingkan, dan pesan tempat yang sesuai dengan rencanamu.</p>
             </div>
-            <nav aria-label="Navigasi footer" class="flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-[var(--ink-soft)]">
-                <a class="underline-offset-4 hover:underline" href="{{ route('home') }}#kategori">Kategori</a>
-                <a class="underline-offset-4 hover:underline" href="{{ route('home') }}#hasil">Jelajahi tempat</a>
-                @if ($currentUser)
-                    @if ($currentUser->isSuperAdmin())
-                        <a class="underline-offset-4 hover:underline" href="{{ route('business-verifications.index') }}">Verifikasi usaha</a>
-                        <a class="underline-offset-4 hover:underline" href="{{ route('business-revisions.index') }}">Peninjauan revisi</a>
-                        <a class="underline-offset-4 hover:underline" href="{{ route('venue-templates.index') }}">Template venue</a>
-                    @elseif ($currentUser->isOwner())
-                        @if ($currentUser->hasVerifiedEmail())
-                            <a class="underline-offset-4 hover:underline" href="{{ route('owner.businesses.index') }}">Kelola usaha</a>
-                        @else
-                            <a class="underline-offset-4 hover:underline" href="{{ route('verification.notice') }}">Verifikasi email</a>
-                        @endif
-                    @endif
-                @else
-                    <a class="underline-offset-4 hover:underline" href="{{ route('home') }}#untuk-pemilik">Untuk pemilik</a>
-                    <a class="underline-offset-4 hover:underline" href="{{ route('register') }}">Buat akun</a>
-                    <a class="underline-offset-4 hover:underline" href="{{ route('login') }}">Masuk</a>
+            <nav aria-label="Navigasi footer" class="site-footer-nav">
+                <a href="{{ route('home') }}#hasil">Jelajahi tempat</a>
+                <a href="{{ route('home') }}#kategori">Kategori</a>
+                @if (! $currentUser)
+                    <a href="{{ route('home') }}#untuk-pemilik">Untuk pemilik</a>
+                    <a href="{{ route('login') }}">Masuk</a>
+                @elseif ($currentUser->isOwner() && $currentUser->hasVerifiedEmail())
+                    <a href="{{ route('owner.businesses.index') }}">Kelola usaha</a>
+                @elseif ($currentUser->isSuperAdmin())
+                    <a href="{{ route('business-verifications.index') }}">Administrasi</a>
                 @endif
             </nav>
-            <p class="border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)] sm:col-span-2">© {{ date('Y') }} Adatempat. Semua hak dilindungi.</p>
+            <p class="site-footer-legal">© {{ date('Y') }} Adatempat. Semua hak dilindungi.</p>
         </div>
     </footer>
     @livewireScripts
