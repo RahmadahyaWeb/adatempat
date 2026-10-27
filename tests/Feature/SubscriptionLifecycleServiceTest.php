@@ -42,7 +42,7 @@ class SubscriptionLifecycleServiceTest extends TestCase
         $this->assertTrue($subscription->is_trial);
         $this->assertSame($owner->getKey(), $subscription->owner_id);
         $this->assertSame($plan->getKey(), $subscription->plan_id);
-        $this->assertTrue($subscription->starts_at->greaterThanOrEqualTo($before));
+        $this->assertGreaterThanOrEqual($before->startOfSecond()->timestamp, $subscription->starts_at->timestamp);
         $this->assertSame(
             $subscription->starts_at->copy()->addDays($plan->duration_days)->timestamp,
             $subscription->ends_at->timestamp,
