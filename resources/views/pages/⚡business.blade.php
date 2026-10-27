@@ -2,7 +2,7 @@
 
 use App\Models\Business;
 use App\Models\Venue;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -296,7 +296,7 @@ new #[Title('Profil usaha')] class extends Component {
                                     <div class="business-venue-details-grid">
                                         @if ($this->activePrices($venue)->isNotEmpty())
                                             <section>
-                                                <h4>Harga</h4>
+                                                <h4>{{ $this->activePrices($venue)->first()?->pricing_unit === 'session' ? 'Harga per sesi' : 'Harga dasar' }}</h4>
                                                 <div class="business-venue-detail-list">
                                                     @foreach ($this->activePrices($venue) as $price)
                                                         <div>
@@ -306,7 +306,12 @@ new #[Title('Profil usaha')] class extends Component {
                                                                     <small>{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }}</small>
                                                                 @endif
                                                             </span>
-                                                            <strong>Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}</strong>
+                                                            <strong>
+                                                                Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}@if ($price->pricing_unit !== 'session') / {{ $this->pricingUnitLabel($venue) }}@endif
+                                                                @if ($price->weekend_price_amount !== null)
+                                                                    <small>Akhir pekan Rp {{ number_format((int) $price->weekend_price_amount, 0, ',', '.') }}</small>
+                                                                @endif
+                                                            </strong>
                                                         </div>
                                                     @endforeach
                                                 </div>
@@ -315,7 +320,7 @@ new #[Title('Profil usaha')] class extends Component {
 
                                         @if ($venue->availabilityRules->isNotEmpty())
                                             <section>
-                                                <h4>Jam operasional</h4>
+                                                <h4>Jam operasional · {{ $business->timezone ?: 'Asia/Jakarta' }}</h4>
                                                 <div class="business-venue-detail-list">
                                                     @foreach ($venue->availabilityRules->sortBy('day_of_week') as $rule)
                                                         <div>
@@ -331,10 +336,16 @@ new #[Title('Profil usaha')] class extends Component {
                                             </section>
                                         @endif
 
-                                        @if ($templateValues->isNotEmpty() || $customValues->isNotEmpty())
+                                        @if ($venue->capacity_persons || $templateValues->isNotEmpty() || $customValues->isNotEmpty())
                                             <section>
                                                 <h4>Spesifikasi</h4>
                                                 <div class="business-venue-detail-list">
+                                                    @if ($venue->capacity_persons)
+                                                        <div>
+                                                            <span>Kapasitas</span>
+                                                            <strong>Kapasitas: {{ number_format((int) $venue->capacity_persons, 0, ',', '.') }} orang</strong>
+                                                        </div>
+                                                    @endif
                                                     @foreach ($templateValues->concat($customValues) as $item)
                                                         <div>
                                                             <span>{{ $item['label'] }}</span>
