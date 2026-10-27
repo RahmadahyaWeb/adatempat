@@ -40,7 +40,7 @@ class PublicBusinessPageTest extends TestCase
             ->assertSee('Usaha terverifikasi')
             ->assertSee('Venue Meeting Publik')
             ->assertSee('120 orang')
-            ->assertSee('3 fasilitas', false)
+            ->assertSee('Wi-Fi')
             ->assertSee('Rp 250.000')
             ->assertSee('Detail venue dan jam operasional');
     }
