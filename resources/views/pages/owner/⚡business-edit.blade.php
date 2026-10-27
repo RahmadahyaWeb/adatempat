@@ -413,7 +413,11 @@ new #[Title('Profil usaha')] class extends Component {
                 </div>
             @elseif ($business->status === 'rejected')
                 <div class="status-note mt-5">
-                    Profil dapat diperbaiki. Menyimpan perubahan tidak mengubah status penolakan atau otomatis mengajukan ulang verifikasi.
+                    <p class="font-bold">Usaha perlu diperbaiki</p>
+                    <p class="mt-2 text-sm leading-6">Profil dapat diperbaiki. Menyimpan perubahan tidak mengubah status penolakan atau otomatis mengajukan ulang verifikasi.</p>
+                    @if ($business->rejection_reason)
+                        <p class="mt-2 text-sm leading-6"><strong>Alasan penolakan:</strong> {{ $business->rejection_reason }}</p>
+                    @endif
                 </div>
             @endif
 
