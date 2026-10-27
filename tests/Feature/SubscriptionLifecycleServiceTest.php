@@ -133,12 +133,12 @@ class SubscriptionLifecycleServiceTest extends TestCase
     private function createPlan(): SubscriptionPlan
     {
         return SubscriptionPlan::query()->create([
-            'slug' => 'trial-plan-' . strtolower(bin2hex(random_bytes(4))),
-            'name' => 'Trial Plan',
-            'monthly_price' => 100000,
+            'slug' => 'starter',
+            'name' => 'Starter',
+            'monthly_price' => 200000,
             'duration_days' => 30,
-            'max_businesses' => 2,
-            'max_venues_per_business' => 5,
+            'max_businesses' => 1,
+            'max_venues_per_business' => 2,
             'has_combined_reporting' => false,
             'is_active' => true,
         ]);
