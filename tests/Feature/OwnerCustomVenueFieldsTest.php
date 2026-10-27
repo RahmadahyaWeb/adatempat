@@ -116,6 +116,7 @@ class OwnerCustomVenueFieldsTest extends TestCase
         $owner = $this->createOwner();
         $business = $this->createBusiness($owner, Business::STATUS_ACTIVE);
         $business->forceFill(['published_at' => now()])->save();
+        $this->createEligibleSubscription($owner);
         $category = Category::query()->where('slug', 'meeting')->firstOrFail();
 
         $venue = $business->venues()->create([
