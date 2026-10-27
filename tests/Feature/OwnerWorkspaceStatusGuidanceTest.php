@@ -67,7 +67,8 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
             ->assertDontSee('Tambah venue pertama');
 
         $component
-            ->call('clearFilters')
+            ->set('search', '')
+            ->set('statusFilter', 'all')
             ->assertSee('Ruang Meeting Uji')
             ->assertDontSee('Tidak ada venue yang cocok.');
     }
