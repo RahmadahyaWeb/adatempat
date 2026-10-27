@@ -32,17 +32,21 @@ class DisputeEvidenceService
         if (mb_strlen($message) < 20 || mb_strlen($message) > 5000) {
             throw ValidationException::withMessages(['message' => 'Tanggapan harus berisi 20 sampai 5.000 karakter.']);
         }
+
         return DB::transaction(function () use ($actor, $dispute, $message): DisputeMessage {
             $locked = Dispute::query()->with('booking.venue.business')->lockForUpdate()->findOrFail($dispute->getKey());
             $this->participant($actor, $locked);
             abort_unless(in_array($locked->status, Dispute::OPEN_STATUSES, true), 403);
+
             $entry = DisputeMessage::query()->create([
                 'dispute_id' => $locked->getKey(),
                 'sender_user_id' => $actor->getKey(),
                 'message' => $message,
                 'created_at' => now('UTC'),
             ]);
+
             $this->audit($actor, $locked, 'booking.dispute_message_added', ['message_id' => $entry->getKey()]);
+
             return $entry;
         }, 3);
     }
@@ -52,15 +56,27 @@ class DisputeEvidenceService
         $locked = Dispute::query()->with('booking.venue.business')->findOrFail($dispute->getKey());
         $this->participant($actor, $locked);
         abort_unless(in_array($locked->status, Dispute::OPEN_STATUSES, true), 403);
+
         $mime = (string) $file->getMimeType();
         $size = (int) $file->getSize();
-        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], true) || $size < 1 || $size > 10485760 || !$file->isValid()) {
-            throw ValidationException::withMessages(['evidenceFile' => 'File harus JPG, PNG, WEBP atau PDF, maksimal 10 MB.']);
+
+        if (
+            ! in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)
+            || $size < 1
+            || $size > 5 * 1024 * 1024
+            || ! $file->isValid()
+        ) {
+            throw ValidationException::withMessages([
+                'evidenceFile' => 'File harus berupa JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.',
+            ]);
         }
+
         $path = $file->store('disputes/' . $locked->getKey(), 'local');
-        if (!$path) {
+
+        if (! $path) {
             throw ValidationException::withMessages(['evidenceFile' => 'Penyimpanan bukti gagal.']);
         }
+
         try {
             $evidence = DisputeEvidence::query()->create([
                 'dispute_id' => $locked->getKey(),
@@ -72,10 +88,13 @@ class DisputeEvidenceService
                 'caption' => $caption !== null ? mb_substr(trim($caption), 0, 255) : null,
                 'created_at' => now('UTC'),
             ]);
+
             $this->audit($actor, $locked, 'booking.dispute_evidence_added', ['evidence_id' => $evidence->getKey()]);
+
             return $evidence;
         } catch (\Throwable $e) {
             Storage::disk('local')->delete($path);
+
             throw $e;
         }
     }
