@@ -73,7 +73,24 @@ new class extends Component {
     public function search(): void
     {
         $this->hasSearched = true;
+        $this->scrollToResults();
     }
+
+
+    private function scrollToResults(): void
+    {
+        $this->js(<<<'JS'
+            const target = document.getElementById('hasil');
+
+            if (target) {
+                target.scrollIntoView({
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                    block: 'start',
+                });
+            }
+        JS);
+    }
+
 
     public function chooseCategory(string $slug): void
     {
@@ -88,6 +105,7 @@ new class extends Component {
 
         $this->category = $this->category === $slug ? '' : $slug;
         $this->hasSearched = true;
+        $this->scrollToResults();
     }
 
     public function choosePopularSearch(string $search): void
@@ -98,6 +116,7 @@ new class extends Component {
 
         $this->keyword = $search;
         $this->hasSearched = true;
+        $this->scrollToResults();
     }
 
     public function resetSearch(): void
@@ -108,138 +127,215 @@ new class extends Component {
 };
 ?>
 
-<div class="home-page">
+
+<div>
     @php
         $categoryImages = [
-            'acara' => 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=86',
-            'meeting' => 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=86',
-            'foto' => 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=86',
-            'outdoor' => 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=86',
+            'acara' => 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=85',
+            'meeting' => 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85',
+            'foto' => 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85',
+            'outdoor' => 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=85',
         ];
-        $defaultCategoryImage = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=86';
+        $defaultCategoryImage = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=85';
         $isFiltered = $hasSearched || trim($keyword) !== '' || trim($location) !== '' || $category !== '';
+        $resultCount = $this->venues->count();
+        $selectedCategory = $category !== '' ? $this->categories->firstWhere('slug', $category) : null;
     @endphp
 
-    <section class="home-hero" aria-labelledby="hero-heading">
-        <div class="site-container home-hero-grid">
-            <div class="home-hero-copy">
-                <h1 id="hero-heading" class="home-hero-title">Temukan tempat yang pas untuk rencanamu.</h1>
-                <p class="home-hero-description">Bandingkan tempat, lokasi, dan harga untuk meeting, acara, produksi, atau kebutuhan lainnya dalam satu pencarian.</p>
+    <section aria-labelledby="hero-heading" class="hero-section">
+        <div class="site-container hero-grid">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="eyebrow-dot"></span> Adatempat / Jelajahi venue</p>
+                <h1 id="hero-heading" class="hero-title">
+                    Temukan tempat
+                    <span class="block"><span class="hero-title-accent">yang tepat.</span></span>
+                </h1>
+                <p class="hero-description">
+                    Cari venue untuk acara, pertemuan, produksi foto, atau kebutuhan lainnya. Mulai dari kategori dan lokasi, lalu jelajahi pilihan yang tersedia.
+                </p>
 
-                <form role="search" aria-label="Cari tempat" wire:submit="search" class="home-search">
-                    <div class="home-search-field">
-                        <label for="keyword">Mau mengadakan apa?</label>
-                        <input id="keyword" name="keyword" type="search" wire:model.live.debounce.400ms="keyword" placeholder="Meeting, pernikahan, studio foto..." autocomplete="off">
-                    </div>
-                    <div class="home-search-field">
-                        <label for="location">Lokasi</label>
-                        <input id="location" name="location" type="text" wire:model.live.debounce.400ms="location" placeholder="Kota atau daerah" autocomplete="address-level2">
-                    </div>
-                    <button type="submit" wire:loading.attr="disabled" class="home-search-action">
-                        <span wire:loading.remove wire:target="search">Cari tempat</span>
-                        <span wire:loading wire:target="search">Mencari...</span>
-                    </button>
-                </form>
+                <div id="jelajahi" class="search-panel scroll-mt-28">
+                    <form role="search" aria-label="Cari tempat" wire:submit="search">
+                        <div class="search-fields">
+                            <div class="search-field">
+                                <label for="keyword" class="ui-label">Kebutuhan atau nama tempat</label>
+                                <div class="search-input-wrap">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5 shrink-0 text-[var(--brand-forest)]"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg>
+                                    <input id="keyword" name="keyword" type="search" wire:model.live.debounce.400ms="keyword" placeholder="Mis. meeting atau pernikahan" autocomplete="off" class="search-input">
+                                </div>
+                            </div>
+                            <div class="search-field">
+                                <label for="location" class="ui-label">Lokasi</label>
+                                <div class="search-input-wrap">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-5 shrink-0 text-[var(--brand-forest)]"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                                    <input id="location" name="location" type="text" wire:model.live.debounce.400ms="location" placeholder="Kota atau daerah" autocomplete="address-level2" class="search-input">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 sm:mt-4">
+                            <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:min-w-36">
+                                <span wire:loading.remove wire:target="search">Cari tempat</span>
+                                <span wire:loading wire:target="search">Mencari...</span>
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                <div class="home-quick-searches" aria-label="Pencarian populer">
-                    <span>Coba:</span>
+                <div class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+                    <span class="mr-1 text-xs font-semibold text-[var(--muted)]">Coba cari</span>
                     @foreach ($popularSearches as $search)
-                        <button type="button" wire:key="popular-search-{{ $loop->index }}" wire:click="choosePopularSearch('{{ $search }}')" aria-pressed="{{ $keyword === $search ? 'true' : 'false' }}">{{ $search }}</button>
+                        <button type="button" wire:key="popular-search-{{ $loop->index }}" wire:click="choosePopularSearch('{{ $search }}')" aria-pressed="{{ $keyword === $search ? 'true' : 'false' }}" class="inline-flex min-h-9 items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors {{ $keyword === $search ? 'border-[var(--brand-forest)] bg-[var(--brand-forest)] text-white' : 'border-[var(--border)] bg-white text-[var(--ink-soft)] hover:bg-[var(--surface-soft)]' }}">
+                            {{ $search }}
+                        </button>
                     @endforeach
                 </div>
             </div>
 
-            <figure class="home-hero-media">
-                <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1600&q=88" alt="Ruang acara dengan meja dan kursi yang tertata" fetchpriority="high" decoding="async">
-                <figcaption>Ruang acara · inspirasi pencarian Adatempat</figcaption>
+            <figure class="hero-photo-wrap">
+                <div class="hero-photo">
+                    <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1400&q=88" alt="Contoh suasana ruang acara dengan meja dan kursi yang tertata" fetchpriority="high" decoding="async">
+                </div>
+                <figcaption class="hero-photo-caption">
+                    <span><strong>Inspirasi suasana ruang</strong><br>Gunakan pencarian untuk menemukan listing venue.</span>
+                    <span class="hidden text-right sm:block">01 / Jelajahi</span>
+                </figcaption>
             </figure>
         </div>
     </section>
 
-    <section id="kategori" class="home-section home-category-section scroll-mt-24" aria-labelledby="category-heading">
-        <div class="site-container">
-            <div class="home-section-heading">
-                <h2 id="category-heading">Mulai dari kebutuhanmu.</h2>
-                <p>Pilih jenis kegiatan untuk mempersempit pilihan tempat yang tersedia.</p>
-            </div>
-
-            <div class="home-category-grid">
-                @forelse ($this->categories as $item)
-                    <button type="button" wire:key="category-{{ $item->id }}" wire:click="chooseCategory('{{ $item->slug }}')" aria-pressed="{{ $category === $item->slug ? 'true' : 'false' }}" class="home-category-item">
-                        <img src="{{ $categoryImages[$item->slug] ?? $defaultCategoryImage }}" alt="" loading="lazy" decoding="async">
-                        <span class="home-category-copy">
-                            <strong>{{ $item->name }}</strong>
-                            <span>Lihat tempat</span>
-                        </span>
-                    </button>
-                @empty
-                    <div class="home-empty">Kategori belum tersedia. Kamu tetap bisa mencari berdasarkan nama tempat atau lokasi.</div>
-                @endforelse
-            </div>
-        </div>
-    </section>
-
-    <section id="hasil" class="home-section scroll-mt-24" aria-labelledby="results-heading">
-        <div class="site-container">
-            <div class="home-section-heading home-results-heading">
-                <div>
-                    <h2 id="results-heading">{{ $isFiltered ? 'Tempat yang sesuai pencarianmu.' : 'Tempat yang bisa kamu jelajahi.' }}</h2>
-                    <p>{{ $isFiltered ? 'Hasil diperbarui berdasarkan kata kunci, lokasi, dan kategori yang kamu pilih.' : 'Listing venue yang sudah dipublikasikan oleh pemilik tempat.' }}</p>
+    <section id="kategori" aria-labelledby="category-heading" class="scroll-mt-24 bg-[var(--surface-soft)]">
+        <div class="site-container py-10 sm:py-14 lg:py-16">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div class="max-w-2xl">
+                    <p class="eyebrow"><span class="eyebrow-dot"></span> Mulai dari jenis kegiatan</p>
+                    <h2 id="category-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] sm:text-3xl lg:text-4xl">Tempat untuk berbagai kebutuhan.</h2>
+                    <p class="mt-2 max-w-xl text-sm leading-6 text-[var(--ink-soft)] sm:text-base">Pilih kategori untuk mempersempit daftar tempat yang sudah dipublikasikan.</p>
                 </div>
-                @if (trim($keyword) !== '' || trim($location) !== '' || $category !== '')
-                    <button type="button" wire:click="resetSearch" class="text-action">Bersihkan pencarian</button>
+                @if ($category !== '')
+                    <button type="button" wire:click="resetSearch" class="btn btn-secondary w-full sm:w-auto">Hapus filter kategori</button>
                 @endif
             </div>
 
-            <div class="home-venue-grid">
-                @forelse ($this->venues as $venue)
-                    <article wire:key="venue-{{ $venue->id }}" class="home-venue-item">
-                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
-                        <div class="home-venue-media">
-                            @if ($coverMedia)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async">
-                            @else
-                                <div class="home-venue-media-empty">Foto venue belum tersedia</div>
-                            @endif
-                        </div>
-                        <div class="home-venue-copy">
-                            <div class="home-venue-meta">
-                                <span>{{ $venue->category?->name ?? 'Venue' }}</span>
-                                <span>{{ $venue->business?->address ?: 'Lokasi belum dicantumkan' }}</span>
-                            </div>
-                            <h3>{{ $venue->name }}</h3>
-                            <p class="home-venue-business">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
-                            @php($activePrices = $venue->prices->where('is_active', true)->values())
-                            @if ($activePrices->isNotEmpty())
-                                @php($displayPrice = $activePrices->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])->filter(fn ($amount) => $amount !== null)->min())
-                                <p class="home-venue-price">Mulai Rp {{ number_format((int) $displayPrice, 0, ',', '.') }} / {{ match ($activePrices->first()->pricing_unit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' } }}</p>
-                            @endif
-                            @if ($venue->description)
-                                <p class="home-venue-description">{{ \Illuminate\Support\Str::limit($venue->description, 130) }}</p>
-                            @endif
-                        </div>
-                    </article>
+            <div class="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+                @forelse ($this->categories as $item)
+                    <button type="button" wire:key="category-{{ $item->id }}" wire:click="chooseCategory('{{ $item->slug }}')" aria-pressed="{{ $category === $item->slug ? 'true' : 'false' }}" class="category-tile group {{ $category === $item->slug ? 'ring-2 ring-[var(--brand-forest)] ring-offset-2' : '' }}">
+                        <img src="{{ $categoryImages[$item->slug] ?? $defaultCategoryImage }}" alt="" loading="lazy" decoding="async">
+                        <span class="relative w-full p-3.5 sm:p-5">
+                            <span class="block text-[0.65rem] font-bold uppercase tracking-[0.08em] text-white/80">Jelajahi</span>
+                            <span class="mt-1.5 flex items-end justify-between gap-2 text-left">
+                                <span class="text-base font-extrabold leading-tight tracking-[-0.035em] sm:text-xl">{{ $item->name }}</span>
+                                <span class="mb-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-lime)] text-[var(--ink)]">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+                                </span>
+                            </span>
+                        </span>
+                    </button>
                 @empty
-                    <div class="home-empty home-empty-wide">
-                        <h3>{{ $isFiltered ? 'Belum ada tempat yang cocok.' : 'Belum ada listing yang tersedia.' }}</h3>
-                        <p>{{ $isFiltered ? 'Coba ubah kata kunci, lokasi, atau kategori yang digunakan.' : 'Tempat yang sudah dipublikasikan akan tampil di bagian ini.' }}</p>
-                        @if ($isFiltered)
-                            <button type="button" wire:click="resetSearch" class="btn btn-primary">Hapus semua filter</button>
-                        @endif
+                    <div class="col-span-full rounded-xl bg-white p-5 text-sm leading-6 text-[var(--ink-soft)]">
+                        Kategori belum tersedia. Kamu tetap bisa mencari berdasarkan nama tempat atau lokasi.
                     </div>
                 @endforelse
             </div>
         </div>
     </section>
 
-    <section id="untuk-pemilik" class="home-owner-section scroll-mt-24">
-        <div class="site-container">
-            <div class="home-owner-panel">
-                <div>
-                    <h2>Punya tempat yang layak ditemukan lebih banyak orang?</h2>
-                    <p>Kelola profil usaha dan venue, atur ketersediaan, terima booking, dan bagikan halaman publik usahamu dari satu tempat.</p>
+    <section id="hasil" aria-labelledby="results-heading" class="scroll-mt-24">
+        <div class="site-container py-10 sm:py-14 lg:py-16">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div class="max-w-2xl">
+                    <p class="eyebrow"><span class="eyebrow-dot"></span> {{ $isFiltered ? 'Hasil pencarian' : 'Tempat yang dipublikasikan' }}</p>
+                    <h2 id="results-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] sm:text-3xl lg:text-4xl">
+                        {{ $isFiltered ? 'Pilihan sesuai pencarianmu.' : 'Jelajahi tempat yang tersedia.' }}
+                    </h2>
+                    <p class="mt-2 max-w-xl text-sm leading-6 text-[var(--ink-soft)] sm:text-base">
+                        {{ $isFiltered ? $resultCount . ' tempat ditemukan berdasarkan pencarian aktif.' : 'Informasi yang ditampilkan berasal dari listing yang dipublikasikan oleh pemilik venue.' }}
+                    </p>
+
+                    @if ($isFiltered)
+                        <div class="mt-4 flex flex-wrap items-center gap-2" aria-label="Filter pencarian aktif">
+                            @if (trim($keyword) !== '')
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">
+                                    {{ trim($keyword) }}
+                                </span>
+                            @endif
+                            @if (trim($location) !== '')
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">
+                                    {{ trim($location) }}
+                                </span>
+                            @endif
+                            @if ($selectedCategory)
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-lime)] px-3 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">
+                                    {{ $selectedCategory->name }}
+                                </span>
+                            @endif
+                            <a href="#jelajahi" class="inline-flex min-h-8 items-center px-1 text-xs font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                                Ubah pencarian
+                            </a>
+                        </div>
+                    @endif
                 </div>
-                <a href="{{ route('register') }}" class="home-owner-action">Daftar sebagai pemilik</a>
+                @if (trim($keyword) !== '' || trim($location) !== '' || $category !== '')
+                    <button type="button" wire:click="resetSearch" class="btn btn-secondary w-full sm:w-auto">Bersihkan pencarian</button>
+                @endif
+            </div>
+
+            <div class="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                @forelse ($this->venues as $venue)
+                    <article wire:key="venue-{{ $venue->id }}" class="venue-card">
+                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
+                        @if ($coverMedia)
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="mb-4 aspect-[16/9] w-full rounded-xl object-cover">
+                        @endif
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
+                            <span class="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Listing venue</span>
+                        </div>
+                        <h3 class="mt-4 break-words text-lg font-extrabold leading-tight tracking-[-0.04em] sm:text-xl">{{ $venue->name }}</h3>
+                        <p class="mt-1.5 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
+                        @php($activePrices = $venue->prices->where('is_active', true)->values())
+                        @if ($activePrices->isNotEmpty())
+                            @php($displayPrice = $activePrices->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])->filter(fn ($amount) => $amount !== null)->min())
+                            <p class="mt-2 text-sm font-extrabold text-[var(--brand-forest)]">
+                                Mulai Rp {{ number_format((int) $displayPrice, 0, ',', '.') }}
+                                / {{ match ($activePrices->first()->pricing_unit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' } }}
+                            </p>
+                        @endif
+                        <p class="mt-3 flex items-start gap-2 text-sm leading-6 text-[var(--muted)]">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 size-4 shrink-0 text-[var(--brand-forest)]"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                            <span>{{ $venue->business?->address ?: 'Lokasi belum dicantumkan' }}</span>
+                        </p>
+                        @if ($venue->description)
+                            <p class="mt-3 border-t border-[var(--border)] pt-3 text-sm leading-6 text-[var(--ink-soft)]">{{ \Illuminate\Support\Str::limit($venue->description, 170) }}</p>
+                        @endif
+                    </article>
+                @empty
+                    <div class="col-span-full rounded-xl bg-[var(--surface-soft)] px-5 py-8 sm:px-8 sm:py-10">
+                        <div class="mx-auto max-w-lg text-center">
+                            <span class="mx-auto flex size-11 items-center justify-center rounded-lg bg-[var(--brand-lime)]">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="size-5"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg>
+                            </span>
+                            <h3 class="mt-4 text-lg font-extrabold tracking-[-0.03em]">{{ $isFiltered ? 'Belum ada tempat yang cocok.' : 'Belum ada listing yang tersedia.' }}</h3>
+                            <p class="mt-2 text-sm leading-6 text-[var(--muted)]">{{ $isFiltered ? 'Coba ubah kata kunci, lokasi, atau kategori. Hasil hanya menampilkan venue yang telah dipublikasikan.' : 'Tempat yang dipublikasikan akan tampil di bagian ini.' }}</p>
+                            @if ($isFiltered)
+                                <button type="button" wire:click="resetSearch" class="btn btn-primary mt-5">Hapus semua filter</button>
+                            @endif
+                        </div>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section id="untuk-pemilik" aria-labelledby="owner-heading" class="scroll-mt-24">
+        <div class="site-container pb-12 sm:pb-16 lg:pb-20">
+            <div class="grid gap-6 rounded-[1.25rem] bg-[var(--brand-forest)] px-5 py-7 text-white sm:px-8 sm:py-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-12 lg:px-10 lg:py-11">
+                <div class="max-w-2xl">
+                    <p class="eyebrow !text-[var(--brand-lime)]"><span class="eyebrow-dot !bg-[var(--brand-lime)]"></span> Untuk pemilik tempat</p>
+                    <h2 id="owner-heading" class="mt-3 text-2xl font-extrabold leading-tight tracking-[-0.05em] text-white sm:text-3xl lg:text-4xl">Punya venue yang ingin dikenal lebih luas?</h2>
+                    <p class="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base">Buat akun pemilik usaha untuk menampilkan tempat dan mulai menyiapkan profil venue-mu di Adatempat. Informasi yang jelas membantu calon pelanggan membandingkan pilihan.</p>
+                </div>
+                <a href="{{ route('register') }}" class="btn btn-primary w-full sm:w-fit">Daftar sebagai pemilik <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
             </div>
         </div>
     </section>
