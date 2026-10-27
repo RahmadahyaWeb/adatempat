@@ -17,6 +17,14 @@ new #[Title('Profil usaha')] class extends Component {
 
     public string $address = '';
 
+    public string $city = '';
+
+    public string $province = '';
+
+    public string $latitude = '';
+
+    public string $longitude = '';
+
     public string $timezone = 'Asia/Jakarta';
 
     public function mount(string $business): void
@@ -31,6 +39,10 @@ new #[Title('Profil usaha')] class extends Component {
         $this->businessPublicId = (string) $record->public_id;
         $this->name = $record->name;
         $this->address = (string) ($record->address ?? '');
+        $this->city = (string) ($record->city ?? '');
+        $this->province = (string) ($record->province ?? '');
+        $this->latitude = $record->latitude !== null ? (string) $record->latitude : '';
+        $this->longitude = $record->longitude !== null ? (string) $record->longitude : '';
         $this->timezone = (string) ($record->timezone ?: 'Asia/Jakarta');
     }
 
@@ -77,6 +89,103 @@ new #[Title('Profil usaha')] class extends Component {
     {
         return $this->currentBusiness->status === Business::STATUS_ACTIVE
             && $this->pendingRevision === null;
+    }
+
+    public function submitForVerification(): void
+    {
+        $owner = auth()->user();
+        abort_unless($owner && $owner->isOwner(), 403);
+
+        $business = $owner->businesses()
+            ->where('public_id', $this->businessPublicId)
+            ->firstOrFail();
+
+        Gate::authorize('update', $business);
+
+        abort_unless(
+            in_array($business->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true),
+            403,
+        );
+
+        $validated = $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:2000'],
+            'city' => ['required', 'string', 'max:100'],
+            'province' => ['required', 'string', 'max:100'],
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        if (! $business->venues()->where('status', \App\Models\Venue::STATUS_DRAFT)->exists()) {
+            $this->addError('verification', 'Tambahkan minimal satu venue draft sebelum mengajukan verifikasi.');
+
+            return;
+        }
+
+        DB::transaction(function () use ($owner, $business, $validated): void {
+            $locked = $owner->businesses()
+                ->whereKey($business->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(
+                in_array($locked->status, [Business::STATUS_DRAFT, Business::STATUS_REJECTED], true),
+                403,
+            );
+
+            $before = [
+                'status' => $locked->status,
+                'name' => $locked->name,
+                'address' => $locked->address,
+                'city' => $locked->city,
+                'province' => $locked->province,
+                'latitude' => $locked->latitude,
+                'longitude' => $locked->longitude,
+            ];
+
+            $locked->update([
+                'name' => trim($validated['name']),
+                'address' => trim($validated['address']),
+                'city' => trim($validated['city']),
+                'province' => trim($validated['province']),
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'status' => Business::STATUS_PENDING_VERIFICATION,
+                'rejection_reason' => null,
+                'verification_submitted_at' => now('UTC'),
+                'verification_reviewed_at' => null,
+                'verification_reviewed_by' => null,
+                'verified_at' => null,
+                'verified_by' => null,
+                'published_at' => null,
+            ]);
+
+            \App\Models\AuditLog::query()->create([
+                'actor_user_id' => $owner->getKey(),
+                'actor_role' => $owner->role,
+                'action' => 'business_verification.submitted',
+                'auditable_type' => Business::class,
+                'auditable_id' => $locked->getKey(),
+                'reason' => 'Owner submitted business identity for Super Admin verification.',
+                'before_state_json' => $before,
+                'after_state_json' => [
+                    'status' => $locked->status,
+                    'name' => $locked->name,
+                    'address' => $locked->address,
+                    'city' => $locked->city,
+                    'province' => $locked->province,
+                    'latitude' => $locked->latitude,
+                    'longitude' => $locked->longitude,
+                    'verification_submitted_at' => $locked->verification_submitted_at?->toISOString(),
+                ],
+                'ip_hash' => request()->ip() ? hash('sha256', (string) request()->ip()) : null,
+                'created_at' => now('UTC'),
+            ]);
+        }, attempts: 3);
+
+        $this->resetValidation();
+        unset($this->currentBusiness);
+        session()->flash('status', 'Usaha berhasil diajukan untuk verifikasi.');
     }
 
     public function saveTimezone(): void
@@ -143,6 +252,10 @@ new #[Title('Profil usaha')] class extends Component {
             [
                 'name' => ['required', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:2000'],
+                'city' => ['nullable', 'string', 'max:100'],
+                'province' => ['nullable', 'string', 'max:100'],
+                'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+                'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             ],
             [
                 'name.required' => 'Nama usaha wajib diisi.',
@@ -153,9 +266,13 @@ new #[Title('Profil usaha')] class extends Component {
 
         $businessName = trim($validated['name']);
         $businessAddress = trim((string) ($validated['address'] ?? '')) ?: null;
+        $businessCity = trim((string) ($validated['city'] ?? '')) ?: null;
+        $businessProvince = trim((string) ($validated['province'] ?? '')) ?: null;
+        $businessLatitude = $validated['latitude'] ?? null;
+        $businessLongitude = $validated['longitude'] ?? null;
 
         if ($business->status === Business::STATUS_ACTIVE) {
-            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress): ?BusinessRevision {
+            $revision = DB::transaction(function () use ($owner, $business, $businessName, $businessAddress, $businessCity, $businessProvince, $businessLatitude, $businessLongitude): ?BusinessRevision {
                 $lockedBusiness = $owner->businesses()
                     ->whereKey($business->getKey())
                     ->lockForUpdate()
@@ -172,6 +289,10 @@ new #[Title('Profil usaha')] class extends Component {
                 if (
                     $businessName === $lockedBusiness->name
                     && $businessAddress === ($lockedBusiness->address ?: null)
+                    && $businessCity === ($lockedBusiness->city ?: null)
+                    && $businessProvince === ($lockedBusiness->province ?: null)
+                    && (string) $businessLatitude === (string) $lockedBusiness->latitude
+                    && (string) $businessLongitude === (string) $lockedBusiness->longitude
                 ) {
                     session()->flash('status', 'Tidak ada perubahan identitas untuk diajukan.');
 
@@ -182,8 +303,10 @@ new #[Title('Profil usaha')] class extends Component {
                     'submitted_by' => $owner->getKey(),
                     'proposed_name' => $businessName,
                     'proposed_address' => $businessAddress,
-                    'proposed_latitude' => $lockedBusiness->latitude,
-                    'proposed_longitude' => $lockedBusiness->longitude,
+                    'proposed_city' => $businessCity,
+                    'proposed_province' => $businessProvince,
+                    'proposed_latitude' => $businessLatitude,
+                    'proposed_longitude' => $businessLongitude,
                 ]);
             });
 
@@ -217,6 +340,10 @@ new #[Title('Profil usaha')] class extends Component {
             'name' => $businessName,
             'slug' => $slug,
             'address' => $businessAddress,
+            'city' => $businessCity,
+            'province' => $businessProvince,
+            'latitude' => $businessLatitude,
+            'longitude' => $businessLongitude,
         ])->save();
 
         $this->resetValidation();
@@ -329,13 +456,43 @@ new #[Title('Profil usaha')] class extends Component {
                     <textarea id="business-address" wire:model="address" rows="3" maxlength="2000" class="ui-input resize-y" placeholder="Jalan, area, kota" @disabled(!$canSubmit) aria-invalid="{{ $errors->has('address') ? 'true' : 'false' }}"></textarea>
                     @error('address') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="business-city" class="ui-label">Kota</label>
+                        <input id="business-city" type="text" wire:model="city" maxlength="100" class="ui-input" @disabled(!$canSubmit)>
+                        @error('city') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="business-province" class="ui-label">Provinsi</label>
+                        <input id="business-province" type="text" wire:model="province" maxlength="100" class="ui-input" @disabled(!$canSubmit)>
+                        @error('province') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="business-latitude" class="ui-label">Latitude</label>
+                        <input id="business-latitude" type="number" step="0.0000001" wire:model="latitude" class="ui-input" @disabled(!$canSubmit)>
+                        @error('latitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="business-longitude" class="ui-label">Longitude</label>
+                        <input id="business-longitude" type="number" step="0.0000001" wire:model="longitude" class="ui-input" @disabled(!$canSubmit)>
+                        @error('longitude') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                @error('verification') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                 @if ($canSubmit)
                     <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
                         <a href="{{ route('owner.businesses.index') }}" class="btn btn-secondary w-full sm:w-auto">Kembali</a>
-                        <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
+                        <button type="submit" wire:loading.attr="disabled" class="btn btn-secondary w-full sm:w-auto">
                             <span wire:loading.remove wire:target="save">{{ $business->status === \App\Models\Business::STATUS_ACTIVE ? 'Ajukan revisi untuk ditinjau' : 'Simpan perubahan' }}</span>
                             <span wire:loading wire:target="save">Menyimpan...</span>
                         </button>
+                        @if (in_array($business->status, [\App\Models\Business::STATUS_DRAFT, \App\Models\Business::STATUS_REJECTED], true))
+                            <button type="button" wire:click="submitForVerification" wire:loading.attr="disabled" class="btn btn-primary w-full sm:w-auto">
+                                Ajukan verifikasi
+                            </button>
+                        @endif
                     </div>
                 @endif
             </form>
