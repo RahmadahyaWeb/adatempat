@@ -1709,7 +1709,7 @@ new #[Title('Data venue')] class extends Component {
                                     $blockStartLocal = $venueBlock->starts_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
                                     $blockEndLocal = $venueBlock->ends_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
                                 @endphp
-                                <article wire:key="venue-block-{{ $venueBlock->id }}" class="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
+                                <article class="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div class="min-w-0">
                                         <p class="text-sm font-extrabold text-[var(--ink)]">{{ $venueBlock->reason }}</p>
                                         <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">{{ $blockStartLocal->format('d/m/Y H:i') }} – {{ $blockEndLocal->format('d/m/Y H:i') }}</p>
