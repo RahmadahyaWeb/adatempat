@@ -1341,6 +1341,40 @@ new #[Title('Data venue')] class extends Component {
             navigate: false,
         );
     }
+
+    public function templateFieldInputId(TemplateField $field): string
+    {
+        return 'template-field-' . $field->field_key;
+    }
+
+    public function templateFieldOptions(TemplateField $field): array
+    {
+        return $field->options_json ?? [];
+    }
+
+    public function templateFieldValidation(TemplateField $field): array
+    {
+        return $field->validation_rules_json ?? [];
+    }
+
+    public function customFieldOptions(array $customField)
+    {
+        return collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($customField['options_text'] ?? '')) ?: [])
+            ->map(fn (string $option): string => trim($option))
+            ->filter(fn (string $option): bool => $option !== '')
+            ->values();
+    }
+
+    public function customFieldInputId(int $index): string
+    {
+        return 'owner-custom-field-' . $index;
+    }
+
+    public function dayLabel(int $day): string
+    {
+        return [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'][$day] ?? 'Hari';
+    }
+
 };
 ?>
 
@@ -1481,16 +1515,10 @@ new #[Title('Data venue')] class extends Component {
 
                         <div class="space-y-5">
                             @foreach ($selectedTemplate->fields as $field)
-                                @php
-                                    $fieldInputId = 'template-field-' . $field->field_key;
-                                    $fieldValue = $templateValues[$field->field_key] ?? ($field->input_type === 'boolean' ? false : ($field->input_type === 'multiselect' ? [] : ''));
-                                    $fieldOptions = $field->options_json ?? [];
-                                    $fieldValidation = $field->validation_rules_json ?? [];
-                                @endphp
                                 <div wire:key="template-field-{{ $field->id }}">
                                     @if ($field->input_type === 'boolean')
-                                        <label for="{{ $fieldInputId }}" class="flex cursor-pointer items-start gap-3 text-sm text-[var(--ink-soft)]">
-                                            <input id="{{ $fieldInputId }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                        <label for="{{ $this->templateFieldInputId($field) }}" class="flex cursor-pointer items-start gap-3 text-sm text-[var(--ink-soft)]">
+                                            <input id="{{ $this->templateFieldInputId($field) }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
                                             <span>
                                                 <span class="block font-bold text-[var(--ink)]">{{ $field->label }}</span>
                                                 @if ($field->unit_label)
@@ -1499,7 +1527,7 @@ new #[Title('Data venue')] class extends Component {
                                             </span>
                                         </label>
                                     @else
-                                        <label for="{{ $fieldInputId }}" class="ui-label">
+                                        <label for="{{ $this->templateFieldInputId($field) }}" class="ui-label">
                                             {{ $field->label }}
                                             @if ($field->is_required)
                                                 <span class="text-[var(--danger-ink)]">*</span>
@@ -1510,23 +1538,23 @@ new #[Title('Data venue')] class extends Component {
                                         </label>
 
                                         @if ($field->input_type === 'text')
-                                            <input id="{{ $fieldInputId }}" type="text" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" maxlength="{{ $fieldValidation['max_length'] ?? 2000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                            <input id="{{ $this->templateFieldInputId($field) }}" type="text" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" maxlength="{{ $this->templateFieldValidation($field)['max_length'] ?? 2000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
                                         @elseif ($field->input_type === 'textarea')
-                                            <textarea id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" rows="3" class="ui-input resize-y" maxlength="{{ $fieldValidation['max_length'] ?? 10000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}"></textarea>
+                                            <textarea id="{{ $this->templateFieldInputId($field) }}" wire:model="templateValues.{{ $field->field_key }}" rows="3" class="ui-input resize-y" maxlength="{{ $this->templateFieldValidation($field)['max_length'] ?? 10000 }}" placeholder="Isi {{ strtolower($field->label) }}" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}"></textarea>
                                         @elseif ($field->input_type === 'number')
-                                            <input id="{{ $fieldInputId }}" type="number" step="any" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if(isset($fieldValidation['min'])) min="{{ $fieldValidation['min'] }}" @endif @if(isset($fieldValidation['max'])) max="{{ $fieldValidation['max'] }}" @endif placeholder="Masukkan angka" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                            <input id="{{ $this->templateFieldInputId($field) }}" type="number" step="any" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if(isset($this->templateFieldValidation($field)['min'])) min="{{ $this->templateFieldValidation($field)['min'] }}" @endif @if(isset($this->templateFieldValidation($field)['max'])) max="{{ $this->templateFieldValidation($field)['max'] }}" @endif placeholder="Masukkan angka" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
                                         @elseif ($field->input_type === 'select')
-                                            <select id="{{ $fieldInputId }}" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
+                                            <select id="{{ $this->templateFieldInputId($field) }}" wire:model="templateValues.{{ $field->field_key }}" class="ui-input" @if($field->is_required) required @endif aria-invalid="{{ $errors->has('templateValues.' . $field->field_key) ? 'true' : 'false' }}">
                                                 <option value="">Pilih {{ strtolower($field->label) }}</option>
-                                                @foreach ($fieldOptions as $option)
+                                                @foreach ($this->templateFieldOptions($field) as $option)
                                                     <option value="{{ $option }}">{{ $option }}</option>
                                                 @endforeach
                                             </select>
                                         @elseif ($field->input_type === 'multiselect')
                                             <div class="grid gap-3 sm:grid-cols-2">
-                                                @foreach ($fieldOptions as $optionIndex => $option)
-                                                    <label for="{{ $fieldInputId }}-{{ $optionIndex }}" class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
-                                                        <input id="{{ $fieldInputId }}-{{ $optionIndex }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" value="{{ $option }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                                @foreach ($this->templateFieldOptions($field) as $optionIndex => $option)
+                                                    <label for="{{ $this->templateFieldInputId($field) }}-{{ $optionIndex }}" class="flex cursor-pointer items-start gap-2 text-sm leading-5 text-[var(--ink-soft)]">
+                                                        <input id="{{ $this->templateFieldInputId($field) }}-{{ $optionIndex }}" type="checkbox" wire:model="templateValues.{{ $field->field_key }}" value="{{ $option }}" class="mt-0.5 size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
                                                         <span>{{ $option }}</span>
                                                     </label>
                                                 @endforeach
@@ -1559,13 +1587,6 @@ new #[Title('Data venue')] class extends Component {
                     @else
                         <div class="mt-4 space-y-4">
                             @foreach ($customFields as $index => $customField)
-                                @php
-                                    $customFieldOptions = collect(preg_split('/\\r\\n|\\r|\\n/', (string) ($customField['options_text'] ?? '')) ?: [])
-                                        ->map(fn (string $option): string => trim($option))
-                                        ->filter(fn (string $option): bool => $option !== '')
-                                        ->values();
-                                    $customFieldInputId = 'owner-custom-field-' . $index;
-                                @endphp
                                 <article wire:key="owner-custom-field-{{ $index }}" class="rounded-xl border border-[var(--border)] p-4">
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
@@ -1602,23 +1623,23 @@ new #[Title('Data venue')] class extends Component {
                                     @endif
 
                                     <div class="mt-4 border-t border-[var(--border)] pt-4">
-                                        <label for="{{ $customFieldInputId }}" class="ui-label">Nilai untuk venue ini</label>
+                                        <label for="{{ $this->customFieldInputId((int) $index) }}" class="ui-label">Nilai untuk venue ini</label>
                                         @if ($customField['input_type'] === 'boolean')
-                                            <label for="{{ $customFieldInputId }}" class="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink-soft)]">
-                                                <input id="{{ $customFieldInputId }}" type="checkbox" wire:model="customFieldValues.{{ $index }}" class="size-4 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
+                                            <label for="{{ $this->customFieldInputId((int) $index) }}" class="flex cursor-pointer items-center gap-2 text-sm text-[var(--ink-soft)]">
+                                                <input id="{{ $this->customFieldInputId((int) $index) }}" type="checkbox" wire:model="customFieldValues.{{ $index }}" class="size-4 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
                                                 Ya
                                             </label>
                                         @elseif ($customField['input_type'] === 'number')
-                                            <input id="{{ $customFieldInputId }}" type="number" step="any" wire:model="customFieldValues.{{ $index }}" class="ui-input" placeholder="Masukkan angka">
+                                            <input id="{{ $this->customFieldInputId((int) $index) }}" type="number" step="any" wire:model="customFieldValues.{{ $index }}" class="ui-input" placeholder="Masukkan angka">
                                         @elseif ($customField['input_type'] === 'select')
-                                            <select id="{{ $customFieldInputId }}" wire:model="customFieldValues.{{ $index }}" class="ui-input">
+                                            <select id="{{ $this->customFieldInputId((int) $index) }}" wire:model="customFieldValues.{{ $index }}" class="ui-input">
                                                 <option value="">Pilih nilai</option>
-                                                @foreach ($customFieldOptions as $option)
+                                                @foreach ($this->customFieldOptions($customField) as $option)
                                                     <option value="{{ $option }}">{{ $option }}</option>
                                                 @endforeach
                                             </select>
                                         @else
-                                            <input id="{{ $customFieldInputId }}" type="text" wire:model="customFieldValues.{{ $index }}" maxlength="2000" class="ui-input" placeholder="Masukkan nilai">
+                                            <input id="{{ $this->customFieldInputId((int) $index) }}" type="text" wire:model="customFieldValues.{{ $index }}" maxlength="2000" class="ui-input" placeholder="Masukkan nilai">
                                         @endif
                                         @error("customFieldValues.{$index}") <p role="alert" class="ui-error mt-2">{{ $message }}</p> @enderror
                                     </div>
@@ -1635,12 +1656,11 @@ new #[Title('Data venue')] class extends Component {
                     </div>
 
                     <div class="mt-4 space-y-3">
-                        @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
                         @foreach ($availabilityRules as $day => $rule)
                             <article wire:key="availability-day-{{ $day }}" class="rounded-lg border border-[var(--border)] p-3 sm:p-4">
                                 <label class="flex cursor-pointer items-center gap-3">
                                     <input type="checkbox" wire:model="availabilityRules.{{ $day }}.is_open" class="size-4 shrink-0 rounded border-[var(--border-strong)] accent-[var(--brand-forest)]">
-                                    <span class="font-bold text-sm text-[var(--ink)]">{{ $dayLabels[$day] }}</span>
+                                    <span class="font-bold text-sm text-[var(--ink)]">{{ $this->dayLabel((int) $day) }}</span>
                                     <span class="ml-auto text-xs font-semibold {{ $rule['is_open'] ? 'text-[var(--success-ink)]' : 'text-[var(--muted)]' }}">{{ $rule['is_open'] ? 'Buka' : 'Tutup' }}</span>
                                 </label>
                                 @if ($rule['is_open'])
@@ -1704,22 +1724,20 @@ new #[Title('Data venue')] class extends Component {
                         </div>
 
                         <div class="mt-4 space-y-3">
-                            @forelse ($venue->blocks as $venueBlock)
-                                @php
-                                    $blockStartLocal = $venueBlock->starts_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
-                                    $blockEndLocal = $venueBlock->ends_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta');
-                                @endphp
-                                <article class="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-extrabold text-[var(--ink)]">{{ $venueBlock->reason }}</p>
-                                        <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">{{ $blockStartLocal->format('d/m/Y H:i') }} – {{ $blockEndLocal->format('d/m/Y H:i') }}</p>
-                                        <p class="mt-1 text-xs text-[var(--muted)]">{{ $business->timezone ?: 'Asia/Jakarta' }}</p>
-                                    </div>
-                                    <button type="button" wire:click="deleteVenueBlock({{ $venueBlock->id }})" wire:confirm="Hapus blokir jadwal ini?" class="btn btn-secondary w-full shrink-0 sm:w-auto">Hapus blokir</button>
-                                </article>
-                            @empty
+                            @if ($venue->blocks->isNotEmpty())
+                                @foreach ($venue->blocks as $venueBlock)
+                                    <article class="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-extrabold text-[var(--ink)]">{{ $venueBlock->reason }}</p>
+                                            <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">{{ $venueBlock->starts_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta')->format('d/m/Y H:i') }} – {{ $venueBlock->ends_at->copy()->setTimezone($business->timezone ?: 'Asia/Jakarta')->format('d/m/Y H:i') }}</p>
+                                            <p class="mt-1 text-xs text-[var(--muted)]">{{ $business->timezone ?: 'Asia/Jakarta' }}</p>
+                                        </div>
+                                        <button type="button" wire:click="deleteVenueBlock({{ $venueBlock->id }})" wire:confirm="Hapus blokir jadwal ini?" class="btn btn-secondary w-full shrink-0 sm:w-auto">Hapus blokir</button>
+                                    </article>
+                                @endforeach
+                            @else
                                 <p class="rounded-lg border border-dashed border-[var(--border-strong)] p-4 text-sm leading-6 text-[var(--muted)]">Belum ada blokir jadwal untuk venue ini.</p>
-                            @endforelse
+                            @endif
                         </div>
                     @endif
                 </section>
