@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->json('before_state_json')->nullable();
             $table->json('after_state_json')->nullable();
-            $table->string('ip_hash', 64);
+            $table->string('ip_hash', 64)->nullable();
             $table->timestamp('created_at')->useCurrent();
 
             $table->index(['auditable_type', 'auditable_id']);

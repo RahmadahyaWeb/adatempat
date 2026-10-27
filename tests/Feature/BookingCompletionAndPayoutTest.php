@@ -43,6 +43,9 @@ class BookingCompletionAndPayoutTest extends TestCase
             'booking_start' => now('UTC')->subHours(2),
             'booking_end' => now('UTC')->subHour(),
         ]);
+        $booking->payout()->update([
+            'eligible_at' => $booking->fresh()->booking_end->copy()->addHours(24),
+        ]);
 
         $completion = app(BookingCompletionService::class);
         $completion->startByOwner($owner, $booking->fresh());
@@ -71,12 +74,24 @@ class BookingCompletionAndPayoutTest extends TestCase
         $prepared = app(PayoutService::class)->prepareEligiblePayouts();
 
         $this->assertSame(0, $prepared['created']);
-        $this->assertSame(1, $prepared['eligible']);
+        $this->assertSame(0, $prepared['eligible']);
         $payout = Payout::query()->where('booking_id', $booking->getKey())->firstOrFail();
-        $this->assertSame($account->getKey(), $payout->payout_account_id);
+        $this->assertSame(Payout::STATUS_HELD, $payout->status);
         $this->assertSame(100000, $payout->net_amount);
 
-        $paid = app(PayoutService::class)->markPaid($payout, $admin, 'BANK-TRANSFER-REF-001');
+        CarbonImmutable::setTestNow(CarbonImmutable::now('UTC')->addHours(24));
+
+        try {
+            $prepared = app(PayoutService::class)->prepareEligiblePayouts();
+            $this->assertSame(1, $prepared['eligible']);
+
+            $payout = $payout->fresh();
+            $this->assertSame($account->getKey(), $payout->payout_account_id);
+
+            $paid = app(PayoutService::class)->markPaid($payout, $admin, 'BANK-TRANSFER-REF-001');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
 
         $this->assertSame(Payout::STATUS_PAID, $paid->status);
         $this->assertSame('BANK-TRANSFER-REF-001', $paid->transfer_reference);

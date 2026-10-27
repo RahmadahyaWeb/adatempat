@@ -205,7 +205,9 @@ new #[Title('Kelola venue')] class extends Component {
         @else
             <div class="mt-5 divide-y divide-[var(--border)] rounded-2xl bg-white px-4 sm:px-6">
                 @foreach ($venues as $venue)
-                    @php($meta = $statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'])
+                    @php
+                        $meta = $statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]'];
+                    @endphp
                     <article wire:key="venue-{{ $venue->id }}" class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-6">
                         <div class="flex min-w-0 items-start gap-3 sm:gap-4">
                             <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-lime)] text-[var(--brand-forest)]">

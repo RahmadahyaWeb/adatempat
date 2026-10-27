@@ -122,6 +122,7 @@ class VenueMediaManagementTest extends TestCase
     {
         $owner = $this->createOwner();
         [$business, $venue] = $this->createVenue($owner, Business::STATUS_ACTIVE, Venue::STATUS_PUBLISHED);
+        $this->createEligibleSubscription($owner);
         $path = UploadedFile::fake()->image('cover.jpg')->storePublicly('venues/' . $venue->public_id, 'public');
 
         VenueMedia::query()->create([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Business;
+use App\Models\Venue;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -29,6 +30,67 @@ new #[Title('Profil usaha')] class extends Component {
                 },
             ])
             ->firstOrFail();
+    }
+
+    public function coverMedia(Venue $venue): mixed
+    {
+        return $venue->media->firstWhere('is_cover', true) ?? $venue->media->first();
+    }
+
+    public function activePrices(Venue $venue)
+    {
+        return $venue->prices->where('is_active', true)->values();
+    }
+
+    public function dayLabel(int $day): string
+    {
+        return [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'][$day] ?? 'Hari';
+    }
+
+    public function displayTemplateValues(Venue $venue)
+    {
+        return $venue->fieldValues
+            ->filter(fn ($fieldValue) => $fieldValue->templateField !== null)
+            ->map(function ($fieldValue) {
+                $field = $fieldValue->templateField;
+                $value = match ($field->input_type) {
+                    'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
+                    'number' => $fieldValue->value_number !== null
+                        ? number_format(
+                            (float) $fieldValue->value_number,
+                            fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2,
+                            ',',
+                            '.',
+                        ) . ($field->unit_label ? ' ' . $field->unit_label : '')
+                        : '',
+                    'multiselect' => collect($fieldValue->value_json ?? [])->implode(', '),
+                    default => (string) ($fieldValue->value_text ?? ''),
+                };
+
+                return ['label' => $field->label, 'value' => $value];
+            })
+            ->filter(fn ($item) => $item['value'] !== '')
+            ->values();
+    }
+
+    public function displayCustomValues(Venue $venue)
+    {
+        return $venue->fieldValues
+            ->filter(fn ($fieldValue) => $fieldValue->ownerCustomField !== null && $fieldValue->ownerCustomField->moderation_status === \App\Models\OwnerCustomField::STATUS_ACTIVE)
+            ->map(function ($fieldValue) {
+                $field = $fieldValue->ownerCustomField;
+                $value = match ($field->input_type) {
+                    'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
+                    'number' => $fieldValue->value_number !== null
+                        ? number_format((float) $fieldValue->value_number, fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2, ',', '.')
+                        : '',
+                    default => (string) ($fieldValue->value_text ?? ''),
+                };
+
+                return ['label' => $field->label, 'value' => $value];
+            })
+            ->filter(fn ($item) => $item['value'] !== '')
+            ->values();
     }
 };
 ?>
@@ -80,11 +142,10 @@ new #[Title('Profil usaha')] class extends Component {
         @else
             <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($business->venues as $venue)
-                    <article wire:key="public-venue-{{ $venue->id }}" class="min-w-0 overflow-hidden rounded-2xl bg-white">
-                        @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
-                        @if ($coverMedia)
+                    <article class="min-w-0 overflow-hidden rounded-2xl bg-white">
+                        @if ($this->coverMedia($venue))
                             <div class="aspect-[4/3] overflow-hidden bg-[var(--surface-soft)]">
-                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk($this->coverMedia($venue)->disk)->url($this->coverMedia($venue)->file_path) }}" alt="{{ $this->coverMedia($venue)->alt_text }}" loading="lazy" decoding="async" class="size-full object-cover">
                             </div>
                         @else
                             <div class="flex aspect-[4/3] flex-col items-center justify-center gap-3 bg-[var(--surface-soft)] px-5 text-center">
@@ -97,13 +158,12 @@ new #[Title('Profil usaha')] class extends Component {
                         <div class="p-4 sm:p-5">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
                             <h3 class="mt-3 break-words text-lg font-extrabold leading-tight tracking-[-0.04em]">{{ $venue->name }}</h3>
-                            @php($activePrices = $venue->prices->where('is_active', true)->values())
-                            @if ($activePrices->isNotEmpty())
+                            @if ($this->activePrices($venue)->isNotEmpty())
                                 <div class="mt-3 rounded-lg bg-[var(--surface-soft)] p-3">
-                                    @if ($activePrices->first()->pricing_unit === 'session')
+                                    @if ($this->activePrices($venue)->first()->pricing_unit === 'session')
                                         <p class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Harga per sesi</p>
                                         <div class="mt-2 space-y-2">
-                                            @foreach ($activePrices as $price)
+                                            @foreach ($this->activePrices($venue) as $price)
                                                 <div class="flex items-start justify-between gap-3 text-sm">
                                                     <span class="min-w-0 break-words font-semibold text-[var(--ink-soft)]">{{ $price->session_name }} <span class="block text-xs font-normal text-[var(--muted)]">{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }}</span></span>
                                                     <span class="shrink-0 text-right font-extrabold text-[var(--brand-forest)]">Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}
@@ -116,9 +176,9 @@ new #[Title('Profil usaha')] class extends Component {
                                         </div>
                                     @else
                                         <p class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Harga dasar</p>
-                                        <p class="mt-1 text-lg font-extrabold text-[var(--brand-forest)]">Rp {{ number_format((int) $activePrices->first()->price_amount, 0, ',', '.') }} / {{ $activePrices->first()->pricing_unit === 'hourly' ? 'jam' : 'hari' }}</p>
-                                        @if ($activePrices->first()->weekend_price_amount !== null)
-                                            <p class="mt-1 text-xs font-semibold text-[var(--muted)]">Akhir pekan Rp {{ number_format((int) $activePrices->first()->weekend_price_amount, 0, ',', '.') }}</p>
+                                        <p class="mt-1 text-lg font-extrabold text-[var(--brand-forest)]">Rp {{ number_format((int) $this->activePrices($venue)->first()->price_amount, 0, ',', '.') }} / {{ $this->activePrices($venue)->first()->pricing_unit === 'hourly' ? 'jam' : 'hari' }}</p>
+                                        @if ($this->activePrices($venue)->first()->weekend_price_amount !== null)
+                                            <p class="mt-1 text-xs font-semibold text-[var(--muted)]">Akhir pekan Rp {{ number_format((int) $this->activePrices($venue)->first()->weekend_price_amount, 0, ',', '.') }}</p>
                                         @endif
                                     @endif
                                 </div>
@@ -127,10 +187,9 @@ new #[Title('Profil usaha')] class extends Component {
                                 <div class="mt-3 rounded-lg border border-[var(--border)] p-3">
                                     <h4 class="text-xs font-bold uppercase tracking-[0.07em] text-[var(--muted)]">Jam operasional · {{ $business->timezone ?: 'Asia/Jakarta' }}</h4>
                                     <div class="mt-2 space-y-1.5">
-                                        @php($dayLabels = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'])
                                         @foreach ($venue->availabilityRules->sortBy('day_of_week') as $availabilityRule)
                                             <div class="flex items-start justify-between gap-3 text-xs">
-                                                <span class="font-semibold text-[var(--ink-soft)]">{{ $dayLabels[$availabilityRule->day_of_week] ?? 'Hari' }}</span>
+                                                <span class="font-semibold text-[var(--ink-soft)]">{{ $this->dayLabel((int) $availabilityRule->day_of_week) }}</span>
                                                 @if ($availabilityRule->is_open)
                                                     <span class="text-right text-[var(--ink)]">{{ substr((string) $availabilityRule->open_time, 0, 5) }}–{{ substr((string) $availabilityRule->close_time, 0, 5) }}@if ($availabilityRule->buffer_minutes > 0) <span class="block text-[var(--muted)]">Jeda {{ $availabilityRule->buffer_minutes }} menit</span>@endif</span>
                                                 @else
@@ -163,34 +222,11 @@ new #[Title('Profil usaha')] class extends Component {
                                 </div>
                             @endif
 
-                            @php
-                                $displayTemplateValues = $venue->fieldValues
-                                    ->filter(fn ($fieldValue) => $fieldValue->templateField !== null)
-                                    ->map(function ($fieldValue) {
-                                        $field = $fieldValue->templateField;
-                                        $value = match ($field->input_type) {
-                                            'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
-                                            'number' => $fieldValue->value_number !== null
-                                                ? number_format(
-                                                    (float) $fieldValue->value_number,
-                                                    fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2,
-                                                    ',',
-                                                    '.',
-                                                ) . ($field->unit_label ? ' ' . $field->unit_label : '')
-                                                : '',
-                                            'multiselect' => collect($fieldValue->value_json ?? [])->implode(', '),
-                                            default => (string) ($fieldValue->value_text ?? ''),
-                                        };
 
-                                        return ['label' => $field->label, 'value' => $value];
-                                    })
-                                    ->filter(fn ($item) => $item['value'] !== '')
-                                    ->values();
-                            @endphp
 
-                            @if ($displayTemplateValues->isNotEmpty())
+                            @if ($this->displayTemplateValues($venue)->isNotEmpty())
                                 <dl class="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
-                                    @foreach ($displayTemplateValues as $item)
+                                    @foreach ($this->displayTemplateValues($venue) as $item)
                                         <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
                                             <dt class="text-xs font-semibold text-[var(--muted)]">{{ $item['label'] }}</dt>
                                             <dd class="break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-right">{{ $item['value'] }}</dd>
@@ -199,28 +235,11 @@ new #[Title('Profil usaha')] class extends Component {
                                 </dl>
                             @endif
 
-                            @php
-                                $displayCustomValues = $venue->fieldValues
-                                    ->filter(fn ($fieldValue) => $fieldValue->ownerCustomField !== null && $fieldValue->ownerCustomField->moderation_status === \App\Models\OwnerCustomField::STATUS_ACTIVE)
-                                    ->map(function ($fieldValue) {
-                                        $field = $fieldValue->ownerCustomField;
-                                        $value = match ($field->input_type) {
-                                            'boolean' => $fieldValue->value_boolean === null ? '' : ($fieldValue->value_boolean ? 'Ya' : 'Tidak'),
-                                            'number' => $fieldValue->value_number !== null
-                                                ? number_format((float) $fieldValue->value_number, fmod((float) $fieldValue->value_number, 1.0) === 0.0 ? 0 : 2, ',', '.')
-                                                : '',
-                                            default => (string) ($fieldValue->value_text ?? ''),
-                                        };
 
-                                        return ['label' => $field->label, 'value' => $value];
-                                    })
-                                    ->filter(fn ($item) => $item['value'] !== '')
-                                    ->values();
-                            @endphp
 
-                            @if ($displayCustomValues->isNotEmpty())
+                            @if ($this->displayCustomValues($venue)->isNotEmpty())
                                 <dl class="mt-4 space-y-2 border-t border-[var(--border)] pt-4">
-                                    @foreach ($displayCustomValues as $item)
+                                    @foreach ($this->displayCustomValues($venue) as $item)
                                         <div class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
                                             <dt class="text-xs font-semibold text-[var(--muted)]">{{ $item['label'] }}</dt>
                                             <dd class="break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-right">{{ $item['value'] }}</dd>

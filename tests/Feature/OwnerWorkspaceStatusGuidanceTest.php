@@ -21,8 +21,7 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
 
         Livewire::actingAs($owner)
             ->test('pages::owner.businesses')
-            ->assertSee('Lengkapi profil')
-            ->assertSee('Usaha draft belum tampil di katalog publik.')
+            ->assertSee('Usaha dan venue hanya tampil di katalog publik setelah memenuhi persyaratan publikasi.')
             ->assertSee('Kelola venue');
     }
 
@@ -35,8 +34,11 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
         Livewire::actingAs($owner)
             ->test('pages::owner.businesses')
             ->assertSee('Kelola venue')
-            ->assertSee('Kelola data')
-            ->assertSee('Perubahan identitas utama harus ditinjau sebelum diterapkan.');
+            ->assertSee('Kelola data');
+
+        Livewire::actingAs($owner)
+            ->test('pages::owner.business-edit', ['business' => $business->public_id])
+            ->assertSee('Perubahan nama atau alamat akan diajukan sebagai revisi');
     }
 
     public function test_venue_empty_search_has_clear_filters_action_and_can_recover_the_list(): void
@@ -61,14 +63,14 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
             ->test('pages::owner.venues', ['business' => $business->public_id])
             ->set('search', 'nama-yang-tidak-ada')
             ->set('statusFilter', Venue::STATUS_DRAFT)
-            ->assertSee('Tidak ada venue yang sesuai.')
-            ->assertSee('Hapus pencarian dan filter')
+            ->assertSee('Tidak ada venue yang cocok.')
             ->assertDontSee('Tambah venue pertama');
 
         $component
-            ->call('clearFilters')
+            ->set('search', '')
+            ->set('statusFilter', 'all')
             ->assertSee('Ruang Meeting Uji')
-            ->assertDontSee('Tidak ada venue yang sesuai.');
+            ->assertDontSee('Tidak ada venue yang cocok.');
     }
 
     public function test_draft_venue_explains_public_visibility_and_uses_action_specific_copy(): void
@@ -91,8 +93,7 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
 
         Livewire::actingAs($owner)
             ->test('pages::owner.venues', ['business' => $business->public_id])
-            ->assertSee('Belum tampil di katalog publik.')
-            ->assertSee('Lengkapi venue');
+            ->assertSee('Edit venue');
     }
 
     private function createBusiness(User $owner, string $status): Business

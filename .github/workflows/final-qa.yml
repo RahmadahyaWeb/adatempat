@@ -1,0 +1,153 @@
+name: Final QA
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4.1'
+          extensions: mbstring, pdo_sqlite, sqlite3, intl
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Run migrations and seed
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          SUPER_ADMIN_NAME: QA Super Admin
+          SUPER_ADMIN_EMAIL: qa-super-admin@adatempat.test
+          SUPER_ADMIN_PASSWORD: AdatempatQa123!
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Compile and lint Blade views
+        run: |
+          php artisan view:clear
+          php artisan view:cache
+          failed=0
+          for file in storage/framework/views/*.php; do
+            if ! php -l "$file" > /tmp/blade-lint.log 2>&1; then
+              cat /tmp/blade-lint.log
+              echo "---- $file ----"
+              nl -ba "$file"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run PHPUnit
+        run: composer test
+
+
+  mysql-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: adatempat_test
+          MYSQL_USER: adatempat
+          MYSQL_PASSWORD: adatempat
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: adatempat_test
+      DB_USERNAME: adatempat
+      DB_PASSWORD: adatempat
+      SUPER_ADMIN_NAME: QA Super Admin
+      SUPER_ADMIN_EMAIL: qa-super-admin@adatempat.test
+      SUPER_ADMIN_PASSWORD: AdatempatQa123!
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4.1'
+          extensions: mbstring, pdo_mysql, intl
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run MySQL migrations and seed
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Compile and lint Blade views
+        run: |
+          php artisan view:clear
+          php artisan view:cache
+          failed=0
+          for file in storage/framework/views/*.php; do
+            if ! php -l "$file" > /tmp/blade-lint.log 2>&1; then
+              cat /tmp/blade-lint.log
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run PHPUnit on MySQL
+        run: composer test
