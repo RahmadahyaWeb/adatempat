@@ -921,3 +921,505 @@
         color: var(--muted);
     }
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| UI-05 — Public Business Page
+|--------------------------------------------------------------------------
+| The business profile should establish trust quickly, then let visitors
+| compare venues without forcing every operational detail into the first scan.
+*/
+@layer components {
+    .business-public-page {
+        min-height: 70vh;
+    }
+
+    .business-public-hero {
+        background: var(--brand-forest);
+        color: white;
+    }
+
+    .business-back-link {
+        display: inline-flex;
+        min-height: 2.5rem;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255,255,255,.78);
+        font-size: .875rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .business-back-link:hover {
+        color: white;
+        text-decoration: underline;
+        text-underline-offset: .25rem;
+    }
+
+    .business-public-hero .site-container {
+        padding-block: 1.75rem 2.5rem;
+    }
+
+    .business-public-hero-grid {
+        display: grid;
+        gap: 2rem;
+        align-items: end;
+        margin-top: 1.5rem;
+    }
+
+    .business-public-identity h1 {
+        max-width: 13ch;
+        margin-top: .7rem;
+        color: white;
+        font-size: clamp(2.6rem, 10vw, 4.8rem);
+        font-weight: 800;
+        line-height: .98;
+        letter-spacing: -.065em;
+        text-wrap: balance;
+    }
+
+    .business-public-status {
+        min-height: 1.75rem;
+    }
+
+    .business-verified {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        color: var(--brand-lime);
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .business-verified svg {
+        width: 1rem;
+        height: 1rem;
+        border: 1px solid currentColor;
+        border-radius: 50%;
+        padding: .1rem;
+    }
+
+    .business-public-location {
+        display: flex;
+        align-items: flex-start;
+        gap: .55rem;
+        margin-top: 1.1rem;
+        color: rgba(255,255,255,.88);
+        font-size: .95rem;
+        font-weight: 700;
+        line-height: 1.55;
+    }
+
+    .business-public-location svg {
+        width: 1.1rem;
+        height: 1.1rem;
+        flex: 0 0 auto;
+        margin-top: .12rem;
+        color: var(--brand-lime);
+    }
+
+    .business-public-address {
+        max-width: 38rem;
+        margin-top: .45rem;
+        color: rgba(255,255,255,.62);
+        font-size: .82rem;
+        line-height: 1.65;
+    }
+
+    .business-public-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 1.75rem;
+    }
+
+    .business-public-summary div {
+        display: grid;
+        gap: .2rem;
+    }
+
+    .business-public-summary strong {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: -.04em;
+    }
+
+    .business-public-summary span {
+        color: rgba(255,255,255,.6);
+        font-size: .72rem;
+        font-weight: 650;
+    }
+
+    .business-public-hero-media {
+        overflow: hidden;
+        min-height: 18rem;
+        background: rgba(255,255,255,.08);
+    }
+
+    .business-public-hero-media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 18rem;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+    }
+
+    .business-public-hero-placeholder {
+        display: grid;
+        min-height: 18rem;
+        place-items: center;
+        align-content: center;
+        gap: .75rem;
+        padding: 2rem;
+        color: rgba(255,255,255,.65);
+        text-align: center;
+    }
+
+    .business-public-hero-placeholder svg {
+        width: 2rem;
+        height: 2rem;
+        color: var(--brand-lime);
+    }
+
+    .business-public-content {
+        padding-block: 3rem 4.5rem;
+    }
+
+    .business-public-section-heading {
+        display: grid;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .business-public-section-heading h2 {
+        max-width: 15ch;
+        margin-top: .75rem;
+        font-size: clamp(2rem, 7vw, 3.2rem);
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -.055em;
+        text-wrap: balance;
+    }
+
+    .business-public-section-heading p:not(.eyebrow) {
+        max-width: 42rem;
+        margin-top: .7rem;
+        color: var(--ink-soft);
+        font-size: .92rem;
+        line-height: 1.7;
+    }
+
+    .business-public-count {
+        color: var(--muted);
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .business-venue-list {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 2rem;
+    }
+
+    .business-venue-card {
+        display: grid;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+    }
+
+    .business-venue-media {
+        min-height: 15rem;
+        background: var(--surface-soft);
+    }
+
+    .business-venue-media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 15rem;
+        object-fit: cover;
+    }
+
+    .business-venue-media-placeholder {
+        display: grid;
+        min-height: 15rem;
+        place-items: center;
+        align-content: center;
+        gap: .65rem;
+        padding: 1.5rem;
+        color: var(--muted);
+        font-size: .78rem;
+        font-weight: 650;
+        text-align: center;
+    }
+
+    .business-venue-media-placeholder svg {
+        width: 2rem;
+        height: 2rem;
+        color: var(--brand-forest);
+    }
+
+    .business-venue-main {
+        min-width: 0;
+        padding: 1.15rem;
+    }
+
+    .business-venue-topline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem 1rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .business-venue-category {
+        color: var(--brand-forest);
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+    .business-venue-capacity {
+        color: var(--muted);
+        font-size: .75rem;
+        font-weight: 700;
+    }
+
+    .business-venue-main > h3 {
+        margin-top: .55rem;
+        font-size: 1.4rem;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -.045em;
+    }
+
+    .business-venue-description {
+        max-width: 44rem;
+        margin-top: .7rem;
+        color: var(--ink-soft);
+        font-size: .88rem;
+        line-height: 1.7;
+    }
+
+    .business-venue-facilities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+        margin-top: .85rem;
+    }
+
+    .business-venue-facilities span {
+        display: inline-flex;
+        min-height: 1.8rem;
+        align-items: center;
+        border-radius: .45rem;
+        background: var(--surface-soft);
+        padding: .3rem .55rem;
+        color: var(--ink-soft);
+        font-size: .7rem;
+        font-weight: 700;
+    }
+
+    .business-venue-bottom {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: end;
+        justify-content: space-between;
+        margin-top: 1.2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .business-venue-price-label {
+        display: block;
+        color: var(--muted);
+        font-size: .68rem;
+        font-weight: 700;
+    }
+
+    .business-venue-price {
+        margin-top: .15rem;
+        color: var(--brand-forest);
+        font-size: 1.08rem;
+        font-weight: 800;
+        letter-spacing: -.025em;
+    }
+
+    .business-venue-price span {
+        color: var(--muted);
+        font-size: .72rem;
+        font-weight: 650;
+    }
+
+    .business-venue-no-price {
+        color: var(--muted);
+        font-size: .8rem;
+        font-weight: 650;
+    }
+
+    .business-venue-detail-link {
+        color: var(--brand-forest);
+        font-size: .82rem;
+        font-weight: 800;
+        text-decoration: underline;
+        text-underline-offset: .25rem;
+    }
+
+    .business-venue-details {
+        margin-top: .8rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .business-venue-details > summary {
+        min-height: 2.9rem;
+        cursor: pointer;
+        padding-block: .85rem;
+        color: var(--ink-soft);
+        font-size: .8rem;
+        font-weight: 750;
+    }
+
+    .business-venue-details-grid {
+        display: grid;
+        gap: 1.2rem;
+        padding-bottom: .4rem;
+    }
+
+    .business-venue-details-grid section {
+        min-width: 0;
+    }
+
+    .business-venue-details-grid h4 {
+        margin-bottom: .55rem;
+        color: var(--muted);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+    }
+
+    .business-venue-detail-list {
+        display: grid;
+        gap: .45rem;
+    }
+
+    .business-venue-detail-list > div {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        justify-content: space-between;
+        color: var(--ink-soft);
+        font-size: .77rem;
+        line-height: 1.5;
+    }
+
+    .business-venue-detail-list strong {
+        max-width: 55%;
+        color: var(--ink);
+        font-weight: 700;
+        text-align: right;
+    }
+
+    .business-venue-detail-list small {
+        display: block;
+        margin-top: .1rem;
+        color: var(--muted);
+        font-size: .68rem;
+    }
+
+    .business-public-empty {
+        display: grid;
+        max-width: 36rem;
+        gap: .75rem;
+        justify-items: start;
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: var(--surface-soft);
+    }
+
+    .business-public-empty > svg {
+        width: 1.8rem;
+        height: 1.8rem;
+        color: var(--brand-forest);
+    }
+
+    .business-public-empty h3 {
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: -.035em;
+    }
+
+    .business-public-empty p {
+        color: var(--muted);
+        font-size: .85rem;
+        line-height: 1.65;
+    }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .business-public-section-heading {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .business-venue-card {
+            grid-template-columns: minmax(16rem, .78fr) minmax(0, 1.22fr);
+        }
+
+        .business-venue-main {
+            padding: 1.4rem;
+        }
+
+        .business-venue-details-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .business-public-hero .site-container {
+            padding-block: 2rem 4rem;
+        }
+
+        .business-public-hero-grid {
+            grid-template-columns: minmax(0, .9fr) minmax(26rem, 1.1fr);
+            gap: clamp(3rem, 6vw, 6rem);
+            align-items: center;
+            margin-top: 2.25rem;
+        }
+
+        .business-public-hero-media,
+        .business-public-hero-media img {
+            min-height: 28rem;
+        }
+
+        .business-public-content {
+            padding-block: 4.5rem 6rem;
+        }
+
+        .business-venue-list {
+            gap: 1.5rem;
+            margin-top: 2.75rem;
+        }
+
+        .business-venue-card {
+            grid-template-columns: minmax(21rem, .9fr) minmax(0, 1.1fr);
+        }
+
+        .business-venue-media,
+        .business-venue-media img {
+            min-height: 21rem;
+        }
+
+        .business-venue-main {
+            padding: 1.75rem;
+        }
+    }
+}
