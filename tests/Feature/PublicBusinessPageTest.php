@@ -98,6 +98,7 @@ class PublicBusinessPageTest extends TestCase
             'status' => Subscription::STATUS_ACTIVE,
             'starts_at' => now('UTC')->subDay(),
             'ends_at' => now('UTC')->addDays(29),
+            'grace_ends_at' => now('UTC')->addDays(30),
         ]);
 
         $business = $owner->businesses()->create([
