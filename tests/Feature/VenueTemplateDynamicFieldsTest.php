@@ -113,6 +113,7 @@ class VenueTemplateDynamicFieldsTest extends TestCase
         $owner = $this->createOwner();
         $business = $this->createBusiness($owner, Business::STATUS_ACTIVE);
         $business->forceFill(['published_at' => now()])->save();
+        $this->createEligibleSubscription($owner);
 
         $category = Category::query()->where('slug', 'meeting')->firstOrFail();
         $template = VenueTemplate::query()
