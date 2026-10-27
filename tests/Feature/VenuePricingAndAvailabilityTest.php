@@ -93,7 +93,7 @@ class VenuePricingAndAvailabilityTest extends TestCase
         $owner = $this->createOwner();
         $business = $this->createBusiness($owner);
         $category = Category::query()->where('slug', 'acara')->firstOrFail();
-        $template = $category->templates()->where('is_active', true)->firstOrFail();
+        $template = $category->venueTemplates()->where('is_active', true)->firstOrFail();
         $rules = $this->defaultAvailabilityRules();
         $rules[1]['is_open'] = true;
         $rules[1]['open_time'] = '09:00';
@@ -119,7 +119,7 @@ class VenuePricingAndAvailabilityTest extends TestCase
         $owner = $this->createOwner();
         $business = $this->createBusiness($owner);
         $category = Category::query()->where('slug', 'acara')->firstOrFail();
-        $template = $category->templates()->where('is_active', true)->firstOrFail();
+        $template = $category->venueTemplates()->where('is_active', true)->firstOrFail();
 
         Livewire::actingAs($owner)
             ->test('pages::owner.venue-form', ['business' => $business->public_id])
@@ -166,7 +166,7 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'price_amount' => 100000,
             'is_active' => true,
         ]);
-        $template = $category->templates()->where('is_active', true)->firstOrFail();
+        $template = $category->venueTemplates()->where('is_active', true)->firstOrFail();
 
         Livewire::actingAs($owner)
             ->test('pages::owner.venue-form', [
