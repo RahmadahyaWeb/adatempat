@@ -28,7 +28,7 @@ class PayoutAccountServiceTest extends TestCase
             'Pemilik Uji',
         );
 
-        $stored = PayoutAccount::query()->whereKey($account->getKey())->value('account_number_encrypted');
+        $stored = PayoutAccount::query()->findOrFail($account->getKey())->getRawOriginal('account_number_encrypted');
 
         $this->assertNotSame('123456789012', $stored);
         $this->assertSame('123456789012', $account->account_number_encrypted);
