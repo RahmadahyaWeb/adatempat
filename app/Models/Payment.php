@@ -57,20 +57,17 @@ class Payment extends Model
 
     public function booking(): BelongsTo
     {
-        return $this->belongsTo(Booking::class, 'payable_id')
-            ->where('payable_type', self::TYPE_BOOKING);
+        return $this->belongsTo(Booking::class, 'payable_id');
     }
 
     public function subscription(): BelongsTo
     {
-        return $this->belongsTo(Subscription::class, 'payable_id')
-            ->where('payable_type', self::TYPE_SUBSCRIPTION);
+        return $this->belongsTo(Subscription::class, 'payable_id');
     }
 
     public function adBooking(): BelongsTo
     {
-        return $this->belongsTo(AdBooking::class, 'payable_id')
-            ->where('payable_type', self::TYPE_AD_BOOKING);
+        return $this->belongsTo(AdBooking::class, 'payable_id');
     }
 
     public function refunds(): HasMany
