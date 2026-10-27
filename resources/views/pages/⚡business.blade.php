@@ -307,9 +307,9 @@ new #[Title('Profil usaha')] class extends Component {
                                                                 @endif
                                                             </span>
                                                             <strong>
-                                                                Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}@if ($price->pricing_unit !== 'session') / {{ $this->pricingUnitLabel($venue) }}@endif
+                                                                {{ 'Rp ' . number_format((int) $price->price_amount, 0, ',', '.') . ($price->pricing_unit !== 'session' ? ' / ' . $this->pricingUnitLabel($venue) : '') }}
                                                                 @if ($price->weekend_price_amount !== null)
-                                                                    <small>Akhir pekan Rp {{ number_format((int) $price->weekend_price_amount, 0, ',', '.') }}</small>
+                                                                    <small>{{ 'Akhir pekan Rp ' . number_format((int) $price->weekend_price_amount, 0, ',', '.') }}</small>
                                                                 @endif
                                                             </strong>
                                                         </div>
