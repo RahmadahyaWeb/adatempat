@@ -61,11 +61,11 @@ jobs:
           done
           exit "$failed"
 
-      - name: Run PHPUnit
-        run: composer test
-
       - name: Install frontend dependencies
         run: npm ci
 
       - name: Build frontend
         run: npm run build
+
+      - name: Run PHPUnit
+        run: composer test
