@@ -535,12 +535,17 @@ new class extends Component {
                 </div>
                 <div class="flex w-full flex-col gap-2 sm:w-auto sm:min-w-52">
                     <label for="discovery-sort" class="ui-label !mb-0">Urutkan hasil</label>
-                    <select id="discovery-sort" wire:model.live="sort" class="ui-input">
-                        <option value="newest">Terbaru dipublikasikan</option>
-                        <option value="price_low">Harga terendah</option>
-                        <option value="price_high">Harga tertinggi</option>
-                        <option value="capacity_high">Kapasitas terbesar</option>
-                    </select>
+                    <div class="ui-select-wrap">
+                        <select id="discovery-sort" wire:model.live="sort" class="ui-input ui-select">
+                            <option value="newest">Terbaru dipublikasikan</option>
+                            <option value="price_low">Harga terendah</option>
+                            <option value="price_high">Harga tertinggi</option>
+                            <option value="capacity_high">Kapasitas terbesar</option>
+                        </select>
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="ui-select-chevron">
+                            <path d="m6 8 4 4 4-4"/>
+                        </svg>
+                    </div>
                 </div>
             </div>
 
