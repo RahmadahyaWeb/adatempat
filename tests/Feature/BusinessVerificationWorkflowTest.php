@@ -159,7 +159,7 @@ class BusinessVerificationWorkflowTest extends TestCase
 
         Livewire::actingAs($owner)
             ->test('pages::owner.business-edit', ['business' => $business->public_id])
-            ->assertSee('Usaha perlu diperbaiki')
+            ->assertSee('Perbaiki profil usaha')
             ->assertSee('Titik lokasi tidak sesuai dengan alamat.')
             ->assertSee('Ajukan verifikasi');
     }
