@@ -361,9 +361,27 @@ new class extends Component {
             'outdoor' => 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=85',
         ];
         $defaultCategoryImage = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=85';
-        $isFiltered = $hasSearched || trim($keyword) !== '' || trim($location) !== '' || $category !== '';
+        $isFiltered = $hasSearched
+            || trim($keyword) !== ''
+            || trim($location) !== ''
+            || $category !== ''
+            || $minPrice !== ''
+            || $maxPrice !== ''
+            || $minCapacity !== ''
+            || count($selectedFacilities) > 0
+            || $availabilityDate !== ''
+            || $startTime !== ''
+            || $endTime !== '';
         $resultCount = $this->venues->count();
         $selectedCategory = $category !== '' ? $this->categories->firstWhere('slug', $category) : null;
+        $advancedFilterCount = collect([
+            $category !== '',
+            $minPrice !== '',
+            $maxPrice !== '',
+            $minCapacity !== '',
+            count($selectedFacilities) > 0,
+            $availabilityDate !== '' || $startTime !== '' || $endTime !== '',
+        ])->filter()->count();
     @endphp
 
     <section aria-labelledby="hero-heading" class="hero-section">
@@ -493,18 +511,127 @@ new class extends Component {
                                     {{ $selectedCategory->name }}
                                 </span>
                             @endif
+                            @if ($minPrice !== '' || $maxPrice !== '')
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">
+                                    Harga {{ $minPrice !== '' ? 'Rp ' . number_format((int) $minPrice, 0, ',', '.') : 'bebas' }} — {{ $maxPrice !== '' ? 'Rp ' . number_format((int) $maxPrice, 0, ',', '.') : 'tanpa batas' }}
+                                </span>
+                            @endif
+                            @if ($minCapacity !== '')
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">≥ {{ number_format((int) $minCapacity, 0, ',', '.') }} orang</span>
+                            @endif
+                            @foreach ($selectedFacilities as $facility)
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">{{ $facility }}</span>
+                            @endforeach
+                            @if ($availabilityDate !== '' && $startTime !== '' && $endTime !== '')
+                                <span class="inline-flex min-h-8 items-center rounded-lg bg-[var(--surface-soft)] px-3 py-1 text-xs font-bold text-[var(--ink-soft)]">
+                                    {{ CarbonCarbonImmutable::parse($availabilityDate)->translatedFormat('d M Y') }}, {{ $startTime }}–{{ $endTime }}
+                                </span>
+                            @endif
                             <a href="#jelajahi" class="inline-flex min-h-8 items-center px-1 text-xs font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">
                                 Ubah pencarian
                             </a>
                         </div>
                     @endif
                 </div>
-                @if (trim($keyword) !== '' || trim($location) !== '' || $category !== '')
-                    <button type="button" wire:click="resetSearch" class="btn btn-secondary w-full sm:w-auto">Bersihkan pencarian</button>
-                @endif
+                <div class="flex w-full flex-col gap-2 sm:w-auto sm:min-w-52">
+                    <label for="discovery-sort" class="ui-label !mb-0">Urutkan hasil</label>
+                    <select id="discovery-sort" wire:model.live="sort" class="ui-input">
+                        <option value="newest">Terbaru dipublikasikan</option>
+                        <option value="price_low">Harga terendah</option>
+                        <option value="price_high">Harga tertinggi</option>
+                        <option value="capacity_high">Kapasitas terbesar</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+            <details class="discovery-filters mt-6" @if ($advancedFilterCount > 0) open @endif>
+                <summary>
+                    <span>
+                        Filter lainnya
+                        @if ($advancedFilterCount > 0)
+                            <strong>{{ $advancedFilterCount }}</strong>
+                        @endif
+                    </span>
+                    <span class="discovery-filter-summary-hint">Harga, kapasitas, fasilitas, jadwal</span>
+                </summary>
+
+                <form wire:submit="applyDiscoveryFilters" class="discovery-filter-body">
+                    <div class="discovery-filter-grid">
+                        <div>
+                            <label for="filter-category" class="ui-label">Kategori</label>
+                            <select id="filter-category" wire:model="category" class="ui-input">
+                                <option value="">Semua kategori</option>
+                                @foreach ($this->categories as $item)
+                                    <option value="{{ $item->slug }}">{{ $item->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label for="filter-capacity" class="ui-label">Kapasitas minimum</label>
+                            <input id="filter-capacity" type="number" min="1" inputmode="numeric" wire:model="minCapacity" class="ui-input" placeholder="Mis. 50 orang">
+                            @error('minCapacity') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="filter-min-price" class="ui-label">Harga minimum</label>
+                            <input id="filter-min-price" type="number" min="0" step="1000" inputmode="numeric" wire:model="minPrice" class="ui-input" placeholder="Rp 0">
+                            @error('minPrice') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="filter-max-price" class="ui-label">Harga maksimum</label>
+                            <input id="filter-max-price" type="number" min="0" step="1000" inputmode="numeric" wire:model="maxPrice" class="ui-input" placeholder="Tanpa batas">
+                            @error('maxPrice') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="filter-date" class="ui-label">Tanggal</label>
+                            <input id="filter-date" type="date" min="{{ now('Asia/Jakarta')->format('Y-m-d') }}" wire:model="availabilityDate" class="ui-input">
+                            @error('availabilityDate') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="filter-start-time" class="ui-label">Jam mulai</label>
+                            <input id="filter-start-time" type="time" wire:model="startTime" class="ui-input">
+                            @error('startTime') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="filter-end-time" class="ui-label">Jam selesai</label>
+                            <input id="filter-end-time" type="time" wire:model="endTime" class="ui-input">
+                            @error('endTime') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+
+                    <fieldset class="discovery-facilities">
+                        <legend>Fasilitas</legend>
+                        <div class="discovery-facility-options">
+                            @foreach ($this->availableFacilities() as $facility)
+                                <label>
+                                    <input type="checkbox" value="{{ $facility }}" wire:model="selectedFacilities">
+                                    <span>{{ $facility }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('selectedFacilities') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                    </fieldset>
+
+                    <div class="discovery-filter-actions">
+                        <button type="submit" wire:loading.attr="disabled" wire:target="applyDiscoveryFilters" class="btn btn-primary">
+                            <span wire:loading.remove wire:target="applyDiscoveryFilters">Terapkan filter</span>
+                            <span wire:loading wire:target="applyDiscoveryFilters">Memeriksa...</span>
+                        </button>
+                        @if ($isFiltered)
+                            <button type="button" wire:click="resetSearch" class="btn btn-secondary">Bersihkan semua</button>
+                        @endif
+                    </div>
+                </form>
+            </details>
+
+            <div class="discovery-results-status mt-6" wire:loading.flex wire:target="applyDiscoveryFilters,search,chooseCategory,choosePopularSearch,sort">
+                <span class="discovery-loading-dot" aria-hidden="true"></span>
+                Memperbarui pilihan tempat...
+            </div>
+
+            <div class="mt-6 grid gap-3 transition-opacity sm:mt-8 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+                 wire:loading.class="opacity-50"
+                 wire:target="applyDiscoveryFilters,search,chooseCategory,choosePopularSearch,sort"
+                 aria-live="polite">
                 @forelse ($this->venues as $venue)
                     <article wire:key="venue-{{ $venue->id }}" class="venue-card">
                         @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
@@ -517,6 +644,14 @@ new class extends Component {
                         </div>
                         <h3 class="mt-4 break-words text-lg font-extrabold leading-tight tracking-[-0.04em] sm:text-xl">{{ $venue->name }}</h3>
                         <p class="mt-1.5 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
+                        <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-[var(--muted)]">
+                            @if ($venue->capacity_persons)
+                                <span>Hingga {{ number_format((int) $venue->capacity_persons, 0, ',', '.') }} orang</span>
+                            @endif
+                            @if (count($venue->facilities_json ?? []) > 0)
+                                <span>{{ count($venue->facilities_json) }} fasilitas</span>
+                            @endif
+                        </div>
                         @php($activePrices = $venue->prices->where('is_active', true)->values())
                         @if ($activePrices->isNotEmpty())
                             @php($displayPrice = $activePrices->flatMap(fn ($price) => [$price->price_amount, $price->weekend_price_amount])->filter(fn ($amount) => $amount !== null)->min())
@@ -531,6 +666,11 @@ new class extends Component {
                         </p>
                         @if ($venue->description)
                             <p class="mt-3 border-t border-[var(--border)] pt-3 text-sm leading-6 text-[var(--ink-soft)]">{{ \Illuminate\Support\Str::limit($venue->description, 170) }}</p>
+                        @endif
+                        @if ($venue->business?->slug)
+                            <a href="{{ route('business.public', ['businessSlug' => $venue->business->slug]) }}" class="mt-4 inline-flex min-h-10 items-center text-sm font-extrabold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                                Lihat tempat <span aria-hidden="true" class="ml-1">→</span>
+                            </a>
                         @endif
                     </article>
                 @empty
