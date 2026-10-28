@@ -2157,3 +2157,27 @@
         }
     }
 }
+
+
+/* UI-07 polish — top-align auth introduction */
+@layer components {
+    .auth-v2-shell {
+        align-items: start;
+    }
+
+    .auth-v2-story {
+        align-self: start;
+    }
+
+    .auth-v2-panel {
+        align-self: start;
+    }
+}
+
+@media (min-width: 768px) {
+    @layer components {
+        .auth-v2-story {
+            padding-top: .25rem;
+        }
+    }
+}
