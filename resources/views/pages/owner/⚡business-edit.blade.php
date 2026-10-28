@@ -355,7 +355,7 @@ new #[Title('Profil usaha')] class extends Component {
 };
 ?>
 
-<div class="site-container py-7 sm:py-10 lg:py-12">
+<div class="site-container owner-core-page owner-profile-page py-7 sm:py-9 lg:py-10">
     @php
         $business = $this->currentBusiness;
         $statusMeta = match ($business->status) {
@@ -372,15 +372,15 @@ new #[Title('Profil usaha')] class extends Component {
         $latestRevision = $this->latestRevision;
     @endphp
 
-    <a href="{{ route('owner.businesses.index') }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
+    <a href="{{ route('owner.businesses.index') }}" class="owner-core-back">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
         Kembali ke daftar usaha
     </a>
 
-    <header class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <header class="owner-core-header">
         <div class="min-w-0">
-            <p class="eyebrow"><span class="eyebrow-dot"></span> Profil usaha</p>
-            <h1 class="mt-2 break-words text-3xl font-extrabold leading-tight tracking-[-0.055em] sm:text-4xl">{{ $business->name }}</h1>
+            <p class="owner-core-kicker">Profil usaha</p>
+            <h1>{{ $business->name }}</h1>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold {{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                 <span class="text-sm text-[var(--muted)]">{{ $business->venues_count }} venue terdaftar</span>
@@ -392,8 +392,8 @@ new #[Title('Profil usaha')] class extends Component {
         <div role="status" class="status-note status-success mt-6">{{ session('status') }}</div>
     @endif
 
-    <div class="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-8">
-        <section aria-labelledby="business-profile-heading" class="rounded-2xl bg-white p-5 sm:p-7">
+    <div class="owner-profile-layout grid items-start lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <section aria-labelledby="business-profile-heading" class="owner-profile-card">
             <div>
                 <h2 id="business-profile-heading" class="text-xl font-extrabold tracking-[-0.04em] sm:text-2xl">Informasi dasar</h2>
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Nama dan alamat membantu pelanggan mengenali usaha saat profil publik tersedia.</p>
@@ -528,7 +528,7 @@ new #[Title('Profil usaha')] class extends Component {
 
         </section>
 
-        <aside class="rounded-2xl bg-[var(--surface-soft)] p-5 sm:p-6">
+        <aside class="owner-profile-aside">
             @if ($business->status === \App\Models\Business::STATUS_ACTIVE)
                 @if ($business->published_at)
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Profil publik</p>
