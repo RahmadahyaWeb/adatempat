@@ -2181,3 +2181,77 @@
         }
     }
 }
+
+
+/* UI-08 — customer booking workspace */
+@layer components {
+    .customer-area-shell { padding-block:2rem 5rem; }
+    .customer-area-header { display:flex; flex-direction:column; gap:1rem; align-items:flex-start; justify-content:space-between; }
+    .customer-area-header h1 { margin-top:.55rem; font-size:clamp(2.2rem,6vw,3.8rem); font-weight:800; line-height:1; letter-spacing:-.055em; }
+    .customer-area-header p:not(.eyebrow) { max-width:42rem; margin-top:.7rem; color:var(--ink-soft); font-size:.88rem; line-height:1.7; }
+
+    .customer-booking-tabs { display:flex; gap:.45rem; overflow-x:auto; margin-top:1.5rem; padding-bottom:.15rem; scrollbar-width:none; }
+    .customer-booking-tabs::-webkit-scrollbar { display:none; }
+    .customer-booking-tabs button { display:inline-flex; min-height:2.5rem; flex:0 0 auto; align-items:center; gap:.45rem; border:1px solid var(--border); border-radius:999px; background:var(--surface); padding:.5rem .75rem; color:var(--ink-soft); font-size:.76rem; font-weight:750; cursor:pointer; }
+    .customer-booking-tabs button.is-active { border-color:var(--brand-forest); background:var(--surface-lime); color:var(--brand-forest-deep); }
+    .customer-booking-tabs small { display:grid; min-width:1.3rem; min-height:1.3rem; place-items:center; border-radius:999px; background:var(--surface-soft); color:var(--muted); font-size:.65rem; }
+    .customer-booking-tabs button.is-active small { background:rgba(255,255,255,.65); color:inherit; }
+
+    .customer-booking-list { display:grid; gap:1rem; margin-top:1.25rem; }
+    .customer-booking-card { display:grid; gap:1rem; border:1px solid var(--border); border-radius:1rem; background:var(--surface); padding:1.1rem; }
+    .customer-booking-main { min-width:0; }
+    .customer-booking-topline { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; justify-content:space-between; }
+    .customer-booking-status { display:inline-flex; min-height:1.7rem; align-items:center; border-radius:999px; padding:.25rem .55rem; font-size:.68rem; font-weight:800; }
+    .customer-booking-status.is-success { background:#e8f6ed; color:#17603a; }
+    .customer-booking-status.is-danger { background:#fdecec; color:#8d2d2d; }
+    .customer-booking-status.is-muted { background:var(--surface-soft); color:var(--muted); }
+    .customer-booking-status.is-warning { background:#fff4d8; color:#7a5a00; }
+    .customer-booking-status.is-active { background:#e9f2ff; color:#225a8f; }
+    .customer-booking-reference { color:var(--muted); font-size:.68rem; font-weight:650; }
+
+    .customer-booking-title-row { display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-start; justify-content:space-between; margin-top:.8rem; }
+    .customer-booking-title-row h2 { font-size:1.2rem; font-weight:800; letter-spacing:-.035em; }
+    .customer-booking-title-row p { margin-top:.2rem; color:var(--muted); font-size:.75rem; }
+    .customer-booking-title-row > strong { color:var(--brand-forest); font-size:1rem; font-weight:800; }
+
+    .customer-booking-schedule { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin-top:1rem; }
+    .customer-booking-schedule div { display:grid; gap:.12rem; }
+    .customer-booking-schedule span { color:var(--muted); font-size:.66rem; font-weight:650; }
+    .customer-booking-schedule strong { color:var(--ink); font-size:.76rem; font-weight:750; }
+
+    .customer-booking-finance { display:grid; gap:.45rem; margin-top:1rem; border-top:1px solid var(--border); padding-top:.8rem; }
+    .customer-booking-finance div { display:flex; gap:1rem; align-items:flex-start; justify-content:space-between; color:var(--ink-soft); font-size:.72rem; }
+    .customer-booking-finance strong { max-width:65%; text-align:right; color:var(--ink); font-weight:750; }
+
+    .customer-booking-actions { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; }
+    .customer-booking-text-action { color:var(--brand-forest); font-size:.76rem; font-weight:800; text-decoration:underline; text-underline-offset:.2rem; }
+
+    .customer-booking-empty { display:grid; max-width:32rem; gap:.7rem; justify-items:start; margin-top:.5rem; padding:1.5rem; background:var(--surface-soft); }
+    .customer-booking-empty-icon { display:grid; width:2.6rem; height:2.6rem; place-items:center; border-radius:.75rem; background:var(--surface-lime); color:var(--brand-forest); }
+    .customer-booking-empty-icon svg { width:1.2rem; height:1.2rem; }
+    .customer-booking-empty h2 { font-size:1.1rem; font-weight:800; }
+    .customer-booking-empty p { color:var(--muted); font-size:.8rem; line-height:1.6; }
+
+    .customer-modal-backdrop { position:fixed; z-index:80; inset:0; display:flex; align-items:flex-end; justify-content:center; background:rgba(11,18,14,.48); overscroll-behavior:contain; }
+    .customer-modal { width:100%; max-height:92vh; overflow:auto; border-radius:1.2rem 1.2rem 0 0; background:var(--surface); overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+    .customer-modal-head { position:sticky; z-index:2; top:0; display:flex; gap:1rem; align-items:flex-start; justify-content:space-between; border-bottom:1px solid var(--border); background:var(--surface); padding:1rem 1.1rem; }
+    .customer-modal-head span { color:var(--muted); font-size:.68rem; font-weight:700; }
+    .customer-modal-head h2 { margin-top:.15rem; font-size:1.3rem; font-weight:800; letter-spacing:-.035em; }
+    .customer-modal-body { display:grid; gap:1rem; padding:1.1rem; }
+    .customer-modal-body > p { color:var(--ink-soft); font-size:.8rem; line-height:1.65; }
+    .customer-modal-actions { display:flex; flex-direction:column; gap:.6rem; }
+}
+
+@media (min-width:700px) {
+    @layer components {
+        .customer-area-header { flex-direction:row; align-items:end; }
+        .customer-booking-card { grid-template-columns:minmax(0,1fr) auto; align-items:start; padding:1.35rem; }
+        .customer-booking-actions { flex-direction:column; align-items:stretch; min-width:11rem; }
+        .customer-booking-schedule { grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .customer-modal-backdrop { align-items:center; padding:2rem; }
+        .customer-modal { max-width:34rem; border-radius:1rem; }
+        .customer-modal-head { padding:1.1rem 1.25rem; }
+        .customer-modal-body { padding:1.25rem; }
+        .customer-modal-actions { flex-direction:row; justify-content:flex-end; }
+    }
+}
