@@ -25,8 +25,8 @@ class LocalUatSeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
-            $this->command?->warn('LocalUatSeeder dilewati: hanya untuk environment local/testing.');
+        if (! app()->environment('local')) {
+            $this->command?->warn('LocalUatSeeder dilewati: hanya untuk environment local.');
 
             return;
         }
