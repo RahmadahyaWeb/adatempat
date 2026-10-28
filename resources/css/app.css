@@ -3486,3 +3486,201 @@
         position: relative;
     }
 }
+
+
+/* UI-10 Batch 2 — Venue Form + Promotions */
+@layer components {
+    .owner-venue-form-header {
+        max-width: 52rem;
+    }
+
+    .owner-venue-form-layout {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        align-items: start;
+    }
+
+    .owner-venue-form-card {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+        padding: 1rem;
+    }
+
+    .owner-venue-form-card > div:first-child h2 {
+        font-size: 1.3rem;
+        font-weight: 800;
+        letter-spacing: -.04em;
+    }
+
+    .owner-venue-form-card > div:first-child p {
+        margin-top: .35rem;
+        color: var(--muted);
+        font-size: .77rem;
+        line-height: 1.6;
+    }
+
+    .owner-venue-form-card form {
+        margin-top: 1rem !important;
+    }
+
+    .owner-venue-form-section {
+        scroll-margin-top: 6.5rem;
+        border: 1px solid var(--border);
+        border-radius: .9rem;
+        background: var(--surface);
+        padding: 1rem;
+    }
+
+    .owner-venue-form-section > div:first-child h3,
+    .owner-venue-form-section > legend {
+        color: var(--ink);
+        font-size: .95rem;
+        font-weight: 800;
+        letter-spacing: -.02em;
+    }
+
+    .owner-venue-form-section > div:first-child p,
+    .owner-venue-form-section > p:first-of-type {
+        color: var(--ink-soft);
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    .owner-venue-form-aside {
+        display: grid;
+        gap: .75rem;
+    }
+
+    .owner-venue-form-nav,
+    .owner-venue-form-help {
+        border: 1px solid var(--border);
+        border-radius: .9rem;
+        background: var(--surface);
+        padding: .85rem;
+    }
+
+    .owner-venue-form-nav {
+        display: none;
+        gap: .15rem;
+    }
+
+    .owner-venue-form-nav > span,
+    .owner-venue-form-help > span {
+        display: block;
+        margin-bottom: .45rem;
+        color: var(--muted);
+        font-size: .62rem;
+        font-weight: 700;
+    }
+
+    .owner-venue-form-nav a {
+        display: block;
+        border-radius: .55rem;
+        padding: .5rem .55rem;
+        color: var(--ink-soft);
+        font-size: .72rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .owner-venue-form-nav a:hover {
+        background: var(--surface-soft);
+        color: var(--brand-forest);
+    }
+
+    .owner-venue-form-help strong {
+        display: block;
+        color: var(--ink);
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .owner-venue-form-help p {
+        margin-top: .35rem;
+        color: var(--muted);
+        font-size: .68rem;
+        line-height: 1.55;
+    }
+
+    .owner-promo-header {
+        max-width: 52rem;
+    }
+
+    .owner-promo-layout {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        align-items: start;
+    }
+
+    .owner-promo-create,
+    .owner-promo-list {
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+        padding: 1rem;
+    }
+
+    .owner-promo-create h2,
+    .owner-promo-list h2 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -.035em;
+    }
+
+    .owner-promo-create > p,
+    .owner-promo-list p {
+        color: var(--muted);
+    }
+
+    .owner-promo-card {
+        border: 1px solid var(--border);
+        border-radius: .85rem;
+        background: var(--surface);
+        padding: .9rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .owner-venue-form-layout {
+            grid-template-columns: minmax(0, 1fr) 14rem;
+            gap: 1.25rem;
+        }
+
+        .owner-venue-form-card {
+            padding: 1.35rem;
+        }
+
+        .owner-venue-form-section {
+            padding: 1.15rem;
+        }
+
+        .owner-venue-form-aside {
+            position: sticky;
+            top: 5.5rem;
+        }
+
+        .owner-venue-form-nav {
+            display: grid;
+        }
+
+        .owner-promo-layout {
+            grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+            gap: 1.25rem;
+        }
+
+        .owner-promo-create,
+        .owner-promo-list {
+            padding: 1.25rem;
+        }
+
+        .owner-promo-create {
+            position: sticky;
+            top: 5.5rem;
+        }
+    }
+}
