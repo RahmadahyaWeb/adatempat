@@ -231,21 +231,21 @@ new #[Title('Promosi venue')] class extends Component {
 };
 ?>
 
-<div class="site-container py-7 sm:py-10 lg:py-12">
+<div class="site-container owner-core-page owner-promo-page py-7 sm:py-9 lg:py-10">
     @php
         $business = $this->currentBusiness;
         $venue = $this->currentVenue;
         $timezone = $business->timezone ?: 'Asia/Jakarta';
     @endphp
 
-    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
+    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="owner-core-back">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
         Kembali ke daftar venue
     </a>
 
-    <header class="mt-5 max-w-3xl">
-        <p class="eyebrow"><span class="eyebrow-dot"></span> Promosi venue</p>
-        <h1 class="mt-3 break-words text-3xl font-extrabold leading-tight tracking-[-0.055em] sm:text-4xl">Kelola promosi</h1>
+    <header class="owner-core-header owner-promo-header">
+        <p class="owner-core-kicker">Promosi venue</p>
+        <h1>Kelola promosi</h1>
         <p class="mt-2 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->name }} · {{ $business->name }}</p>
         <p class="mt-3 text-sm leading-6 text-[var(--muted)]">Buat diskon persentase atau nominal tetap untuk venue ini. Jadwal menggunakan zona waktu {{ $timezone }}. Promosi hanya tersimpan di tahap ini; pemilihan diskon saat checkout akan ditangani Booking Engine.</p>
     </header>
@@ -257,8 +257,8 @@ new #[Title('Promosi venue')] class extends Component {
         <div role="alert" class="status-note mt-4">{{ $message }}</div>
     @enderror
 
-    <div class="mt-7 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <section class="h-fit rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+    <div class="owner-promo-layout">
+        <section class="owner-promo-create">
             <h2 class="text-lg font-extrabold tracking-[-0.035em]">Buat promosi baru</h2>
             <p class="mt-1 text-sm leading-6 text-[var(--muted)]">Diskon didanai oleh Owner dan tidak dapat digabung dengan promosi Owner lain dalam satu booking.</p>
 
@@ -318,7 +318,7 @@ new #[Title('Promosi venue')] class extends Component {
             </form>
         </section>
 
-        <section class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+        <section class="owner-promo-list">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h2 class="text-lg font-extrabold tracking-[-0.035em]">Daftar promosi</h2>
@@ -340,7 +340,7 @@ new #[Title('Promosi venue')] class extends Component {
                         $startsLocal = $promotion->starts_at->copy()->setTimezone($timezone);
                         $endsLocal = $promotion->ends_at->copy()->setTimezone($timezone);
                     @endphp
-                    <article wire:key="venue-promotion-{{ $promotion->id }}" class="rounded-xl border border-[var(--border)] p-4">
+                    <article wire:key="venue-promotion-{{ $promotion->id }}" class="owner-promo-card">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div class="min-w-0">
                                 <h3 class="break-words text-base font-extrabold text-[var(--ink)]">{{ $promotion->name }}</h3>
