@@ -647,7 +647,15 @@ new class extends Component {
                     >
                         @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
                         @if ($coverMedia)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="mb-4 aspect-[16/9] w-full rounded-xl object-cover">
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="venue-card-media">
+                        @else
+                            <div class="venue-card-media venue-card-media-empty" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                                    <circle cx="8.5" cy="9" r="1.5"/>
+                                    <path d="m21 15-5-5L5 20"/>
+                                </svg>
+                            </div>
                         @endif
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
