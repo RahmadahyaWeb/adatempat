@@ -283,10 +283,18 @@
     @endif
 
     @if ($ownerWorkspace)
-        <div class="owner-shell">
-            <aside class="owner-shell-sidebar" aria-label="Navigasi Owner">
-                <div class="owner-shell-brand">
-                    <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark" aria-label="Adatempat Owner">
+        @php
+            $ownerInitial = strtoupper(substr(trim((string) $currentUser->name), 0, 1));
+            $subscriptionLabel = $ownerSubscription?->plan?->name ?? 'Belum aktif';
+            $subscriptionStatus = $ownerSubscription
+                ? str($ownerSubscription->status)->replace('_', ' ')->title()->toString()
+                : 'Belum ada paket';
+        @endphp
+
+        <div class="owner-shell-v2">
+            <aside class="owner-shell-v2-sidebar" aria-label="Navigasi Owner">
+                <div class="owner-shell-v2-sidebar-head">
+                    <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark owner-shell-v2-brand" aria-label="Adatempat Owner">
                         <span class="brand-symbol" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
                                 <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
@@ -294,13 +302,13 @@
                         </span>
                         <span>adatempat</span>
                     </a>
-                    <span class="owner-shell-product">Owner</span>
+                    <p>Workspace Owner</p>
                 </div>
 
-                <nav class="owner-shell-nav">
+                <nav class="owner-shell-v2-nav">
                     @foreach ($ownerWorkspaceItems as $item)
-                        <a href="{{ $item['href'] }}" class="owner-shell-nav-item {{ $item['active'] ? 'is-active' : '' }}">
-                            <span class="owner-shell-nav-icon" aria-hidden="true">
+                        <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">
+                            <span aria-hidden="true">
                                 @if ($item['icon'] === 'building')
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5h10v16M14 9h6v12M8 9h2M8 13h2M8 17h2M17 13h.01M17 17h.01"/></svg>
                                 @elseif ($item['icon'] === 'calendar')
@@ -311,39 +319,43 @@
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v10H4z"/><path d="M8 12h4"/></svg>
                                 @endif
                             </span>
-                            <span>{{ $item['label'] }}</span>
+                            <strong>{{ $item['label'] }}</strong>
                         </a>
                     @endforeach
                 </nav>
 
-                <div class="owner-shell-context">
-                    @if ($ownerContextBusiness)
-                        <span class="owner-shell-context-label">Usaha aktif</span>
-                        <strong>{{ $ownerContextBusiness->name }}</strong>
-                        <small>{{ str($ownerContextBusiness->status)->replace('_', ' ')->title() }}</small>
-                    @else
-                        <span class="owner-shell-context-label">Portofolio</span>
-                        <strong>{{ $ownerBusinessCount }} usaha</strong>
-                        <small>Kelola usaha dan venue dari satu workspace.</small>
-                    @endif
-                </div>
+                <div class="owner-shell-v2-sidebar-foot">
+                    <a href="{{ route('owner.subscription') }}" class="owner-shell-v2-plan">
+                        <span>Langganan</span>
+                        <strong>{{ $subscriptionLabel }}</strong>
+                        <small>{{ $subscriptionStatus }}</small>
+                    </a>
 
-                <div class="owner-shell-subscription">
-                    <span>Langganan</span>
-                    @if ($ownerSubscription)
-                        <strong>{{ $ownerSubscription->plan?->name ?? 'Paket aktif' }}</strong>
-                        <small>{{ str($ownerSubscription->status)->replace('_', ' ')->title() }}</small>
-                    @else
-                        <strong>Belum aktif</strong>
-                        <small>Pilih paket untuk mempublikasikan usaha.</small>
-                    @endif
+                    <details class="owner-shell-v2-account">
+                        <summary>
+                            <span class="owner-shell-v2-avatar">{{ $ownerInitial }}</span>
+                            <span class="owner-shell-v2-account-copy">
+                                <strong>{{ $currentUser->name }}</strong>
+                                <small>Owner</small>
+                            </span>
+                            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 8 4 4 4-4"/></svg>
+                        </summary>
+                        <div class="owner-shell-v2-account-menu">
+                            <span>{{ $currentUser->email }}</span>
+                            <a href="{{ route('home') }}">Lihat marketplace</a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit">Keluar</button>
+                            </form>
+                        </div>
+                    </details>
                 </div>
             </aside>
 
-            <div class="owner-shell-main">
-                <header class="owner-shell-topbar">
-                    <div class="owner-shell-mobile-brand">
-                        <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark">
+            <div class="owner-shell-v2-main">
+                <header class="owner-shell-v2-topbar">
+                    <div class="owner-shell-v2-mobile-brand">
+                        <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark" aria-label="Adatempat Owner">
                             <span class="brand-symbol" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
                                     <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
@@ -351,42 +363,67 @@
                             </span>
                             <span>adatempat</span>
                         </a>
-                        <span>Owner</span>
                     </div>
 
-                    <div class="owner-shell-user">
-                        <div>
-                            <strong>{{ $currentUser->name }}</strong>
-                            <span>{{ $currentUser->email }}</span>
-                        </div>
-                        <a href="{{ route('home') }}" class="owner-shell-marketplace-link">Lihat marketplace</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="owner-shell-logout">Keluar</button>
-                        </form>
+                    <div class="owner-shell-v2-topbar-context">
+                        @if ($ownerContextBusiness)
+                            <span>Usaha aktif</span>
+                            <strong>{{ $ownerContextBusiness->name }}</strong>
+                        @else
+                            <span>Workspace</span>
+                            <strong>Owner</strong>
+                        @endif
+                    </div>
+
+                    <div class="owner-shell-v2-topbar-actions">
+                        <a href="{{ route('home') }}" class="owner-shell-v2-marketplace">
+                            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 10 4l7 5.5V17a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1Z"/></svg>
+                            <span>Marketplace</span>
+                        </a>
+
+                        <details class="owner-shell-v2-top-account">
+                            <summary aria-label="Buka menu akun">
+                                <span class="owner-shell-v2-avatar">{{ $ownerInitial }}</span>
+                                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 8 4 4 4-4"/></svg>
+                            </summary>
+                            <div>
+                                <strong>{{ $currentUser->name }}</strong>
+                                <span>{{ $currentUser->email }}</span>
+                                <a href="{{ route('home') }}">Lihat marketplace</a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit">Keluar</button>
+                                </form>
+                            </div>
+                        </details>
                     </div>
                 </header>
 
-                <nav class="owner-shell-mobile-nav" aria-label="Navigasi Owner">
+                <nav class="owner-shell-v2-mobile-nav" aria-label="Navigasi Owner">
                     @foreach ($ownerWorkspaceItems as $item)
                         <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">{{ $item['label'] }}</a>
                     @endforeach
                 </nav>
 
                 @if ($ownerContextBusiness)
-                    <div class="owner-shell-business-bar">
+                    <div class="owner-shell-v2-business-context">
                         <div>
-                            <span>Usaha aktif</span>
+                            <span>{{ str($ownerContextBusiness->status)->replace('_', ' ')->title() }}</span>
                             <strong>{{ $ownerContextBusiness->name }}</strong>
                         </div>
                         @if ($ownerContextBusiness->status === \App\Models\Business::STATUS_ACTIVE && $ownerContextBusiness->published_at)
-                            <a href="{{ route('business.public', ['businessSlug' => $ownerContextBusiness->slug]) }}">Lihat halaman publik</a>
+                            <a href="{{ route('business.public', ['businessSlug' => $ownerContextBusiness->slug]) }}">
+                                Lihat publik
+                                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10h11m-4-4 4 4-4 4"/></svg>
+                            </a>
                         @endif
                     </div>
                 @endif
 
-                <main id="konten-utama" class="owner-shell-content">
-                    {{ $slot }}
+                <main id="konten-utama" class="owner-shell-v2-content">
+                    <div class="owner-shell-v2-content-inner">
+                        {{ $slot }}
+                    </div>
                 </main>
             </div>
         </div>

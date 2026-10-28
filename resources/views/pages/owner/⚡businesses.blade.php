@@ -93,26 +93,16 @@ new #[Title('Kelola usaha')] class extends Component {
         $venueCount = $businesses->sum('venues_count');
     @endphp
 
-    <header class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div class="max-w-2xl">
-            <a href="{{ route('home') }}" class="mb-4 inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
-                Kembali ke Adatempat
-            </a>
-            <p class="eyebrow"><span class="eyebrow-dot"></span> Ruang pemilik usaha</p>
-            <h1 class="mt-3 text-3xl font-extrabold leading-tight tracking-[-0.055em] sm:text-4xl lg:text-5xl">Kelola usaha</h1>
-            <p class="mt-3 max-w-xl text-sm leading-7 text-[var(--ink-soft)] sm:text-base">
-                Atur profil usaha yang kamu miliki. Usaha dan venue hanya tampil di katalog publik setelah memenuhi persyaratan publikasi.
-            </p>
+    <header class="owner-page-header">
+        <div>
+            <p class="owner-page-kicker">Portofolio usaha</p>
+            <h1>Kelola usaha</h1>
+            <p>Atur profil usaha dan venue yang kamu miliki. Konten publik hanya tampil setelah memenuhi persyaratan publikasi.</p>
         </div>
-        <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
-            <a href="{{ route('owner.bookings.index') }}" class="btn btn-secondary w-full sm:w-auto">Booking masuk</a>
-            <a href="{{ route('owner.payout-accounts.index') }}" class="btn btn-secondary w-full sm:w-auto">Rekening payout</a>
-            <button type="button" wire:click="startCreate" class="btn btn-primary w-full sm:w-auto">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
-                Tambah usaha
-            </button>
-        </div>
+        <button type="button" wire:click="startCreate" class="btn btn-primary owner-page-primary-action">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah usaha
+        </button>
     </header>
 
     @if (session('status'))
