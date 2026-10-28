@@ -281,13 +281,9 @@ new #[Title('Profil usaha')] class extends Component {
                                         @endif
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        class="business-venue-detail-link"
-                                        onclick="const details = this.closest('article').querySelector('details'); details.open = true; details.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });"
-                                    >
-                                        Lihat detail
-                                    </button>
+                                    <a href="{{ route('venue.public', ['businessSlug' => $business->slug, 'venueSlug' => $venue->slug]) }}" class="business-venue-detail-link">
+                                        Lihat detail venue
+                                    </a>
                                 </div>
 
                                 <details id="venue-detail-{{ $venue->public_id }}" class="business-venue-details">

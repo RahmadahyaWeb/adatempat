@@ -180,6 +180,10 @@ Route::prefix('account')
     ->group(function () {
         Route::livewire('/bookings', 'pages::customer.bookings')
             ->name('bookings.index');
+
+        Route::livewire('/booking/{venue}', 'pages::customer.booking-checkout')
+            ->where('venue', '[0-9A-HJKMNP-TV-Z]{26}')
+            ->name('booking.checkout');
     });
 
 
@@ -251,6 +255,11 @@ Route::middleware(['auth', 'account.active', 'verified', 'throttle:30,1'])->grou
     Route::get('/disputes/evidence/{evidence}/download', [\App\Http\Controllers\DisputeEvidenceController::class, 'download'])
         ->whereNumber('evidence')->name('disputes.evidence.download');
 });
+
+Route::livewire('/{businessSlug}/venue/{venueSlug}', 'pages::venue')
+    ->where('businessSlug', '[a-z0-9-]+')
+    ->where('venueSlug', '[a-z0-9-]+')
+    ->name('venue.public');
 
 Route::livewire('/{businessSlug}', 'pages::business')
     ->where('businessSlug', '[a-z0-9-]+')
