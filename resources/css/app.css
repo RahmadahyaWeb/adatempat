@@ -3224,3 +3224,27 @@
         }
     }
 }
+
+
+/* UI-09 polish — unified Owner workspace gutter */
+@media (min-width: 1024px) {
+    @layer components {
+        .owner-shell-v2-main {
+            --owner-workspace-gutter: 1.5rem;
+        }
+
+        .owner-shell-v2-topbar,
+        .owner-shell-v2-business-context,
+        .owner-shell-v2-content-inner {
+            padding-inline: var(--owner-workspace-gutter);
+        }
+    }
+}
+
+@media (min-width: 1280px) {
+    @layer components {
+        .owner-shell-v2-main {
+            --owner-workspace-gutter: 2rem;
+        }
+    }
+}
