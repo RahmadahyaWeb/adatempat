@@ -1542,3 +1542,116 @@
         .booking-checkout-result-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
 }
+
+
+/* UI-06 v2 — venue-first detail, modal booking */
+[x-cloak] { display: none !important; }
+
+@layer components {
+    .venue-v2 { padding-bottom: 5rem; }
+    .venue-v2-head { padding-block: 1.5rem 1rem; }
+    .venue-v2-breadcrumb { display:flex; align-items:center; gap:.45rem; color:var(--muted); font-size:.76rem; }
+    .venue-v2-breadcrumb a { color:var(--ink-soft); text-decoration:none; font-weight:650; }
+    .venue-v2-breadcrumb a:hover { color:var(--brand-forest); text-decoration:underline; text-underline-offset:.2rem; }
+
+    .venue-v2-title-row { display:grid; gap:1rem; margin-top:1.25rem; align-items:end; }
+    .venue-v2-kicker { display:flex; flex-wrap:wrap; gap:.45rem .8rem; color:var(--brand-forest); font-size:.76rem; font-weight:800; }
+    .venue-v2-title-row h1 { max-width:14ch; margin-top:.5rem; font-size:clamp(2.3rem,7vw,4.25rem); font-weight:800; line-height:.98; letter-spacing:-.06em; text-wrap:balance; }
+    .venue-v2-title-row p { margin-top:.65rem; color:var(--ink-soft); font-size:.92rem; }
+    .venue-v2-book-top { display:none; }
+
+    .venue-v2-gallery-wrap { padding-block:1rem 2.25rem; }
+    .venue-v2-gallery { display:grid; gap:.6rem; overflow:hidden; border-radius:1rem; }
+    .venue-v2-gallery-main { display:block; width:100%; height:100%; min-height:20rem; aspect-ratio:16/11; object-fit:cover; background:var(--surface-soft); }
+    .venue-v2-gallery-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
+    .venue-v2-gallery-grid img { display:block; width:100%; height:100%; aspect-ratio:4/3; object-fit:cover; background:var(--surface-soft); }
+    .venue-v2-gallery-empty { display:grid; min-height:20rem; place-items:center; border-radius:1rem; background:var(--surface-soft); color:var(--muted); font-size:.85rem; }
+
+    .venue-v2-main { display:grid; gap:2.5rem; align-items:start; }
+    .venue-v2-story { min-width:0; }
+    .venue-v2-quickfacts { display:flex; flex-wrap:wrap; gap:1rem 2rem; padding-block:1rem 1.5rem; border-bottom:1px solid var(--border); }
+    .venue-v2-quickfacts div { display:grid; gap:.15rem; }
+    .venue-v2-quickfacts strong { color:var(--ink); font-size:1.1rem; font-weight:800; letter-spacing:-.03em; }
+    .venue-v2-quickfacts span { color:var(--muted); font-size:.72rem; font-weight:650; }
+
+    .venue-v2-section { padding-block:1.75rem; border-bottom:1px solid var(--border); }
+    .venue-v2-section h2 { font-size:1.55rem; font-weight:800; letter-spacing:-.045em; }
+    .venue-v2-description { max-width:48rem; margin-top:.8rem; color:var(--ink-soft); font-size:.94rem; line-height:1.8; }
+    .venue-v2-section-head { display:flex; flex-wrap:wrap; gap:1rem; align-items:end; justify-content:space-between; }
+    .venue-v2-section-head p { max-width:38rem; margin-top:.35rem; color:var(--muted); font-size:.78rem; line-height:1.6; }
+    .venue-v2-text-button { border:0; background:transparent; color:var(--brand-forest); font-size:.82rem; font-weight:800; text-decoration:underline; text-underline-offset:.25rem; cursor:pointer; }
+    .venue-v2-amenities { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1rem; }
+    .venue-v2-amenities span { display:inline-flex; min-height:2.35rem; align-items:center; border:1px solid var(--border); border-radius:.7rem; padding:.5rem .75rem; color:var(--ink-soft); font-size:.77rem; font-weight:700; background:var(--surface); }
+
+    .venue-v2-cta-card { display:none; }
+    .venue-v2-mobile-bar { position:fixed; z-index:35; inset:auto 0 0; display:flex; align-items:center; justify-content:space-between; gap:1rem; border-top:1px solid var(--border); background:color-mix(in srgb,var(--surface) 96%, transparent); padding:.75rem 1rem; backdrop-filter:blur(12px); }
+    .venue-v2-mobile-bar > div { display:grid; }
+    .venue-v2-mobile-bar span { color:var(--muted); font-size:.65rem; font-weight:700; }
+    .venue-v2-mobile-bar strong { color:var(--ink); font-size:.92rem; font-weight:800; }
+
+    .venue-v2-modal-backdrop { position:fixed; z-index:80; inset:0; display:flex; align-items:flex-end; justify-content:center; background:rgba(11,18,14,.48); padding:0; }
+    .venue-v2-modal { width:100%; max-height:92vh; overflow:auto; border-radius:1.25rem 1.25rem 0 0; background:var(--surface); box-shadow:0 -12px 40px rgba(0,0,0,.14); }
+    .venue-v2-modal-head { position:sticky; z-index:2; top:0; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; border-bottom:1px solid var(--border); background:var(--surface); padding:1rem 1.1rem; }
+    .venue-v2-modal-head span { color:var(--muted); font-size:.7rem; font-weight:700; }
+    .venue-v2-modal-head h2 { margin-top:.15rem; font-size:1.35rem; font-weight:800; letter-spacing:-.035em; }
+    .venue-v2-modal-head button { display:grid; width:2.25rem; height:2.25rem; place-items:center; border:1px solid var(--border); border-radius:50%; background:var(--surface); color:var(--ink); font-size:1.5rem; line-height:1; cursor:pointer; }
+    .venue-v2-modal-body { padding:1.1rem; }
+    .venue-v2-booking-form { display:grid; gap:1rem; }
+    .venue-v2-time-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+    .venue-v2-session-list { display:grid; gap:.6rem; }
+    .venue-v2-session-list label { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:.65rem; align-items:center; border:1px solid var(--border); border-radius:.8rem; padding:.75rem; cursor:pointer; }
+    .venue-v2-session-list label:has(input:checked) { border-color:var(--brand-forest); background:var(--surface-lime); }
+    .venue-v2-session-list input { accent-color:var(--brand-forest); }
+    .venue-v2-session-list span { display:grid; gap:.1rem; }
+    .venue-v2-session-list strong,.venue-v2-session-list b { font-size:.78rem; font-weight:800; }
+    .venue-v2-session-list small { color:var(--muted); font-size:.68rem; }
+
+    .venue-v2-quote { display:grid; gap:.65rem; margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem; }
+    .venue-v2-quote > div:not(.venue-v2-quote-status) { display:flex; align-items:center; justify-content:space-between; gap:1rem; color:var(--ink-soft); font-size:.78rem; }
+    .venue-v2-quote-status { display:flex; align-items:center; gap:.5rem; color:var(--brand-forest); font-size:.8rem; font-weight:800; }
+    .venue-v2-quote-status span { width:.55rem; height:.55rem; border-radius:50%; background:var(--brand-lime); }
+    .venue-v2-quote-total { border-top:1px solid var(--border); padding-top:.65rem; color:var(--ink)!important; }
+    .venue-v2-quote-total strong { font-size:1rem; }
+    .venue-v2-quote small { color:var(--muted); font-size:.68rem; line-height:1.5; text-align:center; }
+    .venue-v2-unavailable { display:grid; gap:.2rem; margin-top:1rem; border-radius:.75rem; background:var(--surface-soft); padding:.85rem; color:var(--ink-soft); font-size:.78rem; }
+
+    .venue-v2-info-body { display:grid; gap:1.5rem; }
+    .venue-v2-info-body section { min-width:0; }
+    .venue-v2-info-body h3 { margin-bottom:.65rem; color:var(--ink); font-size:.92rem; font-weight:800; }
+    .venue-v2-detail-list { display:grid; gap:.5rem; }
+    .venue-v2-detail-list > div { display:flex; justify-content:space-between; gap:1rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); color:var(--ink-soft); font-size:.76rem; }
+    .venue-v2-detail-list strong { max-width:58%; text-align:right; color:var(--ink); }
+    .venue-v2-policy { display:grid; gap:.45rem; color:var(--ink-soft); font-size:.77rem; line-height:1.6; }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .venue-v2-gallery { grid-template-columns:minmax(0,1.55fr) minmax(15rem,.45fr); }
+        .venue-v2-gallery.is-single { grid-template-columns:1fr; }
+        .venue-v2-gallery-main { min-height:34rem; aspect-ratio:auto; }
+        .venue-v2-gallery-grid { grid-template-columns:1fr; }
+        .venue-v2-gallery-grid img { min-height:10.8rem; aspect-ratio:auto; }
+        .venue-v2-modal-backdrop { align-items:center; padding:2rem; }
+        .venue-v2-modal { max-width:36rem; border-radius:1.1rem; box-shadow:0 20px 70px rgba(0,0,0,.2); }
+        .venue-v2-info-modal { max-width:44rem; }
+        .venue-v2-modal-head { padding:1.1rem 1.25rem; }
+        .venue-v2-modal-body { padding:1.25rem; }
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .venue-v2-title-row { grid-template-columns:minmax(0,1fr) auto; }
+        .venue-v2-book-top { display:grid; gap:.15rem; min-width:13rem; border:0; background:transparent; text-align:right; cursor:pointer; }
+        .venue-v2-book-top span { color:var(--muted); font-size:.72rem; font-weight:650; }
+        .venue-v2-book-top strong { color:var(--brand-forest); font-size:.9rem; text-decoration:underline; text-underline-offset:.25rem; }
+        .venue-v2-main { grid-template-columns:minmax(0,1fr) minmax(19rem,22rem); gap:4rem; }
+        .venue-v2-cta-card { position:sticky; top:6.5rem; display:grid; gap:1rem; border:1px solid var(--border); border-radius:1rem; background:var(--surface); padding:1.2rem; }
+        .venue-v2-cta-label { color:var(--muted); font-size:.68rem; font-weight:700; }
+        .venue-v2-cta-price { margin-top:.15rem; color:var(--ink); font-size:1.25rem; font-weight:800; letter-spacing:-.035em; }
+        .venue-v2-cta-price small { color:var(--muted); font-size:.7rem; font-weight:650; }
+        .venue-v2-cta-card ul { display:grid; gap:.45rem; padding-left:1rem; color:var(--ink-soft); font-size:.74rem; line-height:1.5; }
+        .venue-v2-cta-card > p { color:var(--muted); font-size:.68rem; text-align:center; }
+        .venue-v2-mobile-bar { display:none; }
+    }
+}
