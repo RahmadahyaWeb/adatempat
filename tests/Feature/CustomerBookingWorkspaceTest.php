@@ -26,7 +26,7 @@ class CustomerBookingWorkspaceTest extends TestCase
             ->assertSee('Selesai')
             ->assertSee('Dibatalkan')
             ->assertSee('Semua')
-            ->assertSee('Belum ada booking di kategori ini.');
+            ->assertSee('Belum ada booking di sini');
     }
 
     public function test_customer_can_switch_booking_workspace_filter(): void
