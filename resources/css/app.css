@@ -3248,3 +3248,23 @@
         }
     }
 }
+
+
+/* UI-09 exact alignment — remove nested Owner container offset */
+@media (min-width: 1024px) {
+    @layer components {
+        .owner-shell-v2-content-inner {
+            max-width: none;
+            margin-inline: 0;
+            padding-inline: 0;
+        }
+
+        .owner-shell-v2-content .site-container {
+            width: 100%;
+            max-width: none;
+            margin-inline: 0;
+            padding-left: var(--owner-workspace-gutter);
+            padding-right: var(--owner-workspace-gutter);
+        }
+    }
+}
