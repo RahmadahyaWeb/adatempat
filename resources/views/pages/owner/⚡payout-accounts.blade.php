@@ -49,10 +49,10 @@ new #[Title('Rekening payout')] class extends Component {
     }
 };
 ?>
-<div class="site-container py-7 sm:py-10 lg:py-12">
-    <header class="max-w-3xl">
-        <p class="eyebrow"><span class="eyebrow-dot"></span> Keuangan Owner</p>
-        <h1 class="mt-3 text-3xl font-extrabold tracking-[-0.055em] sm:text-4xl">Rekening payout</h1>
+<div class="site-container owner-core-page owner-payout-page py-7 sm:py-9 lg:py-10">
+    <header class="owner-core-header">
+        <p class="owner-core-kicker">Keuangan Owner</p>
+        <h1>Rekening payout</h1>
         <p class="mt-3 text-sm leading-6 text-[var(--muted)]">Rekening baru harus diverifikasi Super Admin sebelum dapat menerima pencairan. Nomor rekening disimpan terenkripsi dan hanya empat digit terakhir yang ditampilkan.</p>
     </header>
 
@@ -63,8 +63,8 @@ new #[Title('Rekening payout')] class extends Component {
         <div role="alert" class="status-note mt-4">{{ $message }}</div>
     @enderror
 
-    <div class="mt-7 grid gap-6 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
-        <section class="ui-panel h-fit p-5 sm:p-6">
+    <div class="owner-finance-layout">
+        <section class="owner-finance-panel owner-finance-panel-form">
             <h2 class="text-lg font-extrabold">Tambahkan rekening</h2>
             <p class="mt-1 text-sm leading-6 text-[var(--muted)]">Untuk mengubah rekening, tambahkan rekening baru. Rekening yang sudah diverifikasi tidak dapat diedit.</p>
             <form wire:submit="save" class="mt-5 space-y-4">
@@ -95,7 +95,7 @@ new #[Title('Rekening payout')] class extends Component {
             </form>
         </section>
 
-        <section class="ui-panel p-5 sm:p-6">
+        <section class="owner-finance-panel">
             <h2 class="text-lg font-extrabold">Rekening terdaftar</h2>
             <div class="mt-5 space-y-3">
                 @forelse ($this->accounts as $account)
@@ -107,7 +107,7 @@ new #[Title('Rekening payout')] class extends Component {
                         ];
                         [$label, $class] = $status[$account->verification_status] ?? ['Tidak diketahui', 'bg-[var(--surface-soft)] text-[var(--muted)]'];
                     @endphp
-                    <article wire:key="payout-account-{{ $account->id }}" class="rounded-xl border border-[var(--border)] p-4">
+                    <article wire:key="payout-account-{{ $account->id }}" class="owner-finance-item">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <h3 class="font-extrabold">{{ $account->bank_name }} <span class="text-[var(--muted)]">({{ $account->bank_code }})</span></h3>

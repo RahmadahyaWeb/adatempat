@@ -177,10 +177,10 @@ new #[Title('Langganan saya')] class extends Component {
 };
 ?>
 
-<div class="site-container space-y-6 py-7 sm:py-10 lg:py-12">
-    <header>
-        <p class="eyebrow"><span class="eyebrow-dot"></span> Akun Owner / Langganan</p>
-        <h1 class="mt-3 text-3xl font-extrabold tracking-[-0.05em] sm:text-4xl">Langganan saya</h1>
+<div class="site-container owner-core-page owner-subscription-page py-7 sm:py-9 lg:py-10">
+    <header class="owner-core-header">
+        <p class="owner-core-kicker">Langganan Owner</p>
+        <h1>Langganan saya</h1>
         <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Pilih paket, bayar invoice melalui QRIS, atau jadwalkan downgrade untuk periode berikutnya. Upgrade baru aktif setelah webhook pembayaran terverifikasi.</p>
     </header>
 
@@ -189,7 +189,7 @@ new #[Title('Langganan saya')] class extends Component {
     @endif
 
     @if ($checkoutMessage !== '')
-        <section class="ui-panel p-5 sm:p-6">
+        <section class="owner-finance-panel">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h2 class="font-bold">{{ $checkoutScheduled ? 'Downgrade dijadwalkan' : 'Checkout langganan' }}</h2>
@@ -226,7 +226,7 @@ new #[Title('Langganan saya')] class extends Component {
     @endif
 
     @if ($this->currentSubscription)
-        <section class="ui-panel p-5 sm:p-6">
+        <section class="owner-finance-panel">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <p class="text-sm text-[var(--ink-soft)]">Status langganan</p>
@@ -250,13 +250,13 @@ new #[Title('Langganan saya')] class extends Component {
         </section>
     @endif
 
-    <section class="ui-panel p-5 sm:p-6">
+    <section class="owner-finance-panel">
         <h2 class="text-xl font-extrabold">Pilih paket</h2>
         <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Paket yang lebih mahal diproses sebagai upgrade prorata. Downgrade Business ke Starter dijadwalkan untuk periode berikutnya.</p>
         <form wire:submit="checkout" class="mt-5 space-y-5">
             <div class="grid gap-3 md:grid-cols-2">
                 @foreach ($this->plans as $plan)
-                    <label wire:key="plan-{{ $plan->id }}" class="flex cursor-pointer gap-3 rounded-xl border p-4 {{ $planId === (string) $plan->id ? 'border-[var(--brand)] bg-[var(--surface-soft)]' : 'border-[var(--border)]' }}">
+                    <label wire:key="plan-{{ $plan->id }}" class="owner-plan-option {{ $planId === (string) $plan->id ? 'border-[var(--brand)] bg-[var(--surface-soft)]' : 'border-[var(--border)]' }}">
                         <input type="radio" wire:model="planId" value="{{ $plan->id }}" class="mt-1" required>
                         <span class="min-w-0">
                             <span class="block font-bold">{{ $plan->name }}</span>
@@ -288,7 +288,7 @@ new #[Title('Langganan saya')] class extends Component {
         </form>
     </section>
 
-    <section class="ui-panel p-5 sm:p-6">
+    <section class="owner-finance-panel">
         <h2 class="text-xl font-extrabold">Riwayat invoice</h2>
         <div class="mt-4 space-y-3">
             @forelse ($this->recentInvoices as $invoice)

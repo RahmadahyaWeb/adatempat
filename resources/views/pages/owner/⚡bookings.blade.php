@@ -14,6 +14,8 @@ use Livewire\Component;
 new #[Title('Booking venue')] class extends Component {
     public string $cancellationReason = '';
 
+    public string $cancellationBookingId = '';
+
     public string $selectedBookingId = '';
 
     public string $disputeCategory = '';
@@ -51,6 +53,27 @@ new #[Title('Booking venue')] class extends Component {
         return $owner;
     }
 
+    public function startCancellation(int $bookingId): void
+    {
+        $owner = $this->requireOwner();
+
+        Booking::query()
+            ->whereKey($bookingId)
+            ->whereHas('venue.business', fn ($query) => $query->where('owner_id', $owner->getKey()))
+            ->firstOrFail();
+
+        $this->cancellationBookingId = (string) $bookingId;
+        $this->cancellationReason = '';
+        $this->resetErrorBag();
+    }
+
+    public function closeCancellation(): void
+    {
+        $this->cancellationBookingId = '';
+        $this->cancellationReason = '';
+        $this->resetErrorBag();
+    }
+
     public function cancelBooking(int $bookingId, BookingCancellationService $cancellations): void
     {
         $owner = $this->requireOwner();
@@ -68,7 +91,7 @@ new #[Title('Booking venue')] class extends Component {
         }
 
         $cancellations->cancelByOwner($owner, $booking, $reason);
-        $this->cancellationReason = '';
+        $this->closeCancellation();
         unset($this->bookings);
         session()->flash('status', 'Booking dibatalkan. Refund 100% diminta apabila pembayaran telah diterima.');
     }
@@ -182,18 +205,24 @@ new #[Title('Booking venue')] class extends Component {
 };
 ?>
 
-<div class="site-container space-y-6 py-6 sm:py-10">
-    <header>
-        <p class="eyebrow"><span class="eyebrow-dot"></span> Ruang Owner / Operasional</p>
-        <h1 class="mt-3 text-3xl font-extrabold tracking-[-0.05em] sm:text-4xl">Booking venue</h1>
-        <p class="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">Kelola booking masuk, catat penggunaan venue, ajukan penyelesaian, dan tanggapi sengketa sesuai batas waktu.</p>
+<div
+    class="site-container owner-core-page owner-booking-page py-7 sm:py-9 lg:py-10"
+    x-data="{ cancelOpen: @entangle('cancellationBookingId').live, disputeOpen: @entangle('selectedBookingId').live, responseOpen: @entangle('selectedDisputeId').live }"
+    x-effect="document.body.classList.toggle('modal-open', !!cancelOpen || !!disputeOpen || !!responseOpen)"
+>
+    <header class="owner-core-header">
+        <div>
+            <p class="owner-core-kicker">Operasional booking</p>
+            <h1>Booking venue</h1>
+            <p>Kelola jadwal penggunaan, penyelesaian, pembatalan, dan sengketa booking dari satu tempat.</p>
+        </div>
     </header>
 
     @if (session()->has('status'))
-        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('status') }}</div>
+        <div role="status" class="status-note status-success mt-5">{{ session('status') }}</div>
     @endif
 
-    <div class="space-y-4">
+    <div class="owner-booking-list">
         @forelse ($this->bookings as $booking)
             @php
                 $nowUtc = now('UTC');
@@ -207,33 +236,62 @@ new #[Title('Booking venue')] class extends Component {
                     && $endsUtc && $nowUtc->greaterThanOrEqualTo($endsUtc)
                     && $disputeOpenUntil && $nowUtc->lessThanOrEqualTo($disputeOpenUntil)
                     && !$booking->dispute;
+                $statusTone = match ($booking->status) {
+                    'completed' => 'success',
+                    'disputed', 'reconciliation_required' => 'danger',
+                    'cancelled_by_customer', 'cancelled_by_owner', 'cancelled_by_admin', 'expired' => 'muted',
+                    'pending_payment', 'payment_verifying' => 'warning',
+                    default => 'active',
+                };
+                $startLocal = $booking->booking_start?->copy()->timezone('Asia/Jakarta');
+                $endLocal = $booking->booking_end?->copy()->timezone('Asia/Jakarta');
             @endphp
-            <article wire:key="owner-booking-{{ $booking->id }}" class="ui-panel p-5 sm:p-6">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h2 class="text-lg font-extrabold">{{ $booking->venue?->name ?? 'Venue tidak tersedia' }}</h2>
-                            <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $booking->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($booking->status === 'disputed' ? 'bg-red-100 text-red-800' : (str_starts_with($booking->status, 'cancelled') ? 'bg-slate-100 text-slate-700' : 'bg-sky-100 text-sky-800')) }}">{{ str($booking->status)->replace('_', ' ')->title() }}</span>
+
+            <article wire:key="owner-booking-{{ $booking->id }}" class="owner-booking-card">
+                <div class="owner-booking-date">
+                    <span>{{ $startLocal?->translatedFormat('M') }}</span>
+                    <strong>{{ $startLocal?->format('d') }}</strong>
+                    <small>{{ $startLocal?->format('Y') }}</small>
+                </div>
+
+                <div class="owner-booking-body">
+                    <div class="owner-booking-head">
+                        <div>
+                            <span class="owner-core-status is-{{ $statusTone }}">{{ str($booking->status)->replace('_', ' ')->title() }}</span>
+                            <h2>{{ $booking->venue?->name ?? 'Venue tidak tersedia' }}</h2>
+                            <p>{{ $booking->venue?->business?->name }}</p>
                         </div>
-                        <p class="mt-2 text-sm text-[var(--ink-soft)]">{{ $booking->venue?->business?->name }}</p>
-                        <p class="mt-2 text-sm">Kode booking: <span class="font-semibold">{{ $booking->reference_code }}</span></p>
-                        <p class="mt-1 text-sm">{{ $booking->booking_start?->timezone('Asia/Jakarta')->format('d M Y H:i') }} – {{ $booking->booking_end?->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</p>
-                        <p class="mt-2 text-sm">Pelanggan: {{ $booking->customer?->name }} · {{ $booking->customer?->email }}</p>
-                        <p class="mt-1 text-sm text-[var(--ink-soft)]">Hak bersih Owner normal: Rp{{ number_format($booking->snapshot_net_owner_entitlement, 0, ',', '.') }}</p>
-                        @if ($booking->dispute)
-                            <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="mt-2 inline-block text-sm font-semibold underline">Lihat tanggapan dan bukti sengketa</a>
-                            <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                <p class="font-semibold text-amber-950">Sengketa {{ $booking->dispute->reference_code }} · {{ str($booking->dispute->status)->replace('_', ' ')->title() }}</p>
-                                <p class="mt-1 text-sm text-amber-900">{{ $booking->dispute->category }} — {{ $booking->dispute->description }}</p>
+                        <div class="owner-booking-money">
+                            <span>Hak bersih Owner</span>
+                            <strong>Rp{{ number_format($booking->snapshot_net_owner_entitlement, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="owner-booking-meta">
+                        <span>{{ $startLocal?->format('H:i') }}–{{ $endLocal?->format('H:i') }} WIB</span>
+                        <span>{{ $booking->reference_code }}</span>
+                        <span>{{ $booking->customer?->name }} · {{ $booking->customer?->email }}</span>
+                    </div>
+
+                    @if ($booking->dispute)
+                        <div class="owner-booking-dispute">
+                            <div>
+                                <strong>Sengketa {{ $booking->dispute->reference_code }}</strong>
+                                <span>{{ str($booking->dispute->status)->replace('_', ' ')->title() }}</span>
+                            </div>
+                            <p>{{ $booking->dispute->category }} — {{ $booking->dispute->description }}</p>
+                            <div class="owner-booking-dispute-actions">
+                                <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="customer-v2-link">Lihat bukti</a>
                                 @if ($booking->dispute->opened_by_role === 'customer' && !$booking->dispute->owner_responded_at && $booking->dispute->owner_response_deadline_at?->isFuture())
-                                    <button type="button" wire:click="startResponse({{ $booking->dispute->id }})" class="btn btn-secondary mt-3">Tanggapi sengketa</button>
+                                    <button type="button" wire:click="startResponse({{ $booking->dispute->id }})" class="btn btn-secondary">Tanggapi</button>
                                 @elseif ($booking->dispute->owner_responded_at)
-                                    <p class="mt-2 text-xs text-amber-900">Tanggapan terkirim {{ $booking->dispute->owner_responded_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB.</p>
+                                    <span class="owner-booking-response-note">Tanggapan terkirim {{ $booking->dispute->owner_responded_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB</span>
                                 @endif
                             </div>
-                        @endif
-                    </div>
-                    <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                        </div>
+                    @endif
+
+                    <div class="owner-booking-actions">
                         @if ($canStart)
                             <button type="button" wire:click="startBooking({{ $booking->id }})" class="btn btn-primary">Mulai booking</button>
                         @endif
@@ -241,26 +299,62 @@ new #[Title('Booking venue')] class extends Component {
                             <button type="button" wire:click="requestCompletion({{ $booking->id }})" class="btn btn-primary">Ajukan selesai</button>
                         @endif
                         @if ($canCancel)
-                            <button type="button" wire:click="cancelBooking({{ $booking->id }})" class="btn btn-secondary">Batalkan booking</button>
+                            <button type="button" wire:click="startCancellation({{ $booking->id }})" class="btn btn-secondary">Batalkan</button>
                         @endif
                         @if ($canReport)
                             <button type="button" wire:click="startDispute({{ $booking->id }})" class="btn btn-secondary">Laporkan masalah</button>
                         @endif
                     </div>
                 </div>
+            </article>
+        @empty
+            <div class="owner-core-empty">
+                <span>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+                </span>
+                <h3>Belum ada booking masuk.</h3>
+                <p>Booking untuk venue milik usaha kamu akan muncul di sini.</p>
+            </div>
+        @endforelse
+    </div>
 
-                @if ($canCancel)
-                    <div class="mt-4 border-t border-[var(--border)] pt-4">
-                        <label class="ui-label" for="owner-cancel-reason-{{ $booking->id }}">Alasan pembatalan (wajib untuk Owner)</label>
-                        <input id="owner-cancel-reason-{{ $booking->id }}" wire:model="cancellationReason" class="ui-input w-full" maxlength="2000" placeholder="Jelaskan alasan pembatalan">
-                        @error('cancellationReason') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
+    @if ($cancellationBookingId !== '')
+        <div class="customer-modal-backdrop" @click.self="$wire.closeCancellation()" @wheel.stop @touchmove.stop>
+            <section role="dialog" aria-modal="true" aria-labelledby="owner-cancel-title" class="customer-modal">
+                <header class="customer-modal-head">
+                    <div><span>Pembatalan Owner</span><h2 id="owner-cancel-title">Batalkan booking?</h2></div>
+                    <button type="button" class="venue-v2-modal-close" wire:click="closeCancellation" aria-label="Tutup">
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg>
+                    </button>
+                </header>
+                <div class="customer-modal-body">
+                    <p>Pembatalan oleh Owner membutuhkan alasan. Jika pembayaran sudah diterima, refund penuh akan diproses sesuai aturan sistem.</p>
+                    <div>
+                        <label for="owner-cancel-reason" class="ui-label">Alasan pembatalan</label>
+                        <textarea id="owner-cancel-reason" wire:model="cancellationReason" class="ui-input w-full" rows="4" maxlength="2000" required placeholder="Jelaskan alasan pembatalan"></textarea>
+                        @error('cancellationReason') <p class="ui-error">{{ $message }}</p> @enderror
                     </div>
-                @endif
+                    <div class="customer-modal-actions">
+                        <button type="button" wire:click="cancelBooking({{ (int) $cancellationBookingId }})" class="btn btn-primary" wire:loading.attr="disabled">Batalkan booking</button>
+                        <button type="button" wire:click="closeCancellation" class="btn btn-secondary">Kembali</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    @endif
 
-                @if ($selectedBookingId === (string) $booking->id)
-                    <form wire:submit="openDispute" class="mt-5 rounded-xl bg-[var(--surface-soft)] p-4 sm:p-5">
-                        <h3 class="font-bold">Laporkan masalah</h3>
-                        <label class="ui-label mt-4" for="owner-dispute-category">Kategori</label>
+    @if ($selectedBookingId !== '')
+        <div class="customer-modal-backdrop" @click.self="$set('selectedBookingId', '')" @wheel.stop @touchmove.stop>
+            <section role="dialog" aria-modal="true" aria-labelledby="owner-dispute-title" class="customer-modal">
+                <header class="customer-modal-head">
+                    <div><span>Laporan masalah</span><h2 id="owner-dispute-title">Laporkan kejadian</h2></div>
+                    <button type="button" class="venue-v2-modal-close" wire:click="$set('selectedBookingId', '')" aria-label="Tutup">
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg>
+                    </button>
+                </header>
+                <form wire:submit="openDispute" class="customer-modal-body">
+                    <div>
+                        <label class="ui-label" for="owner-dispute-category">Kategori</label>
                         <select id="owner-dispute-category" wire:model="disputeCategory" class="ui-input w-full" required>
                             <option value="">Pilih kategori</option>
                             <option value="customer_no_show">Pelanggan tidak hadir</option>
@@ -268,37 +362,44 @@ new #[Title('Booking venue')] class extends Component {
                             <option value="payment_or_refund">Pembayaran atau refund</option>
                             <option value="other">Lainnya</option>
                         </select>
-                        @error('disputeCategory') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
-                        <label class="ui-label mt-4" for="owner-dispute-description">Deskripsi kejadian</label>
-                        <textarea id="owner-dispute-description" wire:model="disputeDescription" class="ui-input w-full" rows="4" minlength="20" maxlength="5000" required></textarea>
-                        @error('disputeDescription') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
-                        @error('selectedBookingId') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
-                        <div class="mt-4 flex flex-wrap gap-2">
-                            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Kirim laporan</button>
-                            <button type="button" wire:click="$set('selectedBookingId', '')" class="btn btn-secondary">Batal</button>
-                        </div>
-                    </form>
-                @endif
+                        @error('disputeCategory') <p class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="ui-label" for="owner-dispute-description">Deskripsi kejadian</label>
+                        <textarea id="owner-dispute-description" wire:model="disputeDescription" class="ui-input w-full" rows="5" minlength="20" maxlength="5000" required></textarea>
+                        @error('disputeDescription') <p class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="customer-modal-actions">
+                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Kirim laporan</button>
+                        <button type="button" wire:click="$set('selectedBookingId', '')" class="btn btn-secondary">Batal</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    @endif
 
-                @if ($selectedDisputeId === (string) ($booking->dispute?->id ?? ''))
-                    <form wire:submit="submitResponse" class="mt-5 rounded-xl bg-[var(--surface-soft)] p-4 sm:p-5">
-                        <h3 class="font-bold">Tanggapan Owner</h3>
-                        <label class="ui-label mt-4" for="owner-dispute-response">Kronologi dan bukti pendukung</label>
-                        <textarea id="owner-dispute-response" wire:model="ownerResponse" class="ui-input w-full" rows="4" minlength="20" maxlength="5000" required></textarea>
-                        @error('ownerResponse') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
-                        @error('selectedDisputeId') <p class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
-                        <div class="mt-4 flex flex-wrap gap-2">
-                            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Kirim tanggapan</button>
-                            <button type="button" wire:click="$set('selectedDisputeId', '')" class="btn btn-secondary">Batal</button>
-                        </div>
-                    </form>
-                @endif
-            </article>
-        @empty
-            <div class="ui-panel p-8 text-center">
-                <h2 class="text-lg font-bold">Belum ada booking masuk</h2>
-                <p class="mt-2 text-sm text-[var(--ink-soft)]">Booking untuk venue milik usaha ini akan muncul di sini.</p>
-            </div>
-        @endforelse
-    </div>
+    @if ($selectedDisputeId !== '')
+        <div class="customer-modal-backdrop" @click.self="$set('selectedDisputeId', '')" @wheel.stop @touchmove.stop>
+            <section role="dialog" aria-modal="true" aria-labelledby="owner-response-title" class="customer-modal">
+                <header class="customer-modal-head">
+                    <div><span>Tanggapan sengketa</span><h2 id="owner-response-title">Berikan tanggapan</h2></div>
+                    <button type="button" class="venue-v2-modal-close" wire:click="$set('selectedDisputeId', '')" aria-label="Tutup">
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg>
+                    </button>
+                </header>
+                <form wire:submit="submitResponse" class="customer-modal-body">
+                    <p>Jelaskan kronologi dan bukti pendukung secara ringkas dan akurat.</p>
+                    <div>
+                        <label class="ui-label" for="owner-dispute-response">Tanggapan Owner</label>
+                        <textarea id="owner-dispute-response" wire:model="ownerResponse" class="ui-input w-full" rows="5" minlength="20" maxlength="5000" required></textarea>
+                        @error('ownerResponse') <p class="ui-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="customer-modal-actions">
+                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Kirim tanggapan</button>
+                        <button type="button" wire:click="$set('selectedDisputeId', '')" class="btn btn-secondary">Batal</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    @endif
 </div>

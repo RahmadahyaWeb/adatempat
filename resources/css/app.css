@@ -3684,3 +3684,249 @@
         }
     }
 }
+
+
+/* UI-10 Batch 3 — Owner Booking + Subscription + Payout */
+@layer components {
+    .owner-booking-list {
+        display: grid;
+        gap: .85rem;
+        margin-top: 1.35rem;
+    }
+
+    .owner-booking-card {
+        display: grid;
+        grid-template-columns: 4.7rem minmax(0,1fr);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+    }
+
+    .owner-booking-date {
+        display: grid;
+        align-content: start;
+        justify-items: center;
+        gap: .08rem;
+        border-right: 1px solid var(--border);
+        background: var(--surface-soft);
+        padding: 1rem .65rem;
+        text-align: center;
+    }
+
+    .owner-booking-date span {
+        color: var(--brand-forest);
+        font-size: .66rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .owner-booking-date strong {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -.05em;
+    }
+
+    .owner-booking-date small {
+        color: var(--muted);
+        font-size: .62rem;
+    }
+
+    .owner-booking-body {
+        min-width: 0;
+        padding: 1rem;
+    }
+
+    .owner-booking-head {
+        display: flex;
+        flex-direction: column;
+        gap: .85rem;
+    }
+
+    .owner-booking-head h2 {
+        margin-top: .5rem;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -.03em;
+    }
+
+    .owner-booking-head p {
+        margin-top: .15rem;
+        color: var(--muted);
+        font-size: .7rem;
+    }
+
+    .owner-booking-money {
+        display: grid;
+        gap: .12rem;
+    }
+
+    .owner-booking-money span {
+        color: var(--muted);
+        font-size: .62rem;
+        font-weight: 650;
+    }
+
+    .owner-booking-money strong {
+        color: var(--brand-forest);
+        font-size: .95rem;
+        font-weight: 800;
+    }
+
+    .owner-booking-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem .9rem;
+        margin-top: .9rem;
+        color: var(--ink-soft);
+        font-size: .68rem;
+    }
+
+    .owner-booking-dispute {
+        display: grid;
+        gap: .45rem;
+        margin-top: 1rem;
+        border-left: 3px solid var(--warning-ink);
+        background: var(--warning-bg);
+        padding: .8rem .9rem;
+    }
+
+    .owner-booking-dispute > div:first-child {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem .7rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .owner-booking-dispute strong {
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .owner-booking-dispute span,
+    .owner-booking-dispute p {
+        color: var(--ink-soft);
+        font-size: .68rem;
+        line-height: 1.5;
+    }
+
+    .owner-booking-dispute-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    .owner-booking-response-note {
+        color: var(--muted) !important;
+    }
+
+    .owner-booking-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--border);
+        padding-top: .85rem;
+    }
+
+    .owner-finance-layout {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        align-items: start;
+    }
+
+    .owner-finance-panel {
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+        padding: 1rem;
+    }
+
+    .owner-finance-panel h2 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -.035em;
+    }
+
+    .owner-finance-panel > p {
+        margin-top: .35rem;
+        color: var(--muted);
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    .owner-finance-item {
+        border: 1px solid var(--border);
+        border-radius: .85rem;
+        background: var(--surface);
+        padding: .9rem;
+    }
+
+    .owner-subscription-page > section {
+        margin-top: 1rem;
+    }
+
+    .owner-plan-option {
+        display: flex;
+        cursor: pointer;
+        gap: .7rem;
+        border: 1px solid var(--border);
+        border-radius: .85rem;
+        padding: .9rem;
+        background: var(--surface);
+    }
+
+    .owner-plan-option:has(input:checked) {
+        border-color: var(--brand-forest);
+        background: var(--surface-lime);
+    }
+
+    .owner-plan-option input {
+        margin-top: .2rem;
+        accent-color: var(--brand-forest);
+    }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .owner-booking-card {
+            grid-template-columns: 5.6rem minmax(0,1fr);
+        }
+
+        .owner-booking-body {
+            padding: 1.15rem 1.25rem;
+        }
+
+        .owner-booking-head {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .owner-booking-money {
+            text-align: right;
+        }
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .owner-finance-layout {
+            grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr);
+            gap: 1.25rem;
+        }
+
+        .owner-finance-panel {
+            padding: 1.25rem;
+        }
+
+        .owner-finance-panel-form {
+            position: sticky;
+            top: 5.5rem;
+        }
+    }
+}
