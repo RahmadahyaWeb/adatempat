@@ -79,9 +79,15 @@ class SubscriptionEligibilityService
     public function canCreateVenue(Business $business, ?CarbonInterface $at = null): bool
     {
         $at = $at ? CarbonImmutable::instance($at)->utc() : CarbonImmutable::now('UTC');
-        $subscription = $this->eligibleForBusiness($business, $at);
+        // Draft businesses must be able to create their first venue before verification.
+        // Public booking eligibility is a separate, stricter requirement.
+        if ($business->owner_id === null || in_array($business->status, [Business::STATUS_SUSPENDED, Business::STATUS_ARCHIVED_BY_DOWNGRADE], true)) {
+            return false;
+        }
 
-        if (! $subscription) {
+        $subscription = $this->eligibleForOwner((int) $business->owner_id, $at);
+
+        if (! $subscription || ($subscription->retained_business_id !== null && (int) $subscription->retained_business_id !== (int) $business->getKey())) {
             return false;
         }
 
