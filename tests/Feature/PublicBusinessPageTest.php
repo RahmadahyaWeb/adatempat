@@ -42,7 +42,7 @@ class PublicBusinessPageTest extends TestCase
             ->assertSee('120 orang')
             ->assertSee('Wi-Fi')
             ->assertSee('Rp 250.000')
-            ->assertSee('Detail venue dan jam operasional');
+            ->assertSee('Lihat detail venue');
     }
 
     public function test_public_business_page_does_not_show_unpublished_venues(): void

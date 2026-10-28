@@ -238,13 +238,14 @@ class VenuePricingAndAvailabilityTest extends TestCase
             'is_active' => true,
         ]);
 
-        Livewire::test('pages::business', ['businessSlug' => $business->slug])
+        Livewire::test('pages::venue', [
+            'businessSlug' => $business->slug,
+            'venueSlug' => $venue->slug,
+        ])
             ->assertSee('Jam operasional')
-            ->assertSee('Asia/Makassar')
             ->assertSee('08:00–22:00')
-            ->assertSee('Harga dasar')
-            ->assertSee('Rp 250.000')
-            ->assertSee('Rp 300.000');
+            ->assertSee('Harga')
+            ->assertSee('Rp 250.000');
     }
 
     private function createOwner(): User

@@ -25,8 +25,9 @@ class PublicVenueBookingUiTest extends TestCase
             'businessSlug' => $business->slug,
             'venueSlug' => $venue->slug,
         ])
-            ->assertSee('Cek jadwal')
-            ->assertSee('Pilih waktu penggunaan')
+            ->assertSee('Pilih jadwal')
+            ->assertSee('Tentang tempat ini')
+            ->assertSee('Lihat semua detail')
             ->assertSee('Kebijakan pembatalan')
             ->assertSee('Rp 250.000');
     }

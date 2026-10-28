@@ -159,7 +159,10 @@ class OwnerCustomVenueFieldsTest extends TestCase
             'value_text' => 'Jangan tampilkan ini',
         ]);
 
-        Livewire::test('pages::business', ['businessSlug' => $business->slug])
+        Livewire::test('pages::venue', [
+            'businessSlug' => $business->slug,
+            'venueSlug' => $venue->slug,
+        ])
             ->assertSee('Ruang Custom Publik')
             ->assertSee('Jam operasional')
             ->assertSee('Sampai 22.00')

@@ -212,7 +212,7 @@ new #[Title('Profil usaha')] class extends Component {
                 <div>
                     <p class="eyebrow"><span class="eyebrow-dot"></span> Pilihan tempat</p>
                     <h2 id="venue-list-heading">Venue di {{ $business->name }}</h2>
-                    <p>Pilih venue berdasarkan kapasitas, fasilitas, harga, dan kebutuhanmu. Detail tambahan tetap tersedia tanpa membuat daftar sulit dipindai.</p>
+                    <p>Pilih venue berdasarkan kapasitas, fasilitas, dan harga. Detail lengkap tersedia di halaman venue.</p>
                 </div>
                 <span class="business-public-count">{{ $venues->count() }} venue</span>
             </div>
@@ -285,85 +285,6 @@ new #[Title('Profil usaha')] class extends Component {
                                         Lihat detail venue
                                     </a>
                                 </div>
-
-                                <details id="venue-detail-{{ $venue->public_id }}" class="business-venue-details">
-                                    <summary>Detail venue dan jam operasional</summary>
-
-                                    <div class="business-venue-details-grid">
-                                        @if ($this->activePrices($venue)->isNotEmpty())
-                                            <section>
-                                                <h4>{{ $this->activePrices($venue)->first()?->pricing_unit === 'session' ? 'Harga per sesi' : 'Harga dasar' }}</h4>
-                                                <div class="business-venue-detail-list">
-                                                    @foreach ($this->activePrices($venue) as $price)
-                                                        <div>
-                                                            <span>
-                                                                {{ $price->pricing_unit === 'session' ? ($price->session_name ?: 'Sesi') : ucfirst($this->pricingUnitLabel($venue)) }}
-                                                                @if ($price->pricing_unit === 'session' && $price->session_start_time && $price->session_end_time)
-                                                                    <small>{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }}</small>
-                                                                @endif
-                                                            </span>
-                                                            <strong>
-                                                                {{ 'Rp ' . number_format((int) $price->price_amount, 0, ',', '.') . ($price->pricing_unit !== 'session' ? ' / ' . $this->pricingUnitLabel($venue) : '') }}
-                                                                @if ($price->weekend_price_amount !== null)
-                                                                    <small>{{ 'Akhir pekan Rp ' . number_format((int) $price->weekend_price_amount, 0, ',', '.') }}</small>
-                                                                @endif
-                                                            </strong>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </section>
-                                        @endif
-
-                                        @if ($venue->availabilityRules->isNotEmpty())
-                                            <section>
-                                                <h4>Jam operasional · {{ $business->timezone ?: 'Asia/Jakarta' }}</h4>
-                                                <div class="business-venue-detail-list">
-                                                    @foreach ($venue->availabilityRules->sortBy('day_of_week') as $rule)
-                                                        <div>
-                                                            <span>{{ $this->dayLabel((int) $rule->day_of_week) }}</span>
-                                                            <strong>
-                                                                {{ $rule->is_open
-                                                                    ? substr((string) $rule->open_time, 0, 5) . '–' . substr((string) $rule->close_time, 0, 5)
-                                                                    : 'Tutup' }}
-                                                            </strong>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </section>
-                                        @endif
-
-                                        @if ($venue->capacity_persons || $templateValues->isNotEmpty() || $customValues->isNotEmpty())
-                                            <section>
-                                                <h4>Spesifikasi</h4>
-                                                <div class="business-venue-detail-list">
-                                                    @if ($venue->capacity_persons)
-                                                        <div>
-                                                            <span>Kapasitas</span>
-                                                            <strong>Kapasitas: {{ number_format((int) $venue->capacity_persons, 0, ',', '.') }} orang</strong>
-                                                        </div>
-                                                    @endif
-                                                    @foreach ($templateValues->concat($customValues) as $item)
-                                                        <div>
-                                                            <span>{{ $item['label'] }}</span>
-                                                            <strong>{{ $item['value'] }}</strong>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </section>
-                                        @endif
-
-                                        @if (($venue->facilities_json ?? []) !== [])
-                                            <section>
-                                                <h4>Fasilitas</h4>
-                                                <div class="business-venue-facilities">
-                                                    @foreach ($venue->facilities_json as $facility)
-                                                        <span>{{ $facility }}</span>
-                                                    @endforeach
-                                                </div>
-                                            </section>
-                                        @endif
-                                    </div>
-                                </details>
                             </div>
                         </article>
                     @endforeach

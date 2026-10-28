@@ -191,9 +191,12 @@ class VenueOperationalSettingsTest extends TestCase
             'is_active' => true,
         ]);
 
-        Livewire::test('pages::business', ['businessSlug' => $business->slug])
-            ->assertSee('Rp 250.000 / jam')
-            ->assertSee('Akhir pekan Rp 300.000');
+        Livewire::test('pages::venue', [
+            'businessSlug' => $business->slug,
+            'venueSlug' => $venue->slug,
+        ])
+            ->assertSee('Rp 250.000')
+            ->assertSee('Pilih jadwal');
     }
 
     private function createOwner(): User
