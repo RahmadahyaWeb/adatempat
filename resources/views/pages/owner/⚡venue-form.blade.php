@@ -1382,7 +1382,7 @@ new #[Title('Data venue')] class extends Component {
 };
 ?>
 
-<div class="site-container py-7 sm:py-10 lg:py-12">
+<div class="site-container owner-core-page owner-venue-form-page py-7 sm:py-9 lg:py-10">
     @php
         $business = $this->currentBusiness;
         $venue = $this->currentVenue;
@@ -1402,14 +1402,14 @@ new #[Title('Data venue')] class extends Component {
         $venueStatus = $venue ? ($statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]']) : null;
     @endphp
 
-    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--brand-forest)] hover:underline">
+    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="owner-core-back">
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
         Kembali ke daftar venue
     </a>
 
-    <header class="mt-5 max-w-3xl">
-        <p class="eyebrow"><span class="eyebrow-dot"></span> {{ $isEditing ? 'Edit venue' : 'Venue baru' }}</p>
-        <h1 class="mt-3 break-words text-3xl font-extrabold leading-tight tracking-[-0.055em] sm:text-4xl lg:text-5xl">
+    <header class="owner-core-header owner-venue-form-header">
+        <p class="owner-core-kicker">{{ $isEditing ? 'Edit venue' : 'Venue baru' }}</p>
+        <h1>
             {{ $isEditing ? $venue->name : 'Tambahkan venue' }}
         </h1>
         <p class="mt-2 break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-base">{{ $business->name }}</p>
@@ -1441,8 +1441,8 @@ new #[Title('Data venue')] class extends Component {
         </div>
     @endif
 
-    <div class="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-8">
-        <section aria-labelledby="venue-form-heading" class="rounded-2xl bg-white p-5 sm:p-7">
+    <div class="owner-venue-form-layout">
+        <section id="venue-basic" aria-labelledby="venue-form-heading" class="owner-venue-form-card">
             <div>
                 <h2 id="venue-form-heading" class="text-xl font-extrabold tracking-[-0.04em] sm:text-2xl">Informasi venue</h2>
                 <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Informasi ini membantu pengunjung memahami jenis tempat yang ditawarkan.</p>
@@ -1495,7 +1495,7 @@ new #[Title('Data venue')] class extends Component {
                     <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Kosongkan jika kapasitas belum diketahui.</p>
                 </div>
 
-                <fieldset class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <fieldset class="owner-venue-form-section">
                     <legend class="px-1 text-sm font-extrabold text-[var(--ink)]">Fasilitas standar</legend>
                     <p class="mb-3 text-sm leading-6 text-[var(--ink-soft)]">Pilih fasilitas yang benar-benar tersedia di venue.</p>
                     <div class="grid gap-3 sm:grid-cols-2">
@@ -1511,7 +1511,7 @@ new #[Title('Data venue')] class extends Component {
                 </fieldset>
 
                 @if ($selectedTemplate && $selectedTemplate->fields->isNotEmpty())
-                    <section aria-labelledby="dynamic-template-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                    <section aria-labelledby="dynamic-template-fields-heading" class="owner-venue-form-section">
                         <div class="mb-4">
                             <h3 id="dynamic-template-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Detail khusus kategori</h3>
                             <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Lengkapi informasi tambahan untuk {{ $selectedCategory?->name ?? 'kategori ini' }}.</p>
@@ -1575,7 +1575,7 @@ new #[Title('Data venue')] class extends Component {
                     </section>
                 @endif
 
-                <section aria-labelledby="owner-custom-fields-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <section id="venue-details" aria-labelledby="owner-custom-fields-heading" class="owner-venue-form-section">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <h3 id="owner-custom-fields-heading" class="text-base font-extrabold text-[var(--ink)]">Informasi tambahan buatan sendiri</h3>
@@ -1653,7 +1653,7 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </section>
 
-                <section aria-labelledby="venue-hours-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <section id="venue-hours" aria-labelledby="venue-hours-heading" class="owner-venue-form-section">
                     <div>
                         <h3 id="venue-hours-heading" class="text-base font-extrabold text-[var(--ink)]">Jam operasional mingguan</h3>
                         <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Atur jam buka per hari. Jam menggunakan zona waktu usaha ({{ $business->timezone ?? 'Asia/Jakarta' }}). Jam tutup lebih awal daripada jam buka berarti operasional berakhir keesokan hari; jam buka dan tutup tidak boleh sama.</p>
@@ -1694,7 +1694,7 @@ new #[Title('Data venue')] class extends Component {
                     @error('availabilityRules') <p role="alert" class="ui-error mt-3">{{ $message }}</p> @enderror
                 </section>
 
-                <section aria-labelledby="venue-blocks-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <section id="venue-blocks" aria-labelledby="venue-blocks-heading" class="owner-venue-form-section">
                     <div>
                         <h3 id="venue-blocks-heading" class="text-base font-extrabold text-[var(--ink)]">Blokir jadwal</h3>
                         <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Tutup venue untuk perbaikan, acara internal, atau alasan operasional lain. Waktu yang dimasukkan mengikuti zona waktu usaha ({{ $business->timezone ?: 'Asia/Jakarta' }}). Blokir ini akan digunakan oleh availability engine pada tahap booking.</p>
@@ -1746,7 +1746,7 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </section>
 
-                <section aria-labelledby="venue-pricing-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <section id="venue-pricing" aria-labelledby="venue-pricing-heading" class="owner-venue-form-section">
                     <div>
                         <h3 id="venue-pricing-heading" class="text-base font-extrabold text-[var(--ink)]">Harga venue</h3>
                         <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Pilih satu model harga aktif. Harga disimpan dalam Rupiah penuh. Untuk harga per jam, interval mengatur kelipatan waktu pemesanan, sedangkan tarif tetap dihitung per jam. Mengubah konfigurasi tidak mengubah snapshot harga booking yang sudah dibuat.</p>
@@ -1841,7 +1841,7 @@ new #[Title('Data venue')] class extends Component {
                     @endif
                 </section>
 
-                <section aria-labelledby="venue-media-heading" class="rounded-xl border border-[var(--border)] p-4 sm:p-5">
+                <section id="venue-media" aria-labelledby="venue-media-heading" class="owner-venue-form-section">
                     <div>
                         <h3 id="venue-media-heading" class="text-base font-extrabold text-[var(--ink)]">Foto venue</h3>
                         <p class="mt-1 text-sm leading-6 text-[var(--ink-soft)]">Unggah foto JPEG, PNG, atau WebP maksimal 5 MB per file. SVG tidak diperbolehkan. Tambahkan deskripsi foto untuk aksesibilitas.</p>
@@ -1935,23 +1935,21 @@ new #[Title('Data venue')] class extends Component {
             </form>
         </section>
 
-        <aside class="rounded-2xl bg-[var(--surface-soft)] p-5 sm:p-6">
-            <p class="eyebrow"><span class="eyebrow-dot"></span> Informasi publikasi</p>
-            <h2 class="mt-3 text-lg font-extrabold tracking-[-0.035em]">Tetap jelas dan akurat</h2>
-            <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Gunakan nama, kategori, dan deskripsi yang menggambarkan venue sebenarnya.</p>
-            <div class="mt-5 space-y-3 border-t border-[var(--border)] pt-5">
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-lime)] text-xs font-extrabold text-[var(--ink)]">01</span>
-                    <div><p class="text-sm font-bold">Identitas dasar</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Nama venue dan kategori aktif.</p></div>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">02</span>
-                    <div><p class="text-sm font-bold">Deskripsi informatif</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Jelaskan informasi yang relevan bagi pengunjung.</p></div>
-                </div>
-                <div class="flex items-start gap-3">
-                    <span class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold text-[var(--ink-soft)]">03</span>
-                    <div><p class="text-sm font-bold">Foto, harga, dan jadwal</p><p class="mt-1 text-xs leading-5 text-[var(--muted)]">Foto, harga, jadwal, dan blokir dikelola pada bagian formulir terkait; promosi tersedia melalui daftar venue.</p></div>
-                </div>
+        <aside class="owner-venue-form-aside">
+            <nav class="owner-venue-form-nav" aria-label="Bagian formulir venue">
+                <span>Bagian formulir</span>
+                <a href="#venue-basic">Informasi dasar</a>
+                <a href="#venue-details">Detail tambahan</a>
+                <a href="#venue-hours">Jam operasional</a>
+                <a href="#venue-pricing">Harga</a>
+                <a href="#venue-media">Foto venue</a>
+                <a href="#venue-blocks">Blokir jadwal</a>
+            </nav>
+
+            <div class="owner-venue-form-help">
+                <span>Status publikasi</span>
+                <strong>{{ $isEditing ? $venueStatus[0] : 'Draft baru' }}</strong>
+                <p>Pastikan nama, kategori, jadwal, harga, dan foto sesuai kondisi venue sebenarnya sebelum dipublikasikan.</p>
             </div>
         </aside>
     </div>
