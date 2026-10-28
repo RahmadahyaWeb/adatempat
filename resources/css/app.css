@@ -1655,3 +1655,64 @@
         .venue-v2-mobile-bar { display:none; }
     }
 }
+
+
+/* UI polish — modal close + discovery card alignment */
+@layer components {
+    .venue-v2-modal-close {
+        display: grid;
+        width: 2.35rem;
+        height: 2.35rem;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--ink);
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .venue-v2-modal-close svg {
+        width: 1rem;
+        height: 1rem;
+        display: block;
+    }
+
+    .venue-v2-modal-close:hover {
+        background: var(--surface-soft);
+        border-color: color-mix(in srgb, var(--border) 70%, var(--ink) 30%);
+    }
+
+    .home-venue-card {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+    }
+
+    .home-venue-card-meta {
+        min-height: 2rem;
+    }
+
+    .home-venue-card-title {
+        min-height: 3.1rem;
+    }
+
+    .home-venue-card-description {
+        min-height: 6rem;
+    }
+
+    .home-venue-card-cta {
+        margin-top: auto;
+        padding-top: 1rem;
+    }
+}
+
+@media (max-width: 639px) {
+    @layer components {
+        .home-venue-card-title,
+        .home-venue-card-description {
+            min-height: auto;
+        }
+    }
+}
