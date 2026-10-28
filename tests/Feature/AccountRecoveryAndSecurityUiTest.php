@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -43,6 +44,34 @@ class AccountRecoveryAndSecurityUiTest extends TestCase
             ->assertSee($owner->email)
             ->assertSee('Kirim ulang tautan')
             ->assertSee('Keluar dari akun');
+    }
+
+
+    public function test_email_verification_returns_user_to_intended_destination(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_CUSTOMER]);
+        $customer->forceFill([
+            'status' => 'active',
+            'email_verified_at' => null,
+        ])->save();
+
+        $intended = route('customer.bookings.index');
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(30),
+            [
+                'publicId' => $customer->public_id,
+                'hash' => sha1($customer->getEmailForVerification()),
+            ],
+        );
+
+        $this->actingAs($customer)
+            ->withSession(['url.intended' => $intended])
+            ->get($verificationUrl)
+            ->assertRedirect($intended);
+
+        $this->assertNotNull($customer->fresh()->email_verified_at);
     }
 
     public function test_mfa_setup_page_explains_both_steps_and_secret_safety(): void
