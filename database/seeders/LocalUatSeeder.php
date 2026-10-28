@@ -129,12 +129,12 @@ class LocalUatSeeder extends Seeder
         $this->seedAvailability($eventHall, array_fill(0, 7, [true, '08:00', '23:00']), 30);
 
         $eventHall->prices()->create([
-            'pricing_unit' => VenuePrice::UNIT_DAILY,
+            'pricing_unit' => VenuePrice::UNIT_HOURLY,
             'step_interval_minutes' => 60,
-            'min_duration_units' => 1,
-            'max_duration_units' => 3,
-            'price_amount' => 3500000,
-            'weekend_price_amount' => 4250000,
+            'min_duration_units' => 4,
+            'max_duration_units' => 12,
+            'price_amount' => 500000,
+            'weekend_price_amount' => 600000,
             'is_active' => true,
         ]);
 
@@ -224,12 +224,12 @@ class LocalUatSeeder extends Seeder
         $this->seedAvailability($outdoor, array_fill(0, 7, [true, '07:00', '22:00']), 30);
 
         $outdoor->prices()->create([
-            'pricing_unit' => VenuePrice::UNIT_DAILY,
+            'pricing_unit' => VenuePrice::UNIT_HOURLY,
             'step_interval_minutes' => 60,
-            'min_duration_units' => 1,
-            'max_duration_units' => 2,
-            'price_amount' => 2500000,
-            'weekend_price_amount' => 3000000,
+            'min_duration_units' => 3,
+            'max_duration_units' => 12,
+            'price_amount' => 350000,
+            'weekend_price_amount' => 425000,
             'is_active' => true,
         ]);
 
@@ -256,18 +256,19 @@ class LocalUatSeeder extends Seeder
 
     private function seedUser(string $name, string $email, string $role): User
     {
-        return User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'public_id' => (string) Str::ulid(),
-                'name' => $name,
-                'email_verified_at' => now('UTC'),
-                'password' => self::PASSWORD,
-                'role' => $role,
-                'status' => 'active',
-                'deactivated_at' => null,
-            ],
-        );
+        $user = User::query()->firstOrNew(['email' => $email]);
+
+        $user->forceFill([
+            'public_id' => $user->public_id ?: (string) Str::ulid(),
+            'name' => $name,
+            'email_verified_at' => $user->email_verified_at ?? now('UTC'),
+            'password' => self::PASSWORD,
+            'role' => $role,
+            'status' => 'active',
+            'deactivated_at' => null,
+        ])->save();
+
+        return $user;
     }
 
     private function seedCustomerProfile(User $customer): void
