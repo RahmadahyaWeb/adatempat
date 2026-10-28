@@ -21,7 +21,7 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
 
         Livewire::actingAs($owner)
             ->test('pages::owner.businesses')
-            ->assertSee('Usaha dan venue hanya tampil di katalog publik setelah memenuhi persyaratan publikasi.')
+            ->assertSee('Konten publik hanya tampil setelah memenuhi persyaratan publikasi.')
             ->assertSee('Kelola venue');
     }
 
