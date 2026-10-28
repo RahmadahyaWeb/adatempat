@@ -243,7 +243,7 @@ new #[Title('Detail venue')] class extends Component {
 };
 ?>
 
-<div class="venue-detail-page">
+<div class="venue-v2" x-data="{ bookingOpen: false, infoOpen: false }" @keydown.escape.window="bookingOpen=false;infoOpen=false">
     @php
         $venue = $this->venue;
         $business = $venue->business;
@@ -253,58 +253,46 @@ new #[Title('Detail venue')] class extends Component {
         $startingPrice = $this->startingPrice();
         $details = $this->displayDetails();
         $refundPolicy = $venue->refund_policy_json ?: [
-            'customer_cancellation' => [
-                'minimum_minutes_before_start' => 60,
-                'refund_percentage' => 100,
-            ],
-            'owner_cancellation' => [
-                'refund_percentage' => 100,
-            ],
+            'customer_cancellation' => ['minimum_minutes_before_start' => 60, 'refund_percentage' => 100],
+            'owner_cancellation' => ['refund_percentage' => 100],
         ];
+        $unitLabel = match ($pricingUnit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' };
     @endphp
 
-    <section class="venue-detail-hero">
+    <section class="venue-v2-head">
         <div class="site-container">
-            <div class="venue-detail-breadcrumb">
+            <nav class="venue-v2-breadcrumb" aria-label="Breadcrumb">
                 <a href="{{ route('home') }}#hasil">Jelajahi</a>
-                <span>/</span>
+                <span>›</span>
                 <a href="{{ route('business.public', ['businessSlug' => $business->slug]) }}">{{ $business->name }}</a>
-                <span>/</span>
-                <span>{{ $venue->name }}</span>
-            </div>
+            </nav>
 
-            <div class="venue-detail-heading">
+            <div class="venue-v2-title-row">
                 <div>
-                    <span class="venue-detail-category">{{ $venue->category?->name ?? 'Venue' }}</span>
+                    <div class="venue-v2-kicker">
+                        <span>{{ $venue->category?->name ?? 'Venue' }}</span>
+                        @if ($business->verified_at)<span>Usaha terverifikasi</span>@endif
+                    </div>
                     <h1>{{ $venue->name }}</h1>
-                    <p class="venue-detail-business">{{ $business->name }}</p>
-                    <p class="venue-detail-location">
-                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                        {{ $business->address ?: collect([$business->city, $business->province])->filter()->implode(', ') }}
-                    </p>
+                    <p>{{ $business->name }} · {{ $business->city ?: $business->address }}</p>
                 </div>
 
-                <div class="venue-detail-price-summary">
+                <button type="button" class="venue-v2-book-top" @click="bookingOpen = true">
                     @if ($startingPrice !== null)
-                        <span>Mulai dari</span>
-                        <strong>Rp {{ number_format($startingPrice, 0, ',', '.') }}</strong>
-                        <small>/ {{ match ($pricingUnit) { 'hourly' => 'jam', 'daily' => 'hari', default => 'sesi' } }}</small>
-                    @else
-                        <span>Harga belum tersedia</span>
+                        <span>Mulai Rp {{ number_format($startingPrice, 0, ',', '.') }} / {{ $unitLabel }}</span>
                     @endif
-                </div>
+                    <strong>Pilih jadwal</strong>
+                </button>
             </div>
         </div>
     </section>
 
-    <section class="site-container venue-detail-gallery-section">
+    <section class="site-container venue-v2-gallery-wrap">
         @if ($media->isNotEmpty())
-            <div class="venue-detail-gallery {{ $media->count() === 1 ? 'is-single' : '' }}">
-                <div class="venue-detail-gallery-main">
-                    <img src="{{ \Illuminate\Support\Facades\Storage::disk($media->first()->disk)->url($media->first()->file_path) }}" alt="{{ $media->first()->alt_text }}" fetchpriority="high" decoding="async">
-                </div>
+            <div class="venue-v2-gallery {{ $media->count() === 1 ? 'is-single' : '' }}">
+                <img class="venue-v2-gallery-main" src="{{ \Illuminate\Support\Facades\Storage::disk($media->first()->disk)->url($media->first()->file_path) }}" alt="{{ $media->first()->alt_text }}" fetchpriority="high" decoding="async">
                 @if ($media->count() > 1)
-                    <div class="venue-detail-gallery-side">
+                    <div class="venue-v2-gallery-grid">
                         @foreach ($media->slice(1, 4) as $photo)
                             <img src="{{ \Illuminate\Support\Facades\Storage::disk($photo->disk)->url($photo->file_path) }}" alt="{{ $photo->alt_text }}" loading="lazy" decoding="async">
                         @endforeach
@@ -312,30 +300,35 @@ new #[Title('Detail venue')] class extends Component {
                 @endif
             </div>
         @else
-            <div class="venue-detail-gallery-empty">Foto venue belum tersedia.</div>
+            <div class="venue-v2-gallery-empty">Foto venue belum tersedia.</div>
         @endif
     </section>
 
-    <section class="site-container venue-detail-layout">
-        <div class="venue-detail-content">
-            <section class="venue-detail-section">
-                <h2>Tentang venue</h2>
-                <p>{{ $venue->description ?: 'Pemilik venue belum menambahkan deskripsi.' }}</p>
+    <section class="site-container venue-v2-main">
+        <div class="venue-v2-story">
+            <div class="venue-v2-quickfacts">
+                @if ($venue->capacity_persons)
+                    <div><strong>{{ number_format((int) $venue->capacity_persons, 0, ',', '.') }}</strong><span>orang</span></div>
+                @endif
+                @if (($venue->facilities_json ?? []) !== [])
+                    <div><strong>{{ count($venue->facilities_json) }}</strong><span>fasilitas</span></div>
+                @endif
+                @if ($startingPrice !== null)
+                    <div><strong>Rp {{ number_format($startingPrice, 0, ',', '.') }}</strong><span>mulai / {{ $unitLabel }}</span></div>
+                @endif
+            </div>
 
-                <div class="venue-detail-facts">
-                    @if ($venue->capacity_persons)
-                        <div><strong>{{ number_format((int) $venue->capacity_persons, 0, ',', '.') }}</strong><span>Kapasitas orang</span></div>
-                    @endif
-                    @if (($venue->facilities_json ?? []) !== [])
-                        <div><strong>{{ count($venue->facilities_json) }}</strong><span>Fasilitas tersedia</span></div>
-                    @endif
-                </div>
+            <section class="venue-v2-section">
+                <h2>Tentang tempat ini</h2>
+                <p class="venue-v2-description">{{ $venue->description ?: 'Pemilik venue belum menambahkan deskripsi.' }}</p>
             </section>
 
             @if (($venue->facilities_json ?? []) !== [])
-                <section class="venue-detail-section">
-                    <h2>Fasilitas</h2>
-                    <div class="venue-detail-facilities">
+                <section class="venue-v2-section">
+                    <div class="venue-v2-section-head">
+                        <h2>Yang tersedia di sini</h2>
+                    </div>
+                    <div class="venue-v2-amenities">
                         @foreach ($venue->facilities_json as $facility)
                             <span>{{ $facility }}</span>
                         @endforeach
@@ -343,74 +336,56 @@ new #[Title('Detail venue')] class extends Component {
                 </section>
             @endif
 
-            @if ($details->isNotEmpty())
-                <section class="venue-detail-section">
-                    <h2>Spesifikasi</h2>
-                    <dl class="venue-detail-specs">
-                        @foreach ($details as $item)
-                            <div><dt>{{ $item['label'] }}</dt><dd>{{ $item['value'] }}</dd></div>
-                        @endforeach
-                    </dl>
-                </section>
-            @endif
-
-            <section class="venue-detail-section">
-                <h2>Harga</h2>
-                <div class="venue-detail-price-list">
-                    @forelse ($activePrices as $price)
-                        <div>
-                            <span>
-                                {{ $price->pricing_unit === 'session' ? ($price->session_name ?: 'Sesi') : match ($price->pricing_unit) { 'hourly' => 'Per jam', 'daily' => 'Per hari', default => 'Harga' } }}
-                                @if ($price->pricing_unit === 'session' && $price->session_start_time && $price->session_end_time)
-                                    <small>{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }}</small>
-                                @endif
-                            </span>
-                            <strong>
-                                Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}
-                                @if ($price->weekend_price_amount !== null)
-                                    <small>Akhir pekan Rp {{ number_format((int) $price->weekend_price_amount, 0, ',', '.') }}</small>
-                                @endif
-                            </strong>
-                        </div>
-                    @empty
-                        <p>Harga belum dikonfigurasi.</p>
-                    @endforelse
-                </div>
-            </section>
-
-            <section class="venue-detail-section">
-                <h2>Jam operasional</h2>
-                <p class="venue-detail-section-note">Zona waktu: {{ $business->timezone ?: 'Asia/Jakarta' }}</p>
-                <div class="venue-detail-hours">
-                    @foreach ($venue->availabilityRules->sortBy('day_of_week') as $rule)
-                        <div>
-                            <span>{{ $this->dayLabel((int) $rule->day_of_week) }}</span>
-                            <strong>{{ $rule->is_open ? substr((string) $rule->open_time, 0, 5) . '–' . substr((string) $rule->close_time, 0, 5) : 'Tutup' }}</strong>
-                        </div>
-                    @endforeach
-                </div>
-            </section>
-
-            <section class="venue-detail-section">
-                <h2>Kebijakan pembatalan</h2>
-                <div class="venue-detail-policy">
-                    <p>Pelanggan dapat membatalkan booking paling lambat {{ (int) data_get($refundPolicy, 'customer_cancellation.minimum_minutes_before_start', 60) }} menit sebelum jadwal mulai.</p>
-                    <p>Refund pelanggan: {{ (int) data_get($refundPolicy, 'customer_cancellation.refund_percentage', 100) }}% dari jumlah aktual yang dibayar sesuai snapshot kebijakan saat booking.</p>
-                    <p>Jika Owner membatalkan, pelanggan menerima refund {{ (int) data_get($refundPolicy, 'owner_cancellation.refund_percentage', 100) }}%.</p>
-                    <p>Tidak tersedia reschedule langsung; perubahan jadwal dilakukan dengan membatalkan booking lama dan membuat booking baru.</p>
+            <section class="venue-v2-section">
+                <div class="venue-v2-section-head">
+                    <div>
+                        <h2>Harga & ketentuan</h2>
+                        <p>Lihat rincian harga, jam operasional, spesifikasi, dan kebijakan pembatalan.</p>
+                    </div>
+                    <button type="button" class="venue-v2-text-button" @click="infoOpen = true">Lihat semua detail</button>
                 </div>
             </section>
         </div>
 
-        <aside class="venue-booking-panel" aria-labelledby="booking-panel-heading">
-            <div class="venue-booking-panel-inner">
-                <div>
-                    <p class="eyebrow"><span class="eyebrow-dot"></span> Cek jadwal</p>
-                    <h2 id="booking-panel-heading">Pilih waktu penggunaan</h2>
-                    <p>Jadwal diperiksa terhadap jam operasional, booking aktif, hold pembayaran, dan blokir manual.</p>
-                </div>
+        <aside class="venue-v2-cta-card">
+            <div>
+                <span class="venue-v2-cta-label">Mulai dari</span>
+                @if ($startingPrice !== null)
+                    <div class="venue-v2-cta-price">Rp {{ number_format($startingPrice, 0, ',', '.') }} <small>/ {{ $unitLabel }}</small></div>
+                @else
+                    <div class="venue-v2-cta-price">Harga belum tersedia</div>
+                @endif
+            </div>
+            <ul>
+                <li>Cek jadwal real-time</li>
+                <li>Harga dihitung sebelum checkout</li>
+                <li>Slot ditahan 15 menit saat pembayaran</li>
+            </ul>
+            <button type="button" class="btn btn-primary w-full" @click="bookingOpen = true">Pilih jadwal</button>
+            <p>Belum ada biaya pada tahap ini.</p>
+        </aside>
+    </section>
 
-                <form wire:submit="checkAvailability" class="venue-booking-form">
+    <div class="venue-v2-mobile-bar">
+        <div>
+            <span>Mulai dari</span>
+            <strong>{{ $startingPrice !== null ? 'Rp ' . number_format($startingPrice, 0, ',', '.') : 'Cek harga' }}</strong>
+        </div>
+        <button type="button" class="btn btn-primary" @click="bookingOpen = true">Pilih jadwal</button>
+    </div>
+
+    <div x-cloak x-show="bookingOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="bookingOpen=false">
+        <section role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" class="venue-v2-modal">
+            <header class="venue-v2-modal-head">
+                <div>
+                    <span>Booking {{ $venue->name }}</span>
+                    <h2 id="booking-modal-title">Pilih jadwalmu</h2>
+                </div>
+                <button type="button" @click="bookingOpen=false" aria-label="Tutup modal">×</button>
+            </header>
+
+            <div class="venue-v2-modal-body">
+                <form wire:submit="checkAvailability" class="venue-v2-booking-form">
                     <div>
                         <label for="booking-date" class="ui-label">Tanggal {{ $pricingUnit === 'daily' ? 'mulai' : '' }}</label>
                         <input id="booking-date" type="date" min="{{ now($business->timezone ?: 'Asia/Jakarta')->format('Y-m-d') }}" wire:model="bookingDate" class="ui-input">
@@ -426,21 +401,22 @@ new #[Title('Detail venue')] class extends Component {
                     @elseif ($pricingUnit === 'session')
                         <fieldset>
                             <legend class="ui-label">Pilih sesi</legend>
-                            <div class="venue-session-options">
+                            <div class="venue-v2-session-list">
                                 @foreach ($activePrices as $price)
                                     <label>
                                         <input type="checkbox" value="{{ $price->id }}" wire:model="selectedSessionIds">
                                         <span>
                                             <strong>{{ $price->session_name ?: 'Sesi' }}</strong>
-                                            <small>{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }} · Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}</small>
+                                            <small>{{ substr((string) $price->session_start_time, 0, 5) }}–{{ substr((string) $price->session_end_time, 0, 5) }}</small>
                                         </span>
+                                        <b>Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}</b>
                                     </label>
                                 @endforeach
                             </div>
                             @error('selectedSessionIds') <p class="ui-error">{{ $message }}</p> @enderror
                         </fieldset>
                     @else
-                        <div class="venue-booking-time-grid">
+                        <div class="venue-v2-time-grid">
                             <div>
                                 <label for="booking-start" class="ui-label">Jam mulai</label>
                                 <input id="booking-start" type="time" wire:model="startTime" class="ui-input">
@@ -459,42 +435,90 @@ new #[Title('Detail venue')] class extends Component {
                     @error('duration') <p class="ui-error">{{ $message }}</p> @enderror
                     @error('sessionPriceIds') <p class="ui-error">{{ $message }}</p> @enderror
 
-                    <button type="submit" wire:loading.attr="disabled" wire:target="checkAvailability" class="btn btn-secondary w-full">
-                        <span wire:loading.remove wire:target="checkAvailability">Cek ketersediaan</span>
+                    <button type="submit" class="btn btn-secondary w-full" wire:loading.attr="disabled" wire:target="checkAvailability">
+                        <span wire:loading.remove wire:target="checkAvailability">Cek jadwal & harga</span>
                         <span wire:loading wire:target="checkAvailability">Memeriksa...</span>
                     </button>
                 </form>
 
                 @if ($availabilityChecked)
                     @if ($isAvailable && $quote)
-                        <div class="venue-booking-result is-available">
-                            <strong>Jadwal tersedia</strong>
-                            <div>
-                                <span>Harga dasar</span>
-                                <span>Rp {{ number_format((int) $quote['base_amount'], 0, ',', '.') }}</span>
-                            </div>
+                        <div class="venue-v2-quote">
+                            <div class="venue-v2-quote-status"><span></span>Jadwal tersedia</div>
+                            <div><span>Harga dasar</span><span>Rp {{ number_format((int) $quote['base_amount'], 0, ',', '.') }}</span></div>
                             @if ((int) $quote['owner_discount_amount'] > 0)
-                                <div><span>Diskon Owner</span><span>− Rp {{ number_format((int) $quote['owner_discount_amount'], 0, ',', '.') }}</span></div>
+                                <div><span>Diskon</span><span>− Rp {{ number_format((int) $quote['owner_discount_amount'], 0, ',', '.') }}</span></div>
                             @endif
                             @if ((int) $quote['platform_subsidy_amount'] > 0)
                                 <div><span>Subsidi Adatempat</span><span>− Rp {{ number_format((int) $quote['platform_subsidy_amount'], 0, ',', '.') }}</span></div>
                             @endif
-                            <div class="venue-booking-total"><span>Total</span><strong>Rp {{ number_format((int) $quote['actual_paid_amount'], 0, ',', '.') }}</strong></div>
+                            <div class="venue-v2-quote-total"><span>Total</span><strong>Rp {{ number_format((int) $quote['actual_paid_amount'], 0, ',', '.') }}</strong></div>
+                            <button type="button" wire:click="continueBooking" wire:loading.attr="disabled" wire:target="continueBooking" class="btn btn-primary w-full">
+                                <span wire:loading.remove wire:target="continueBooking">Lanjutkan booking</span>
+                                <span wire:loading wire:target="continueBooking">Menyiapkan...</span>
+                            </button>
+                            <small>Login pelanggan diperlukan sebelum checkout. Slot belum ditahan.</small>
                         </div>
-
-                        <button type="button" wire:click="continueBooking" wire:loading.attr="disabled" wire:target="continueBooking" class="btn btn-primary w-full">
-                            <span wire:loading.remove wire:target="continueBooking">Lanjutkan booking</span>
-                            <span wire:loading wire:target="continueBooking">Menyiapkan...</span>
-                        </button>
-                        <p class="venue-booking-auth-note">Login pelanggan diperlukan sebelum checkout. Slot belum ditahan pada tahap ini.</p>
                     @else
-                        <div class="venue-booking-result is-unavailable">
-                            <strong>Jadwal belum tersedia</strong>
-                            <p>Pilih tanggal atau waktu lain, lalu periksa kembali.</p>
-                        </div>
+                        <div class="venue-v2-unavailable"><strong>Jadwal belum tersedia.</strong><span>Coba tanggal atau waktu lain.</span></div>
                     @endif
                 @endif
             </div>
-        </aside>
-    </section>
+        </section>
+    </div>
+
+    <div x-cloak x-show="infoOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="infoOpen=false">
+        <section role="dialog" aria-modal="true" aria-labelledby="info-modal-title" class="venue-v2-modal venue-v2-info-modal">
+            <header class="venue-v2-modal-head">
+                <div><span>{{ $venue->name }}</span><h2 id="info-modal-title">Detail venue</h2></div>
+                <button type="button" @click="infoOpen=false" aria-label="Tutup modal">×</button>
+            </header>
+
+            <div class="venue-v2-modal-body venue-v2-info-body">
+                <section>
+                    <h3>Harga</h3>
+                    <div class="venue-v2-detail-list">
+                        @forelse ($activePrices as $price)
+                            <div>
+                                <span>{{ $price->pricing_unit === 'session' ? ($price->session_name ?: 'Sesi') : match ($price->pricing_unit) { 'hourly' => 'Per jam', 'daily' => 'Per hari', default => 'Harga' } }}</span>
+                                <strong>Rp {{ number_format((int) $price->price_amount, 0, ',', '.') }}</strong>
+                            </div>
+                        @empty
+                            <p>Harga belum dikonfigurasi.</p>
+                        @endforelse
+                    </div>
+                </section>
+
+                <section>
+                    <h3>Jam operasional</h3>
+                    <div class="venue-v2-detail-list">
+                        @foreach ($venue->availabilityRules->sortBy('day_of_week') as $rule)
+                            <div><span>{{ $this->dayLabel((int) $rule->day_of_week) }}</span><strong>{{ $rule->is_open ? substr((string) $rule->open_time, 0, 5) . '–' . substr((string) $rule->close_time, 0, 5) : 'Tutup' }}</strong></div>
+                        @endforeach
+                    </div>
+                </section>
+
+                @if ($details->isNotEmpty())
+                    <section>
+                        <h3>Spesifikasi</h3>
+                        <div class="venue-v2-detail-list">
+                            @foreach ($details as $item)
+                                <div><span>{{ $item['label'] }}</span><strong>{{ $item['value'] }}</strong></div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                <section>
+                    <h3>Kebijakan pembatalan</h3>
+                    <div class="venue-v2-policy">
+                        <p>Pembatalan pelanggan maksimal {{ (int) data_get($refundPolicy, 'customer_cancellation.minimum_minutes_before_start', 60) }} menit sebelum jadwal.</p>
+                        <p>Refund pelanggan {{ (int) data_get($refundPolicy, 'customer_cancellation.refund_percentage', 100) }}% sesuai snapshot kebijakan saat booking.</p>
+                        <p>Jika Owner membatalkan, refund {{ (int) data_get($refundPolicy, 'owner_cancellation.refund_percentage', 100) }}%.</p>
+                        <p>Tidak tersedia reschedule langsung.</p>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </div>
 </div>
