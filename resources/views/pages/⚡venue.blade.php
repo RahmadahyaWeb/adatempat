@@ -387,7 +387,12 @@ new #[Title('Detail venue')] class extends Component {
 };
 ?>
 
-<div class="venue-v2" x-data="{ bookingOpen: false, infoOpen: false }" @keydown.escape.window="bookingOpen=false;infoOpen=false">
+<div
+    class="venue-v2"
+    x-data="{ bookingOpen: false, infoOpen: false }"
+    x-effect="document.body.classList.toggle('modal-open', bookingOpen || infoOpen)"
+    @keydown.escape.window="bookingOpen=false;infoOpen=false"
+>
     @php
         $venue = $this->venue;
         $business = $venue->business;
@@ -514,7 +519,7 @@ new #[Title('Detail venue')] class extends Component {
         <button type="button" class="btn btn-primary" @click="bookingOpen = true">Pilih jadwal</button>
     </div>
 
-    <div x-cloak x-show="bookingOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="bookingOpen=false">
+    <div x-cloak x-show="bookingOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="bookingOpen=false" @wheel.stop @touchmove.stop>
         <section role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" class="venue-v2-modal">
             <header class="venue-v2-modal-head">
                 <div>
@@ -646,7 +651,7 @@ new #[Title('Detail venue')] class extends Component {
         </section>
     </div>
 
-    <div x-cloak x-show="infoOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="infoOpen=false">
+    <div x-cloak x-show="infoOpen" x-transition.opacity class="venue-v2-modal-backdrop" @click.self="infoOpen=false" @wheel.stop @touchmove.stop>
         <section role="dialog" aria-modal="true" aria-labelledby="info-modal-title" class="venue-v2-modal venue-v2-info-modal">
             <header class="venue-v2-modal-head">
                 <div><span>{{ $venue->name }}</span><h2 id="info-modal-title">Detail venue</h2></div>
