@@ -97,6 +97,7 @@ new #[Title('Kelola venue')] class extends Component {
 <div class="site-container owner-core-page py-7 sm:py-9 lg:py-10">
     @php
         $business = $this->currentBusiness;
+        $canCreateVenue = Gate::allows('create', [Venue::class, $business]);
         $venues = $this->venues;
         $statusMeta = [
             'draft' => ['Draft', 'muted'],
@@ -117,10 +118,14 @@ new #[Title('Kelola venue')] class extends Component {
             <h1>Kelola venue</h1>
             <p>Atur venue, status publikasi, dan promosi dari satu daftar yang mudah dipindai.</p>
         </div>
+        @if ($canCreateVenue)
         <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary owner-core-primary owner-core-header-action">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             Tambah venue
         </a>
+        @else
+        <a href="{{ route('owner.subscription') }}" class="btn btn-secondary owner-core-header-action">Lihat kuota paket</a>
+        @endif
     </header>
 
     @if (session('status'))
@@ -183,7 +188,11 @@ new #[Title('Kelola venue')] class extends Component {
                 <h3>{{ $this->currentBusiness->venues_count === 0 ? 'Belum ada venue.' : 'Tidak ada venue yang cocok.' }}</h3>
                 <p>{{ $this->currentBusiness->venues_count === 0 ? 'Tambahkan venue pertama untuk mulai menyiapkan katalog tempat.' : 'Coba kata kunci atau filter status lain.' }}</p>
                 @if ($this->currentBusiness->venues_count === 0)
-                    <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary">Tambah venue pertama</a>
+                    @if ($canCreateVenue)
+                        <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary">Tambah venue pertama</a>
+                    @else
+                        <a href="{{ route('owner.subscription') }}" class="btn btn-primary">Lihat paket langganan</a>
+                    @endif
                 @endif
             </div>
         @else
