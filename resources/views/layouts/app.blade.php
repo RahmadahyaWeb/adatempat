@@ -21,8 +21,65 @@
         $roleMenuLabel = null;
         $roleMenuGroups = [];
         $accountLabel = 'Pelanggan';
+        $ownerWorkspace = false;
+        $ownerWorkspaceItems = [];
+        $ownerContextBusiness = null;
+        $ownerSubscription = null;
+        $ownerBusinessCount = 0;
 
-        if (! $compactHeader) {
+        if ($currentUser?->isOwner() && $currentUser->hasVerifiedEmail() && request()->routeIs('owner.*') && ! request()->routeIs('owner.mfa.*')) {
+            $ownerWorkspace = true;
+            $ownerWorkspaceItems = [
+                [
+                    'label' => 'Usaha & venue',
+                    'href' => route('owner.businesses.index'),
+                    'active' => request()->routeIs('owner.businesses.*'),
+                    'icon' => 'building',
+                ],
+                [
+                    'label' => 'Booking',
+                    'href' => route('owner.bookings.index'),
+                    'active' => request()->routeIs('owner.bookings.*'),
+                    'icon' => 'calendar',
+                ],
+                [
+                    'label' => 'Langganan',
+                    'href' => route('owner.subscription'),
+                    'active' => request()->routeIs('owner.subscription'),
+                    'icon' => 'card',
+                ],
+                [
+                    'label' => 'Rekening payout',
+                    'href' => route('owner.payout-accounts.index'),
+                    'active' => request()->routeIs('owner.payout-accounts.*'),
+                    'icon' => 'wallet',
+                ],
+            ];
+
+            $ownerBusinessCount = $currentUser->businesses()->count();
+            $routeBusiness = request()->route('business');
+
+            if (is_string($routeBusiness) && $routeBusiness !== '') {
+                $ownerContextBusiness = $currentUser->businesses()
+                    ->where('public_id', $routeBusiness)
+                    ->first();
+            }
+
+            $ownerSubscription = $currentUser->subscriptions()
+                ->with('plan')
+                ->whereIn('status', [
+                    \App\Models\Subscription::STATUS_PENDING_PAYMENT,
+                    \App\Models\Subscription::STATUS_TRIALING,
+                    \App\Models\Subscription::STATUS_ACTIVE,
+                    \App\Models\Subscription::STATUS_GRACE_PERIOD,
+                    \App\Models\Subscription::STATUS_PENDING_REVERIFICATION,
+                    \App\Models\Subscription::STATUS_SUSPENDED,
+                ])
+                ->latest('id')
+                ->first();
+        }
+
+        if (! $compactHeader && ! $ownerWorkspace) {
             if (! $currentUser) {
                 $primaryNavigationItems = [
                     ['label' => 'Jelajahi tempat', 'href' => route('home') . '#hasil'],
@@ -111,6 +168,7 @@
         Lewati ke konten utama
     </a>
 
+    @if (! $ownerWorkspace)
     <header class="site-header">
         <div class="site-container flex min-h-[4.25rem] items-center justify-start gap-3 sm:min-h-[4.75rem]">
             <a href="{{ route('home') }}" class="brand-wordmark shrink-0 rounded-lg py-2" aria-label="Adatempat — Beranda">
@@ -222,12 +280,122 @@
             @endif
         </div>
     </header>
+    @endif
 
-    <main id="konten-utama" class="flex-1">
-        {{ $slot }}
-    </main>
+    @if ($ownerWorkspace)
+        <div class="owner-shell">
+            <aside class="owner-shell-sidebar" aria-label="Navigasi Owner">
+                <div class="owner-shell-brand">
+                    <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark" aria-label="Adatempat Owner">
+                        <span class="brand-symbol" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                                <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
+                            </svg>
+                        </span>
+                        <span>adatempat</span>
+                    </a>
+                    <span class="owner-shell-product">Owner</span>
+                </div>
 
-    <footer class="site-footer">
+                <nav class="owner-shell-nav">
+                    @foreach ($ownerWorkspaceItems as $item)
+                        <a href="{{ $item['href'] }}" class="owner-shell-nav-item {{ $item['active'] ? 'is-active' : '' }}">
+                            <span class="owner-shell-nav-icon" aria-hidden="true">
+                                @if ($item['icon'] === 'building')
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5h10v16M14 9h6v12M8 9h2M8 13h2M8 17h2M17 13h.01M17 17h.01"/></svg>
+                                @elseif ($item['icon'] === 'calendar')
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                                @elseif ($item['icon'] === 'card')
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                                @else
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v10H4z"/><path d="M8 12h4"/></svg>
+                                @endif
+                            </span>
+                            <span>{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                </nav>
+
+                <div class="owner-shell-context">
+                    @if ($ownerContextBusiness)
+                        <span class="owner-shell-context-label">Usaha aktif</span>
+                        <strong>{{ $ownerContextBusiness->name }}</strong>
+                        <small>{{ str($ownerContextBusiness->status)->replace('_', ' ')->title() }}</small>
+                    @else
+                        <span class="owner-shell-context-label">Portofolio</span>
+                        <strong>{{ $ownerBusinessCount }} usaha</strong>
+                        <small>Kelola usaha dan venue dari satu workspace.</small>
+                    @endif
+                </div>
+
+                <div class="owner-shell-subscription">
+                    <span>Langganan</span>
+                    @if ($ownerSubscription)
+                        <strong>{{ $ownerSubscription->plan?->name ?? 'Paket aktif' }}</strong>
+                        <small>{{ str($ownerSubscription->status)->replace('_', ' ')->title() }}</small>
+                    @else
+                        <strong>Belum aktif</strong>
+                        <small>Pilih paket untuk mempublikasikan usaha.</small>
+                    @endif
+                </div>
+            </aside>
+
+            <div class="owner-shell-main">
+                <header class="owner-shell-topbar">
+                    <div class="owner-shell-mobile-brand">
+                        <a href="{{ route('owner.businesses.index') }}" class="brand-wordmark">
+                            <span class="brand-symbol" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                                    <path d="M5 20V4h10v16M15 9h4v11M9 8h2M9 12h2M9 16h2"/>
+                                </svg>
+                            </span>
+                            <span>adatempat</span>
+                        </a>
+                        <span>Owner</span>
+                    </div>
+
+                    <div class="owner-shell-user">
+                        <div>
+                            <strong>{{ $currentUser->name }}</strong>
+                            <span>{{ $currentUser->email }}</span>
+                        </div>
+                        <a href="{{ route('home') }}" class="owner-shell-marketplace-link">Lihat marketplace</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="owner-shell-logout">Keluar</button>
+                        </form>
+                    </div>
+                </header>
+
+                <nav class="owner-shell-mobile-nav" aria-label="Navigasi Owner">
+                    @foreach ($ownerWorkspaceItems as $item)
+                        <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">{{ $item['label'] }}</a>
+                    @endforeach
+                </nav>
+
+                @if ($ownerContextBusiness)
+                    <div class="owner-shell-business-bar">
+                        <div>
+                            <span>Usaha aktif</span>
+                            <strong>{{ $ownerContextBusiness->name }}</strong>
+                        </div>
+                        @if ($ownerContextBusiness->status === \App\Models\Business::STATUS_ACTIVE && $ownerContextBusiness->published_at)
+                            <a href="{{ route('business.public', ['businessSlug' => $ownerContextBusiness->slug]) }}">Lihat halaman publik</a>
+                        @endif
+                    </div>
+                @endif
+
+                <main id="konten-utama" class="owner-shell-content">
+                    {{ $slot }}
+                </main>
+            </div>
+        </div>
+    @else
+        <main id="konten-utama" class="flex-1">
+            {{ $slot }}
+        </main>
+
+        <footer class="site-footer">
         <div class="site-container grid gap-6 py-7 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-8 sm:py-9">
             <div>
                 <a href="{{ route('home') }}" class="brand-wordmark text-lg">
@@ -264,6 +432,7 @@
             <p class="border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)] sm:col-span-2">© {{ date('Y') }} Adatempat. Semua hak dilindungi.</p>
         </div>
     </footer>
+    @endif
     @livewireScripts
 </body>
 </html>
