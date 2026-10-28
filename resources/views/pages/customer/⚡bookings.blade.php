@@ -266,21 +266,25 @@ new #[Title('Booking saya')] class extends Component {
     }
 };
 ?>
-
 <div
-    class="customer-area"
+    class="customer-area customer-area-v2"
     x-data="{ cancelOpen: @entangle('cancellationBookingId').live, disputeOpen: @entangle('selectedBookingId').live }"
     x-effect="document.body.classList.toggle('modal-open', !!cancelOpen || !!disputeOpen)"
     @keydown.escape.window="if (cancelOpen) { $wire.closeCancellation() } else if (disputeOpen) { $wire.cancelDispute() }"
 >
-    <section class="site-container customer-area-shell">
-        <header class="customer-area-header">
+    <section class="site-container customer-v2-shell">
+        <header class="customer-v2-header">
             <div>
-                <p class="eyebrow"><span class="eyebrow-dot"></span> Akun pelanggan</p>
+                <p class="customer-v2-overline">Aktivitas akun</p>
                 <h1>Booking saya</h1>
-                <p>Pantau jadwal, pembayaran, refund, dan laporan masalah dari satu tempat.</p>
+                <p>Semua reservasi, pembayaran, dan tindak lanjut ada di sini.</p>
             </div>
-            <a href="{{ route('home') }}#hasil" class="btn btn-secondary">Cari tempat lagi</a>
+            <a href="{{ route('home') }}#hasil" class="customer-v2-explore">
+                Cari tempat
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 10h11m-4-4 4 4-4 4"/>
+                </svg>
+            </a>
         </header>
 
         @if (session()->has('status'))
@@ -290,7 +294,7 @@ new #[Title('Booking saya')] class extends Component {
         @error('booking') <div role="alert" class="status-note">{{ $message }}</div> @enderror
         @error('payment') <div role="alert" class="status-note">{{ $message }}</div> @enderror
 
-        <div class="customer-booking-tabs" role="tablist" aria-label="Filter booking">
+        <nav class="customer-v2-tabs" aria-label="Filter booking">
             @foreach ([
                 'active' => 'Aktif',
                 'completed' => 'Selesai',
@@ -303,13 +307,13 @@ new #[Title('Booking saya')] class extends Component {
                     class="{{ $bookingFilter === $key ? 'is-active' : '' }}"
                     aria-pressed="{{ $bookingFilter === $key ? 'true' : 'false' }}"
                 >
-                    <span>{{ $label }}</span>
-                    <small>{{ $this->bookingCounts[$key] }}</small>
+                    {{ $label }}
+                    <span>{{ $this->bookingCounts[$key] }}</span>
                 </button>
             @endforeach
-        </div>
+        </nav>
 
-        <div class="customer-booking-list">
+        <div class="customer-v2-list">
             @forelse ($this->bookings as $booking)
                 @php
                     $nowUtc = now('UTC');
@@ -331,6 +335,8 @@ new #[Title('Booking saya')] class extends Component {
                         && $nowUtc->lessThanOrEqualTo($disputeOpenUntil)
                         && ! $booking->dispute;
                     $timezone = $booking->venue?->business?->timezone ?: 'Asia/Jakarta';
+                    $startLocal = $booking->booking_start?->copy()->timezone($timezone);
+                    $endLocal = $booking->booking_end?->copy()->timezone($timezone);
                     $payment = $booking->payments->first();
                     $refund = $booking->refunds->first();
                     $venueUrl = $booking->venue?->business?->slug && $booking->venue?->slug
@@ -341,105 +347,106 @@ new #[Title('Booking saya')] class extends Component {
                         : null;
                 @endphp
 
-                <article wire:key="customer-booking-{{ $booking->id }}" class="customer-booking-card">
-                    <div class="customer-booking-main">
-                        <div class="customer-booking-topline">
-                            <span class="customer-booking-status is-{{ $this->statusTone($booking->status) }}">
-                                {{ $this->statusLabel($booking->status) }}
-                            </span>
-                            <span class="customer-booking-reference">{{ $booking->reference_code }}</span>
-                        </div>
+                <article wire:key="customer-booking-{{ $booking->id }}" class="customer-v2-card">
+                    <div class="customer-v2-date">
+                        <span>{{ $startLocal?->translatedFormat('M') }}</span>
+                        <strong>{{ $startLocal?->format('d') }}</strong>
+                        <small>{{ $startLocal?->format('Y') }}</small>
+                    </div>
 
-                        <div class="customer-booking-title-row">
+                    <div class="customer-v2-card-content">
+                        <div class="customer-v2-card-top">
                             <div>
-                                <h2>{{ $booking->venue?->name ?? 'Venue tidak tersedia' }}</h2>
+                                <span class="customer-booking-status is-{{ $this->statusTone($booking->status) }}">
+                                    {{ $this->statusLabel($booking->status) }}
+                                </span>
+                                <h2>
+                                    @if ($venueUrl)
+                                        <a href="{{ $venueUrl }}">{{ $booking->venue?->name ?? 'Venue tidak tersedia' }}</a>
+                                    @else
+                                        {{ $booking->venue?->name ?? 'Venue tidak tersedia' }}
+                                    @endif
+                                </h2>
                                 <p>{{ $booking->venue?->business?->name }}</p>
                             </div>
-                            <strong>Rp {{ number_format((int) $booking->snapshot_actual_paid_amount, 0, ',', '.') }}</strong>
+
+                            <div class="customer-v2-amount">
+                                <span>Total</span>
+                                <strong>Rp {{ number_format((int) $booking->snapshot_actual_paid_amount, 0, ',', '.') }}</strong>
+                            </div>
                         </div>
 
-                        <div class="customer-booking-schedule">
+                        <div class="customer-v2-meta">
                             <div>
-                                <span>Tanggal</span>
-                                <strong>{{ $booking->booking_start?->timezone($timezone)->translatedFormat('d M Y') }}</strong>
+                                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.5 1.5"/></svg>
+                                <span>{{ $startLocal?->format('H:i') }}–{{ $endLocal?->format('H:i') }}</span>
                             </div>
                             <div>
-                                <span>Waktu</span>
-                                <strong>{{ $booking->booking_start?->timezone($timezone)->format('H:i') }}–{{ $booking->booking_end?->timezone($timezone)->format('H:i') }}</strong>
-                            </div>
-                            <div>
-                                <span>Zona waktu</span>
-                                <strong>{{ $timezone }}</strong>
+                                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14v10H3z"/><path d="M3 8h14"/></svg>
+                                <span>{{ $booking->reference_code }}</span>
                             </div>
                         </div>
 
                         @if ($payment || $refund || $booking->dispute)
-                            <div class="customer-booking-finance">
+                            <div class="customer-v2-state-row">
                                 @if ($payment)
-                                    <div>
-                                        <span>Pembayaran</span>
-                                        <strong>{{ str($payment->status)->replace('_', ' ')->title() }}</strong>
-                                    </div>
+                                    <span>Pembayaran <strong>{{ str($payment->status)->replace('_', ' ')->title() }}</strong></span>
                                 @endif
                                 @if ($refund)
-                                    <div>
-                                        <span>Refund</span>
-                                        <strong>{{ str($refund->status)->replace('_', ' ')->title() }} · Rp {{ number_format((int) $refund->amount, 0, ',', '.') }}</strong>
-                                    </div>
+                                    <span>Refund <strong>{{ str($refund->status)->replace('_', ' ')->title() }}</strong></span>
                                 @endif
                                 @if ($booking->dispute)
-                                    <div>
-                                        <span>Laporan</span>
-                                        <strong>{{ $booking->dispute->reference_code }} · {{ str($booking->dispute->status)->replace('_', ' ')->title() }}</strong>
-                                    </div>
+                                    <span>Laporan <strong>{{ str($booking->dispute->status)->replace('_', ' ')->title() }}</strong></span>
                                 @endif
                             </div>
                         @endif
-                    </div>
 
-                    <div class="customer-booking-actions">
-                        @if ($venueUrl)
-                            <a href="{{ $venueUrl }}" class="customer-booking-text-action">Lihat venue</a>
-                        @endif
+                        <div class="customer-v2-actions">
+                            @if ($venueUrl)
+                                <a href="{{ $venueUrl }}" class="customer-v2-link">Lihat venue</a>
+                            @endif
 
-                        @if ($booking->dispute)
-                            <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="customer-booking-text-action">Lihat laporan</a>
-                        @endif
+                            @if ($booking->dispute)
+                                <a href="{{ route('disputes.evidence', $booking->dispute) }}" class="customer-v2-link">Lihat laporan</a>
+                            @endif
 
-                        @if ($booking->status === Booking::STATUS_AWAITING_COMPLETION)
-                            <button
-                                type="button"
-                                wire:click="confirmCompletion({{ $booking->id }})"
-                                wire:confirm="Konfirmasi bahwa penggunaan venue telah selesai?"
-                                class="btn btn-primary"
-                            >
-                                Konfirmasi selesai
-                            </button>
-                        @endif
+                            <div class="customer-v2-action-buttons">
+                                @if ($booking->status === Booking::STATUS_AWAITING_COMPLETION)
+                                    <button
+                                        type="button"
+                                        wire:click="confirmCompletion({{ $booking->id }})"
+                                        wire:confirm="Konfirmasi bahwa penggunaan venue telah selesai?"
+                                        class="btn btn-primary"
+                                    >
+                                        Konfirmasi selesai
+                                    </button>
+                                @endif
 
-                        @if ($canCancel)
-                            <button type="button" wire:click="startCancellation({{ $booking->id }})" class="btn btn-secondary">
-                                Batalkan booking
-                            </button>
-                        @endif
+                                @if ($canCancel)
+                                    <button type="button" wire:click="startCancellation({{ $booking->id }})" class="btn btn-secondary">
+                                        Batalkan
+                                    </button>
+                                @endif
 
-                        @if ($canReport)
-                            <button type="button" wire:click="startDispute({{ $booking->id }})" class="btn btn-secondary">
-                                Laporkan masalah
-                            </button>
-                        @endif
+                                @if ($canReport)
+                                    <button type="button" wire:click="startDispute({{ $booking->id }})" class="btn btn-secondary">
+                                        Laporkan masalah
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </article>
             @empty
-                <div class="customer-booking-empty">
-                    <div class="customer-booking-empty-icon">
+                <div class="customer-v2-empty">
+                    <div>
                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="4" y="5" width="16" height="15" rx="2"/>
                             <path d="M8 3v4M16 3v4M4 10h16"/>
                         </svg>
                     </div>
-                    <h2>Belum ada booking di kategori ini.</h2>
-                    <p>Booking baru akan muncul di sini setelah kamu menyelesaikan checkout.</p>
+                    <h2>Belum ada booking di sini</h2>
+                    <p>Pilih venue yang sesuai, cek jadwal, lalu booking akan muncul di halaman ini.</p>
                     <a href="{{ route('home') }}#hasil" class="btn btn-primary">Jelajahi tempat</a>
                 </div>
             @endforelse
@@ -527,3 +534,4 @@ new #[Title('Booking saya')] class extends Component {
         </div>
     @endif
 </div>
+
