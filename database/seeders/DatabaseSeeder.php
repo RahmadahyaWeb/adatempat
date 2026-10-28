@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
             VenueTemplateSeeder::class,
             SubscriptionPlanSeeder::class,
             PlatformSettingSeeder::class,
-            DemoDataSeeder::class,
+            LocalUatSeeder::class,
             SuperAdminSeeder::class,
         ]);
     }
