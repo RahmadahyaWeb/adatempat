@@ -179,9 +179,11 @@ new #[Title('Langganan saya')] class extends Component {
 
 <div class="site-container owner-core-page owner-subscription-page py-7 sm:py-9 lg:py-10">
     <header class="owner-core-header">
-        <p class="owner-core-kicker">Langganan Owner</p>
-        <h1>Langganan saya</h1>
-        <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Pilih paket, bayar invoice melalui QRIS, atau jadwalkan downgrade untuk periode berikutnya. Upgrade baru aktif setelah webhook pembayaran terverifikasi.</p>
+        <div>
+            <p class="owner-core-kicker">Langganan Owner</p>
+            <h1>Langganan saya</h1>
+            <p>Pilih paket, bayar invoice melalui QRIS, atau jadwalkan downgrade untuk periode berikutnya. Upgrade baru aktif setelah webhook pembayaran terverifikasi.</p>
+        </div>
     </header>
 
     @if (session()->has('status'))
