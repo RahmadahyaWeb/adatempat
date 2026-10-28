@@ -76,6 +76,6 @@ class OwnerWorkspaceShellTest extends TestCase
         $this->actingAs($owner)
             ->get(route('owner.mfa.setup'))
             ->assertOk()
-            ->assertDontSee('owner-shell-sidebar', false);
+            ->assertDontSee('owner-shell-v2-sidebar', false);
     }
 }
