@@ -34,7 +34,7 @@ class OwnerWorkspaceStatusGuidanceTest extends TestCase
         Livewire::actingAs($owner)
             ->test('pages::owner.businesses')
             ->assertSee('Kelola venue')
-            ->assertSee('Kelola data');
+            ->assertSee('Profil usaha');
 
         Livewire::actingAs($owner)
             ->test('pages::owner.business-edit', ['business' => $business->public_id])
