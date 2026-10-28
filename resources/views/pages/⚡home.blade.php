@@ -673,7 +673,7 @@ new class extends Component {
                             <p class="mt-3 border-t border-[var(--border)] pt-3 text-sm leading-6 text-[var(--ink-soft)]">{{ \Illuminate\Support\Str::limit($venue->description, 170) }}</p>
                         @endif
                         @if ($venue->business?->slug)
-                            <a href="{{ route('business.public', ['businessSlug' => $venue->business->slug]) }}" class="mt-4 inline-flex min-h-10 items-center text-sm font-extrabold text-[var(--brand-forest)] underline-offset-4 hover:underline">
+                            <a href="{{ route('business.public', ['businessSlug' => $venue->business->slug]) }}" class="home-venue-card-cta mt-4 inline-flex min-h-10 items-center text-sm font-extrabold text-[var(--brand-forest)] underline-offset-4 hover:underline">
                                 Lihat tempat <span aria-hidden="true" class="ml-1">→</span>
                             </a>
                         @endif
