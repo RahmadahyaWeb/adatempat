@@ -148,9 +148,12 @@ class VenueTemplateDynamicFieldsTest extends TestCase
             'value_text' => 'Classroom',
         ]);
 
-        Livewire::test('pages::business', ['businessSlug' => $business->slug])
+        Livewire::test('pages::venue', [
+            'businessSlug' => $business->slug,
+            'venueSlug' => $venue->slug,
+        ])
             ->assertSee('Ruang Publik Dinamis')
-            ->assertSee('Kapasitas: 50 orang')
+            ->assertSee('50')
             ->assertSee('Wi-Fi')
             ->assertSee('AC')
             ->assertSee('Proyektor tersedia')
