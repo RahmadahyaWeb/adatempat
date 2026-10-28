@@ -117,7 +117,7 @@ new #[Title('Kelola venue')] class extends Component {
             <h1>Kelola venue</h1>
             <p>Atur venue, status publikasi, dan promosi dari satu daftar yang mudah dipindai.</p>
         </div>
-        <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary owner-core-primary">
+        <a href="{{ route('owner.businesses.venues.create', ['business' => $business->public_id]) }}" class="btn btn-primary owner-core-primary owner-core-header-action">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             Tambah venue
         </a>
