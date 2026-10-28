@@ -638,14 +638,22 @@ new class extends Component {
                  wire:target="applyDiscoveryFilters,search,chooseCategory,choosePopularSearch,sort"
                  aria-live="polite">
                 @forelse ($this->venues as $venue)
-                    <article wire:key="venue-{{ $venue->id }}" class="venue-card">
+                    @php($venueUrl = $venue->business?->slug ? route('venue.public', ['businessSlug' => $venue->business->slug, 'venueSlug' => $venue->slug]) : null)
+                    <a
+                        wire:key="venue-{{ $venue->id }}"
+                        href="{{ $venueUrl ?: '#' }}"
+                        class="venue-card venue-card-link"
+                        @if (! $venueUrl) aria-disabled="true" @endif
+                    >
                         @php($coverMedia = $venue->media->firstWhere('is_cover', true) ?? $venue->media->first())
                         @if ($coverMedia)
                             <img src="{{ \Illuminate\Support\Facades\Storage::disk($coverMedia->disk)->url($coverMedia->file_path) }}" alt="{{ $coverMedia->alt_text }}" loading="lazy" decoding="async" class="mb-4 aspect-[16/9] w-full rounded-xl object-cover">
                         @endif
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <span class="inline-flex max-w-full items-center rounded-md bg-[var(--surface-lime)] px-2.5 py-1 text-xs font-bold text-[var(--brand-forest-deep)]">{{ $venue->category?->name ?? 'Kategori belum tersedia' }}</span>
-                            <span class="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Listing venue</span>
+                            @if ($venue->business?->verified_at)
+                                <span class="venue-card-verified">Terverifikasi</span>
+                            @endif
                         </div>
                         <h3 class="mt-4 break-words text-lg font-extrabold leading-tight tracking-[-0.04em] sm:text-xl">{{ $venue->name }}</h3>
                         <p class="mt-1.5 text-sm font-semibold text-[var(--ink-soft)]">{{ $venue->business?->name ?? 'Nama usaha belum tersedia' }}</p>
@@ -672,12 +680,13 @@ new class extends Component {
                         @if ($venue->description)
                             <p class="mt-3 border-t border-[var(--border)] pt-3 text-sm leading-6 text-[var(--ink-soft)]">{{ \Illuminate\Support\Str::limit($venue->description, 170) }}</p>
                         @endif
-                        @if ($venue->business?->slug)
-                            <a href="{{ route('business.public', ['businessSlug' => $venue->business->slug]) }}" class="home-venue-card-cta mt-4 inline-flex min-h-10 items-center text-sm font-extrabold text-[var(--brand-forest)] underline-offset-4 hover:underline">
-                                Lihat tempat <span aria-hidden="true" class="ml-1">→</span>
-                            </a>
-                        @endif
-                    </article>
+                        <span class="venue-card-open">
+                            Lihat detail
+                            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 10h11m-4-4 4 4-4 4"/>
+                            </svg>
+                        </span>
+                    </a>
                 @empty
                     <div class="col-span-full rounded-xl bg-[var(--surface-soft)] px-5 py-8 sm:px-8 sm:py-10">
                         <div class="mx-auto max-w-lg text-center">
