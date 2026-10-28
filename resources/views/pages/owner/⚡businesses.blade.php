@@ -195,12 +195,14 @@ new #[Title('Kelola usaha')] class extends Component {
                                     <h3>{{ $business->name }}</h3>
                                     <p>{{ $business->address ?: 'Alamat belum ditambahkan' }}</p>
                                 </div>
-                                <span class="owner-core-status is-{{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                             </div>
                             <div class="owner-business-row-meta">
                                 <span>{{ $business->venues_count }} venue</span>
                                 <span>Diperbarui {{ $business->updated_at?->format('d M Y') }}</span>
                             </div>
+                        </div>
+                        <div class="owner-business-row-status">
+                            <span class="owner-core-status is-{{ $statusMeta[1] }}">{{ $statusMeta[0] }}</span>
                         </div>
                         <div class="owner-business-row-actions">
                             @if ($business->status !== \App\Models\Business::STATUS_SUSPENDED)
