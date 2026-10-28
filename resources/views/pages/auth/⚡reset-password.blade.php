@@ -58,46 +58,20 @@ new class extends Component {
     }
 };
 ?>
-<div class="site-container py-8 sm:py-12 lg:py-16">
-    <section class="auth-shell">
-        <div class="mb-5 text-center sm:mb-6">
-            <p class="auth-page-kicker">Pemulihan akun</p>
-            <h1 class="auth-page-title">Buat kata sandi baru</h1>
-            <p class="auth-page-description mx-auto max-w-md">Lengkapi data di bawah untuk menyelesaikan pemulihan akun Adatempat.</p>
+<div class="auth-v2-page">
+    <section class="site-container auth-v2-shell">
+        <div class="auth-v2-story">
+            <a href="{{ route('login') }}" class="auth-v2-back">← Kembali masuk</a>
+            <div><p class="eyebrow"><span class="eyebrow-dot"></span> Kata sandi baru</p><h1>Buat akses baru yang aman.</h1><p>Gunakan kata sandi baru untuk kembali ke akun Adatempat.</p></div>
         </div>
-
-        <div class="auth-card">
-            @if (session('status'))
-                <div role="status" class="status-note status-success mb-5">{{ session('status') }}</div>
-            @endif
-
-            <form wire:submit="resetPassword" class="space-y-5">
-                <div>
-                    <label for="email" class="ui-label">Alamat email</label>
-                    <input id="email" type="email" wire:model="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required class="ui-input" placeholder="nama@email.com" aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}">
-                    @error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label for="password" class="ui-label">Kata sandi baru</label>
-                    <input id="password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi baru" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}">
-                    @error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                    <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Gunakan kata sandi yang memenuhi persyaratan keamanan.</p>
-                </div>
-                <div>
-                    <label for="password_confirmation" class="ui-label">Konfirmasi kata sandi baru</label>
-                    <input id="password_confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi baru" aria-invalid="{{ $errors->has('password_confirmation') ? 'true' : 'false' }}">
-                    @error('password_confirmation') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
-                </div>
-                <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full">
-                    <span wire:loading.remove wire:target="resetPassword">Simpan kata sandi baru</span>
-                    <span wire:loading wire:target="resetPassword">Memperbarui...</span>
-                </button>
+        <div class="auth-v2-panel">
+            <div class="auth-v2-panel-head"><h2>Atur ulang kata sandi</h2><p>Lengkapi data di bawah.</p></div>
+            <form wire:submit="resetPassword" class="auth-v2-form">
+                <div><label for="email" class="ui-label">Alamat email</label><input id="email" type="email" wire:model="email" autocomplete="email" required class="ui-input">@error('email') <p role="alert" class="ui-error">{{ $message }}</p> @enderror</div>
+                <div><label for="password" class="ui-label">Kata sandi baru</label><input id="password" type="password" wire:model="password" autocomplete="new-password" required class="ui-input" placeholder="Buat kata sandi baru">@error('password') <p role="alert" class="ui-error">{{ $message }}</p> @enderror</div>
+                <div><label for="password_confirmation" class="ui-label">Konfirmasi kata sandi</label><input id="password_confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" required class="ui-input" placeholder="Ulangi kata sandi baru"></div>
+                <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full"><span wire:loading.remove wire:target="resetPassword">Simpan kata sandi</span><span wire:loading wire:target="resetPassword">Memperbarui...</span></button>
             </form>
-
-            <p class="mt-6 border-t border-[var(--border)] pt-5 text-center text-sm leading-6 text-[var(--ink-soft)]">
-                Tautan tidak bisa digunakan?
-                <a href="{{ route('password.request') }}" class="font-bold text-[var(--brand-forest)] underline-offset-4 hover:underline">Minta tautan baru</a>
-            </p>
         </div>
     </section>
 </div>

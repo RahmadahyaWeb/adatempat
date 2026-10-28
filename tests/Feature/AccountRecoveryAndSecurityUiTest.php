@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -14,20 +15,19 @@ class AccountRecoveryAndSecurityUiTest extends TestCase
     public function test_forgot_password_page_uses_consistent_copy(): void
     {
         Livewire::test('pages::auth.forgot-password')
-            ->assertSee('Lupa kata sandi?')
-            ->assertSee('Kirim instruksi pemulihan')
-            ->assertSee('tidak mengungkap apakah alamat email tertentu terdaftar.');
+            ->assertSee('Lupa kata sandi')
+            ->assertSee('Kirim instruksi')
+            ->assertSee('tidak akan mengungkap apakah sebuah email terdaftar.');
     }
 
     public function test_reset_password_page_uses_consistent_copy_and_fields(): void
     {
         Livewire::test('pages::auth.reset-password', ['token' => 'sample-reset-token'])
-            ->assertSee('Buat kata sandi baru')
+            ->assertSee('Atur ulang kata sandi')
             ->assertSee('Alamat email')
             ->assertSee('Kata sandi baru')
-            ->assertSee('Konfirmasi kata sandi baru')
-            ->assertSee('Simpan kata sandi baru')
-            ->assertSee('Minta tautan baru');
+            ->assertSee('Konfirmasi kata sandi')
+            ->assertSee('Simpan kata sandi');
     }
 
     public function test_email_verification_page_shows_the_current_account_email_and_actions(): void
@@ -40,10 +40,38 @@ class AccountRecoveryAndSecurityUiTest extends TestCase
 
         Livewire::actingAs($owner)
             ->test('pages::auth.verify-email')
-            ->assertSee('Verifikasi alamat emailmu')
+            ->assertSee('Verifikasi emailmu.')
             ->assertSee($owner->email)
-            ->assertSee('Kirim ulang tautan verifikasi')
+            ->assertSee('Kirim ulang tautan')
             ->assertSee('Keluar dari akun');
+    }
+
+
+    public function test_email_verification_returns_user_to_intended_destination(): void
+    {
+        $customer = User::factory()->create(['role' => User::ROLE_CUSTOMER]);
+        $customer->forceFill([
+            'status' => 'active',
+            'email_verified_at' => null,
+        ])->save();
+
+        $intended = route('customer.bookings.index');
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(30),
+            [
+                'publicId' => $customer->public_id,
+                'hash' => sha1($customer->getEmailForVerification()),
+            ],
+        );
+
+        $this->actingAs($customer)
+            ->withSession(['url.intended' => $intended])
+            ->get($verificationUrl)
+            ->assertRedirect($intended);
+
+        $this->assertNotNull($customer->fresh()->email_verified_at);
     }
 
     public function test_mfa_setup_page_explains_both_steps_and_secret_safety(): void

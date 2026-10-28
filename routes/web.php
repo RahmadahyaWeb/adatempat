@@ -44,7 +44,7 @@ Route::get('/email/verify/{publicId}/{hash}', function (
         event(new Verified($user));
     }
 
-    return redirect()->route('home');
+    return redirect()->intended(route('home'));
 })->where('publicId', '[0-9A-HJKMNP-TV-Z]{26}')
     ->where('hash', '[a-fA-F0-9]{40}')
     ->middleware([

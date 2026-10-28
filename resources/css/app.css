@@ -1933,3 +1933,227 @@
         transform: translateX(2px);
     }
 }
+
+
+/* UI-07 — focused authentication flow */
+@layer components {
+    .auth-v2-page {
+        min-height: calc(100vh - 8rem);
+        display: flex;
+        align-items: center;
+        padding-block: 2.5rem 4rem;
+    }
+
+    .auth-v2-shell {
+        display: grid;
+        gap: 2rem;
+        align-items: center;
+        max-width: 70rem;
+    }
+
+    .auth-v2-story {
+        display: grid;
+        gap: 2rem;
+    }
+
+    .auth-v2-back {
+        width: fit-content;
+        color: var(--ink-soft);
+        font-size: .78rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .auth-v2-back:hover {
+        color: var(--brand-forest);
+        text-decoration: underline;
+        text-underline-offset: .22rem;
+    }
+
+    .auth-v2-story h1 {
+        max-width: 11ch;
+        margin-top: .7rem;
+        font-size: clamp(2.5rem, 8vw, 4.7rem);
+        font-weight: 800;
+        line-height: .98;
+        letter-spacing: -.06em;
+        text-wrap: balance;
+    }
+
+    .auth-v2-story > div > p:not(.eyebrow) {
+        max-width: 32rem;
+        margin-top: .8rem;
+        color: var(--ink-soft);
+        font-size: .92rem;
+        line-height: 1.75;
+    }
+
+    .auth-v2-story-note {
+        max-width: 32rem;
+        border-left: 3px solid var(--brand-lime);
+        padding-left: 1rem;
+        color: var(--muted);
+        font-size: .76rem;
+        line-height: 1.65;
+    }
+
+    .auth-v2-panel {
+        width: 100%;
+        max-width: 31rem;
+        justify-self: end;
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        background: var(--surface);
+        padding: 1.2rem;
+    }
+
+    .auth-v2-register-panel {
+        max-width: 36rem;
+    }
+
+    .auth-v2-panel-head {
+        margin-bottom: 1.25rem;
+    }
+
+    .auth-v2-panel-head h2 {
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: -.04em;
+    }
+
+    .auth-v2-panel-head p {
+        margin-top: .35rem;
+        color: var(--muted);
+        font-size: .78rem;
+        line-height: 1.55;
+    }
+
+    .auth-v2-panel-head a,
+    .auth-v2-label-row a {
+        color: var(--brand-forest);
+        font-weight: 800;
+        text-decoration: underline;
+        text-underline-offset: .2rem;
+    }
+
+    .auth-v2-form {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .auth-v2-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: .5rem;
+    }
+
+    .auth-v2-label-row a {
+        font-size: .72rem;
+    }
+
+    .auth-v2-check {
+        display: flex;
+        gap: .65rem;
+        align-items: flex-start;
+        color: var(--ink-soft);
+        font-size: .76rem;
+        line-height: 1.55;
+        cursor: pointer;
+    }
+
+    .auth-v2-check input {
+        width: 1rem;
+        height: 1rem;
+        flex: 0 0 auto;
+        margin-top: .18rem;
+        accent-color: var(--brand-forest);
+    }
+
+    .auth-v2-role-switch {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .35rem;
+        margin-bottom: .65rem;
+        border-radius: .8rem;
+        background: var(--surface-soft);
+        padding: .35rem;
+    }
+
+    .auth-v2-role-switch button {
+        min-height: 2.7rem;
+        border: 0;
+        border-radius: .6rem;
+        background: transparent;
+        color: var(--ink-soft);
+        font-size: .78rem;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .auth-v2-role-switch button[aria-pressed="true"] {
+        background: var(--surface);
+        color: var(--brand-forest);
+        box-shadow: 0 1px 0 rgba(0,0,0,.04);
+    }
+
+    .auth-v2-role-note {
+        margin-bottom: 1rem;
+        color: var(--muted);
+        font-size: .72rem;
+        line-height: 1.55;
+    }
+
+    .auth-v2-password-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .auth-v2-mail-icon {
+        display: grid;
+        width: 2.75rem;
+        height: 2.75rem;
+        place-items: center;
+        margin-bottom: 1rem;
+        border-radius: .75rem;
+        background: var(--surface-lime);
+        color: var(--brand-forest);
+    }
+
+    .auth-v2-mail-icon svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .auth-v2-actions {
+        display: grid;
+        gap: .65rem;
+        margin-top: 1.25rem;
+    }
+}
+
+@media (min-width: 768px) {
+    @layer components {
+        .auth-v2-page {
+            padding-block: 4rem 5rem;
+        }
+
+        .auth-v2-shell {
+            grid-template-columns: minmax(0, 1fr) minmax(25rem, .82fr);
+            gap: clamp(3rem, 7vw, 7rem);
+        }
+
+        .auth-v2-shell-register {
+            grid-template-columns: minmax(0, .9fr) minmax(30rem, 1.1fr);
+        }
+
+        .auth-v2-panel {
+            padding: 1.5rem;
+        }
+
+        .auth-v2-password-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+}
