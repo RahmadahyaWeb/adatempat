@@ -3166,3 +3166,61 @@
         }
     }
 }
+
+
+/* Owner page alignment inside shell v2 */
+@layer components {
+    .owner-shell-v2-content .site-container {
+        width: 100%;
+        max-width: none;
+        padding-inline: 0;
+    }
+
+    .owner-page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+    .owner-page-kicker {
+        color: var(--brand-forest);
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .owner-page-header h1 {
+        margin-top: .35rem;
+        font-size: clamp(2rem, 5vw, 3.6rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -.055em;
+    }
+
+    .owner-page-header > div > p:last-child {
+        max-width: 44rem;
+        margin-top: .7rem;
+        color: var(--ink-soft);
+        font-size: .88rem;
+        line-height: 1.7;
+    }
+
+    .owner-page-primary-action {
+        width: 100%;
+    }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .owner-page-header {
+            flex-direction: row;
+            align-items: end;
+        }
+
+        .owner-page-primary-action {
+            width: auto;
+            flex: 0 0 auto;
+        }
+    }
+}
