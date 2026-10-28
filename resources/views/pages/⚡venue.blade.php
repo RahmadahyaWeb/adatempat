@@ -19,6 +19,7 @@ new #[Title('Detail venue')] class extends Component {
     public string $bookingEndDate = '';
     public string $startTime = '';
     public string $endTime = '';
+    public int $durationUnits = 1;
     public array $selectedSessionIds = [];
 
     public bool $availabilityChecked = false;
@@ -118,6 +119,144 @@ new #[Title('Detail venue')] class extends Component {
     public function dayLabel(int $day): string
     {
         return [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'][$day] ?? 'Hari';
+    }
+
+    public function hourlySlots(): array
+    {
+        if ($this->pricingUnit() !== VenuePrice::UNIT_HOURLY || $this->bookingDate === '') {
+            return [];
+        }
+
+        $price = $this->activePrices()->first();
+
+        if (! $price) {
+            return [];
+        }
+
+        $timezone = $this->venue->business->timezone ?: 'Asia/Jakarta';
+
+        try {
+            $date = CarbonImmutable::createFromFormat('Y-m-d', $this->bookingDate, $timezone);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $rule = $this->venue->availabilityRules->firstWhere('day_of_week', $date->dayOfWeek);
+
+        if (! $rule || ! $rule->is_open) {
+            return [];
+        }
+
+        $open = CarbonImmutable::parse($this->bookingDate . ' ' . substr((string) $rule->open_time, 0, 5), $timezone);
+        $close = CarbonImmutable::parse($this->bookingDate . ' ' . substr((string) $rule->close_time, 0, 5), $timezone);
+
+        if ($close->lessThanOrEqualTo($open)) {
+            $close = $close->addDay();
+        }
+
+        $interval = max(1, (int) $price->step_interval_minutes);
+        $minUnits = max(1, (int) $price->min_duration_units);
+        $minimumDuration = $interval * $minUnits;
+        $availability = app(AvailabilityService::class);
+        $slots = [];
+
+        for ($cursor = $open; $cursor->addMinutes($minimumDuration)->lessThanOrEqualTo($close); $cursor = $cursor->addMinutes($interval)) {
+            $endsAt = $cursor->addMinutes($minimumDuration);
+            $available = $availability->isAvailable($this->venue, $cursor->utc(), $endsAt->utc());
+
+            $slots[] = [
+                'value' => $cursor->format('H:i'),
+                'label' => $cursor->format('H:i'),
+                'available' => $available,
+            ];
+        }
+
+        return $slots;
+    }
+
+    public function durationOptions(): array
+    {
+        if ($this->pricingUnit() !== VenuePrice::UNIT_HOURLY || $this->bookingDate === '' || $this->startTime === '') {
+            return [];
+        }
+
+        $price = $this->activePrices()->first();
+
+        if (! $price) {
+            return [];
+        }
+
+        $timezone = $this->venue->business->timezone ?: 'Asia/Jakarta';
+
+        try {
+            $startsAt = CarbonImmutable::parse($this->bookingDate . ' ' . $this->startTime, $timezone);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $interval = max(1, (int) $price->step_interval_minutes);
+        $minUnits = max(1, (int) $price->min_duration_units);
+        $maxUnits = max($minUnits, (int) $price->max_duration_units);
+        $availability = app(AvailabilityService::class);
+        $options = [];
+
+        for ($units = $minUnits; $units <= $maxUnits; $units++) {
+            $endsAt = $startsAt->addMinutes($interval * $units);
+            $available = $availability->isAvailable($this->venue, $startsAt->utc(), $endsAt->utc());
+            $minutes = $interval * $units;
+
+            $options[] = [
+                'units' => $units,
+                'minutes' => $minutes,
+                'label' => $minutes % 60 === 0
+                    ? (int) ($minutes / 60) . ' jam'
+                    : intdiv($minutes, 60) . 'j ' . ($minutes % 60) . 'm',
+                'end' => $endsAt->format('H:i'),
+                'available' => $available,
+            ];
+        }
+
+        return $options;
+    }
+
+    public function selectHourlyStart(string $time): void
+    {
+        $slot = collect($this->hourlySlots())->firstWhere('value', $time);
+
+        if (! $slot || ! $slot['available']) {
+            return;
+        }
+
+        $this->startTime = $time;
+        $this->durationUnits = max(1, (int) ($this->activePrices()->first()?->min_duration_units ?? 1));
+        $this->availabilityChecked = false;
+        $this->isAvailable = false;
+        $this->quote = null;
+    }
+
+    public function selectDuration(int $units): void
+    {
+        $option = collect($this->durationOptions())->firstWhere('units', $units);
+
+        if (! $option || ! $option['available']) {
+            return;
+        }
+
+        $this->durationUnits = $units;
+        $this->endTime = (string) $option['end'];
+        $this->availabilityChecked = false;
+        $this->isAvailable = false;
+        $this->quote = null;
+    }
+
+    public function updatedBookingDate(): void
+    {
+        $this->startTime = '';
+        $this->endTime = '';
+        $this->selectedSessionIds = [];
+        $this->availabilityChecked = false;
+        $this->isAvailable = false;
+        $this->quote = null;
     }
 
     public function checkAvailability(AvailabilityService $availability, PricingAndPromoService $pricing): void
@@ -224,19 +363,24 @@ new #[Title('Detail venue')] class extends Component {
         $validated = $this->validate([
             'bookingDate' => ['required', 'date_format:Y-m-d'],
             'startTime' => ['required', 'date_format:H:i'],
-            'endTime' => ['required', 'date_format:H:i'],
+            'durationUnits' => ['required', 'integer', 'min:1'],
         ], [
-            'startTime.required' => 'Jam mulai wajib dipilih.',
-            'endTime.required' => 'Jam selesai wajib dipilih.',
+            'startTime.required' => 'Pilih jam mulai yang tersedia.',
+            'durationUnits.required' => 'Pilih durasi penggunaan.',
         ]);
 
-        if ($validated['endTime'] <= $validated['startTime']) {
-            throw ValidationException::withMessages(['endTime' => 'Jam selesai harus lebih akhir daripada jam mulai.']);
+        $price = $this->activePrices()->first();
+
+        if (! $price) {
+            throw ValidationException::withMessages(['pricing' => 'Harga venue belum tersedia.']);
         }
 
+        $startsAt = CarbonImmutable::parse($validated['bookingDate'] . ' ' . $validated['startTime'], $timezone);
+        $endsAt = $startsAt->addMinutes(max(1, (int) $price->step_interval_minutes) * (int) $validated['durationUnits']);
+
         return [
-            CarbonImmutable::parse($validated['bookingDate'] . ' ' . $validated['startTime'], $timezone)->utc(),
-            CarbonImmutable::parse($validated['bookingDate'] . ' ' . $validated['endTime'], $timezone)->utc(),
+            $startsAt->utc(),
+            $endsAt->utc(),
             [],
         ];
     }
@@ -356,12 +500,8 @@ new #[Title('Detail venue')] class extends Component {
                     <div class="venue-v2-cta-price">Harga belum tersedia</div>
                 @endif
             </div>
-            <ul>
-                <li>Cek jadwal real-time</li>
-                <li>Harga dihitung sebelum checkout</li>
-                <li>Slot ditahan 15 menit saat pembayaran</li>
-            </ul>
-            <button type="button" class="btn btn-primary w-full" @click="bookingOpen = true">Pilih jadwal</button>
+            <p class="venue-v2-cta-copy">Pilih tanggal dan waktu untuk melihat ketersediaan serta total harga sebelum checkout.</p>
+            <button type="button" class="btn btn-primary w-full" @click="bookingOpen = true">Cek jadwal</button>
             <p>Belum ada biaya pada tahap ini.</p>
         </aside>
     </section>
@@ -378,8 +518,11 @@ new #[Title('Detail venue')] class extends Component {
         <section role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" class="venue-v2-modal">
             <header class="venue-v2-modal-head">
                 <div>
-                    <span>Booking {{ $venue->name }}</span>
+                    <span>{{ $venue->name }} · {{ $business->name }}</span>
                     <h2 id="booking-modal-title">Pilih jadwalmu</h2>
+                    @if ($startingPrice !== null)
+                        <p class="venue-v2-modal-price">Mulai Rp {{ number_format($startingPrice, 0, ',', '.') }} / {{ $unitLabel }}</p>
+                    @endif
                 </div>
                 <button type="button" class="venue-v2-modal-close" @click="bookingOpen=false" aria-label="Tutup modal">
                     <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
@@ -392,7 +535,7 @@ new #[Title('Detail venue')] class extends Component {
                 <form wire:submit="checkAvailability" class="venue-v2-booking-form">
                     <div>
                         <label for="booking-date" class="ui-label">Tanggal {{ $pricingUnit === 'daily' ? 'mulai' : '' }}</label>
-                        <input id="booking-date" type="date" min="{{ now($business->timezone ?: 'Asia/Jakarta')->format('Y-m-d') }}" wire:model="bookingDate" class="ui-input">
+                        <input id="booking-date" type="date" min="{{ now($business->timezone ?: 'Asia/Jakarta')->format('Y-m-d') }}" wire:model.live="bookingDate" class="ui-input">
                         @error('bookingDate') <p class="ui-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -420,18 +563,50 @@ new #[Title('Detail venue')] class extends Component {
                             @error('selectedSessionIds') <p class="ui-error">{{ $message }}</p> @enderror
                         </fieldset>
                     @else
-                        <div class="venue-v2-time-grid">
-                            <div>
-                                <label for="booking-start" class="ui-label">Jam mulai</label>
-                                <input id="booking-start" type="time" wire:model="startTime" class="ui-input">
-                                @error('startTime') <p class="ui-error">{{ $message }}</p> @enderror
+                        <div>
+                            <div class="venue-v2-slot-head">
+                                <label class="ui-label !mb-0">Jam tersedia</label>
+                                @if ($bookingDate)
+                                    <span>{{ \Carbon\CarbonImmutable::parse($bookingDate)->translatedFormat('d M Y') }}</span>
+                                @endif
                             </div>
-                            <div>
-                                <label for="booking-end" class="ui-label">Jam selesai</label>
-                                <input id="booking-end" type="time" wire:model="endTime" class="ui-input">
-                                @error('endTime') <p class="ui-error">{{ $message }}</p> @enderror
+
+                            <div class="venue-v2-slot-grid" aria-label="Pilihan jam mulai">
+                                @forelse ($this->hourlySlots() as $slot)
+                                    <button
+                                        type="button"
+                                        wire:click="selectHourlyStart('{{ $slot['value'] }}')"
+                                        class="{{ $startTime === $slot['value'] ? 'is-selected' : '' }}"
+                                        @disabled(! $slot['available'])
+                                    >
+                                        {{ $slot['label'] }}
+                                    </button>
+                                @empty
+                                    <p class="venue-v2-slot-empty">Tidak ada slot yang dapat dipilih pada tanggal ini.</p>
+                                @endforelse
                             </div>
+                            @error('startTime') <p class="ui-error">{{ $message }}</p> @enderror
                         </div>
+
+                        @if ($startTime !== '')
+                            <div class="venue-v2-duration-block">
+                                <label class="ui-label">Durasi</label>
+                                <div class="venue-v2-duration-grid">
+                                    @foreach ($this->durationOptions() as $option)
+                                        <button
+                                            type="button"
+                                            wire:click="selectDuration({{ $option['units'] }})"
+                                            class="{{ $durationUnits === $option['units'] ? 'is-selected' : '' }}"
+                                            @disabled(! $option['available'])
+                                        >
+                                            <strong>{{ $option['label'] }}</strong>
+                                            <span>sampai {{ $option['end'] }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                                @error('durationUnits') <p class="ui-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     @endif
 
                     @error('bookingStart') <p class="ui-error">{{ $message }}</p> @enderror
@@ -440,7 +615,7 @@ new #[Title('Detail venue')] class extends Component {
                     @error('sessionPriceIds') <p class="ui-error">{{ $message }}</p> @enderror
 
                     <button type="submit" class="btn btn-secondary w-full" wire:loading.attr="disabled" wire:target="checkAvailability">
-                        <span wire:loading.remove wire:target="checkAvailability">Cek jadwal & harga</span>
+                        <span wire:loading.remove wire:target="checkAvailability">Lihat harga</span>
                         <span wire:loading wire:target="checkAvailability">Memeriksa...</span>
                     </button>
                 </form>
@@ -464,7 +639,7 @@ new #[Title('Detail venue')] class extends Component {
                             <small>Login pelanggan diperlukan sebelum checkout. Slot belum ditahan.</small>
                         </div>
                     @else
-                        <div class="venue-v2-unavailable"><strong>Jadwal belum tersedia.</strong><span>Coba tanggal atau waktu lain.</span></div>
+                        <div class="venue-v2-unavailable"><strong>Slot ini tidak tersedia.</strong><span>Pilih jam atau durasi lain yang masih aktif di atas.</span></div>
                     @endif
                 @endif
             </div>
