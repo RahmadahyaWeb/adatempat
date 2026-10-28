@@ -179,9 +179,11 @@ new #[Title('Langganan saya')] class extends Component {
 
 <div class="site-container owner-core-page owner-subscription-page py-7 sm:py-9 lg:py-10">
     <header class="owner-core-header">
-        <p class="owner-core-kicker">Langganan Owner</p>
-        <h1>Langganan saya</h1>
-        <p class="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink-soft)]">Pilih paket, bayar invoice melalui QRIS, atau jadwalkan downgrade untuk periode berikutnya. Upgrade baru aktif setelah webhook pembayaran terverifikasi.</p>
+        <div>
+            <p class="owner-core-kicker">Langganan Owner</p>
+            <h1>Langganan saya</h1>
+            <p>Pilih paket, bayar invoice melalui QRIS, atau jadwalkan downgrade untuk periode berikutnya. Upgrade baru aktif setelah webhook pembayaran terverifikasi.</p>
+        </div>
     </header>
 
     @if (session()->has('status'))
@@ -217,7 +219,7 @@ new #[Title('Langganan saya')] class extends Component {
                         <label class="ui-label mt-4" for="subscription-qris-payload">Payload QRIS dari gateway</label>
                         <textarea id="subscription-qris-payload" class="ui-input w-full font-mono text-xs" rows="4" readonly>{{ $this->checkoutPayment->qris_payload }}</textarea>
                         <p class="mt-2 text-xs leading-5 text-[var(--ink-soft)]">Payload ditampilkan apa adanya dari adapter pembayaran. Tampilan QR visual akan mengikuti integrasi gateway produksi yang dipilih.</p>
-                    @elseif (in_array($this->checkoutPayment->status, [AppModelsPayment::STATUS_VERIFYING, AppModelsPayment::STATUS_RECONCILIATION_REQUIRED], true))
+                    @elseif (in_array($this->checkoutPayment->status, [\App\Models\Payment::STATUS_VERIFYING, \App\Models\Payment::STATUS_RECONCILIATION_REQUIRED], true))
                         <p class="mt-3 text-sm text-amber-800">Status gateway perlu diverifikasi. Jangan membuat pembayaran kedua sebelum rekonsiliasi selesai.</p>
                     @endif
                 </div>
@@ -233,7 +235,7 @@ new #[Title('Langganan saya')] class extends Component {
                     <h2 class="mt-1 text-2xl font-extrabold">{{ $this->currentSubscription->plan?->name ?? 'Paket tidak tersedia' }}</h2>
                     <p class="mt-2 text-sm">Status: <strong>{{ str($this->currentSubscription->status)->replace('_', ' ')->title() }}</strong></p>
                     <p class="mt-1 text-sm text-[var(--ink-soft)]">Periode: {{ $this->currentSubscription->starts_at?->timezone('Asia/Jakarta')->format('d M Y') }} – {{ $this->currentSubscription->ends_at?->timezone('Asia/Jakarta')->format('d M Y') }} WIB</p>
-                    @if ($this->currentSubscription->grace_ends_at && $this->currentSubscription->status === AppModelsSubscription::STATUS_GRACE_PERIOD)
+                    @if ($this->currentSubscription->grace_ends_at && $this->currentSubscription->status === \App\Models\Subscription::STATUS_GRACE_PERIOD)
                         <p class="mt-2 text-sm text-amber-800">Grace period berakhir {{ $this->currentSubscription->grace_ends_at->timezone('Asia/Jakarta')->format('d M Y H:i') }} WIB.</p>
                     @endif
                     @if ($this->currentSubscription->scheduledPlan)

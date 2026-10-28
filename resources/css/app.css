@@ -3930,3 +3930,211 @@
         }
     }
 }
+
+
+/* UI-10 payout v2 — compact financial workspace */
+@layer components {
+    .owner-payout-v2-header {
+        max-width: 48rem;
+    }
+
+    .owner-payout-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+        border-block: 1px solid var(--border);
+        padding-block: 1rem;
+    }
+
+    .owner-payout-summary > div {
+        display: grid;
+        gap: .12rem;
+    }
+
+    .owner-payout-summary span {
+        color: var(--muted);
+        font-size: .66rem;
+        font-weight: 650;
+    }
+
+    .owner-payout-summary strong {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -.04em;
+    }
+
+    .owner-payout-section {
+        margin-top: 1.8rem;
+    }
+
+    .owner-payout-empty {
+        display: grid;
+        max-width: 34rem;
+        gap: .55rem;
+        justify-items: start;
+        padding-block: 1.6rem;
+    }
+
+    .owner-payout-empty > div {
+        display: grid;
+        width: 2.6rem;
+        height: 2.6rem;
+        place-items: center;
+        border-radius: .7rem;
+        background: var(--surface-lime);
+        color: var(--brand-forest);
+    }
+
+    .owner-payout-empty svg {
+        width: 1.2rem;
+        height: 1.2rem;
+    }
+
+    .owner-payout-empty h3 {
+        font-size: 1.05rem;
+        font-weight: 800;
+    }
+
+    .owner-payout-empty p {
+        color: var(--muted);
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    .owner-payout-list {
+        display: grid;
+        gap: .7rem;
+        margin-top: 1rem;
+    }
+
+    .owner-payout-account {
+        display: grid;
+        grid-template-columns: auto minmax(0,1fr);
+        gap: .8rem;
+        border: 1px solid var(--border);
+        border-radius: .9rem;
+        background: var(--surface);
+        padding: .95rem;
+    }
+
+    .owner-payout-account-icon {
+        display: grid;
+        width: 2.35rem;
+        height: 2.35rem;
+        place-items: center;
+        border-radius: .65rem;
+        background: var(--surface-soft);
+        color: var(--brand-forest);
+    }
+
+    .owner-payout-account-icon svg {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .owner-payout-account-title {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+    }
+
+    .owner-payout-account-title h3 {
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .owner-payout-account-title p {
+        margin-top: .12rem;
+        color: var(--muted);
+        font-size: .68rem;
+    }
+
+    .owner-payout-account-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem .8rem;
+        margin-top: .45rem;
+        color: var(--muted);
+        font-size: .65rem;
+    }
+
+    .owner-payout-form-section {
+        display: grid;
+        gap: 1rem;
+        margin-top: 2rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1.5rem;
+    }
+
+    .owner-payout-form-copy h2 {
+        margin-top: .25rem;
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: -.035em;
+    }
+
+    .owner-payout-form-copy > p:last-of-type {
+        max-width: 36rem;
+        margin-top: .45rem;
+        color: var(--muted);
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    .owner-payout-security-note {
+        display: flex;
+        gap: .45rem;
+        align-items: flex-start;
+        margin-top: .7rem;
+        color: var(--muted);
+        font-size: .68rem;
+        line-height: 1.55;
+    }
+
+    .owner-payout-security-note svg {
+        width: .95rem;
+        height: .95rem;
+        flex: 0 0 auto;
+        margin-top: .08rem;
+        color: var(--brand-forest);
+    }
+
+    .owner-payout-form {
+        display: grid;
+        gap: .9rem;
+    }
+
+    .owner-payout-form-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .owner-payout-account-title {
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .owner-payout-form {
+            grid-template-columns: repeat(2, minmax(0,1fr));
+        }
+
+        .owner-payout-form-actions {
+            grid-column: 1 / -1;
+        }
+    }
+}
+
+@media (min-width: 1024px) {
+    @layer components {
+        .owner-payout-form-section {
+            grid-template-columns: minmax(14rem,.75fr) minmax(0,1.25fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+    }
+}
