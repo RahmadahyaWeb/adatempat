@@ -119,7 +119,9 @@ new class extends Component {
 
         request()->session()->regenerate();
 
-        $this->redirect($user->hasVerifiedEmail() ? route('home') : route('verification.notice'), navigate: false);
+        $this->redirect($user->hasVerifiedEmail()
+            ? ($user->isOwner() ? route('owner.subscription') : route('home'))
+            : route('verification.notice'), navigate: false);
     }
 };
 ?>
