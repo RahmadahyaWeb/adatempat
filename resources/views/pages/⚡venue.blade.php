@@ -381,7 +381,11 @@ new #[Title('Detail venue')] class extends Component {
                     <span>Booking {{ $venue->name }}</span>
                     <h2 id="booking-modal-title">Pilih jadwalmu</h2>
                 </div>
-                <button type="button" @click="bookingOpen=false" aria-label="Tutup modal">×</button>
+                <button type="button" class="venue-v2-modal-close" @click="bookingOpen=false" aria-label="Tutup modal">
+                    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                        <path d="M5 5l10 10M15 5 5 15"/>
+                    </svg>
+                </button>
             </header>
 
             <div class="venue-v2-modal-body">
@@ -471,7 +475,11 @@ new #[Title('Detail venue')] class extends Component {
         <section role="dialog" aria-modal="true" aria-labelledby="info-modal-title" class="venue-v2-modal venue-v2-info-modal">
             <header class="venue-v2-modal-head">
                 <div><span>{{ $venue->name }}</span><h2 id="info-modal-title">Detail venue</h2></div>
-                <button type="button" @click="infoOpen=false" aria-label="Tutup modal">×</button>
+                <button type="button" class="venue-v2-modal-close" @click="infoOpen=false" aria-label="Tutup modal">
+                    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                        <path d="M5 5l10 10M15 5 5 15"/>
+                    </svg>
+                </button>
             </header>
 
             <div class="venue-v2-modal-body venue-v2-info-body">
