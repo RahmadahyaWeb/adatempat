@@ -35,43 +35,22 @@ new class extends Component {
     }
 };
 ?>
-<div class="site-container py-8 sm:py-12 lg:py-16">
-    <section class="auth-shell">
-        <div class="mb-5 text-center sm:mb-6">
-            <p class="auth-page-kicker">Verifikasi akun</p>
-            <h1 class="auth-page-title">Verifikasi alamat emailmu</h1>
-            <p class="auth-page-description mx-auto max-w-md">Selesaikan verifikasi agar akunmu dapat menggunakan fitur yang memerlukannya.</p>
+<div class="auth-v2-page">
+    <section class="site-container auth-v2-shell">
+        <div class="auth-v2-story">
+            <a href="{{ route('home') }}" class="auth-v2-back">← Beranda</a>
+            <div><p class="eyebrow"><span class="eyebrow-dot"></span> Satu langkah lagi</p><h1>Verifikasi emailmu.</h1><p>Verifikasi diperlukan sebelum fitur akun tertentu dapat digunakan.</p></div>
+            <div class="auth-v2-story-note">Setelah verifikasi berhasil, sistem akan melanjutkan ke halaman yang sebelumnya ingin kamu buka.</div>
         </div>
-
-        <div class="auth-card">
-            <div class="flex size-12 items-center justify-center rounded-xl bg-[var(--surface-lime)] text-[var(--brand-forest)]">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        <div class="auth-v2-panel">
+            <div class="auth-v2-mail-icon"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+            <div class="auth-v2-panel-head"><h2>Cek email</h2><p>Tautan verifikasi dikirim ke <strong>{{ auth()->user()->email }}</strong>.</p></div>
+            @if (session('status')) <div role="status" class="status-note status-success">{{ session('status') }}</div> @endif
+            @error('resend') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+            <div class="auth-v2-actions">
+                <button type="button" wire:click="resend" wire:loading.attr="disabled" class="btn btn-primary w-full"><span wire:loading.remove wire:target="resend">Kirim ulang tautan</span><span wire:loading wire:target="resend">Mengirim...</span></button>
+                <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="btn btn-secondary w-full">Keluar dari akun</button></form>
             </div>
-
-            <p class="mt-5 text-sm leading-6 text-[var(--ink-soft)]">Kami mengirim tautan verifikasi ke alamat email berikut.</p>
-            <div class="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3">
-                <p class="break-all text-sm font-bold text-[var(--ink)]">{{ auth()->user()->email }}</p>
-            </div>
-            <p class="mt-4 text-sm leading-6 text-[var(--muted)]">Buka tautan di email tersebut. Jika belum tiba, periksa folder spam sebelum meminta pengiriman ulang.</p>
-
-            @if (session('status'))
-                <div role="status" class="status-note status-success mt-5">{{ session('status') }}</div>
-            @endif
-            @error('resend')
-                <p role="alert" class="ui-error mt-4">{{ $message }}</p>
-            @enderror
-
-            <button type="button" wire:click="resend" wire:loading.attr="disabled" class="btn btn-primary mt-6 w-full">
-                <span wire:loading.remove wire:target="resend">Kirim ulang tautan verifikasi</span>
-                <span wire:loading wire:target="resend">Mengirim email...</span>
-            </button>
-
-            <form method="POST" action="{{ route('logout') }}" class="mt-3">
-                @csrf
-                <button type="submit" class="btn btn-secondary w-full">Keluar dari akun</button>
-            </form>
-
-            <p class="mt-5 border-t border-[var(--border)] pt-5 text-xs leading-5 text-[var(--muted)]">Jangan bagikan tautan verifikasi kepada orang lain. Tautan hanya ditujukan untuk akunmu.</p>
         </div>
     </section>
 </div>
