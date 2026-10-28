@@ -3371,3 +3371,67 @@
         .owner-venue-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
     }
 }
+
+
+/* UI-10 polish — compact primary actions and aligned business rows */
+@layer components {
+    .owner-core-header-action {
+        min-height: 2.55rem;
+        width: auto;
+        padding: .55rem .8rem;
+        gap: .45rem;
+        border-radius: .65rem;
+        font-size: .78rem;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .owner-core-header-action svg {
+        width: .95rem;
+        height: .95rem;
+        flex: 0 0 auto;
+    }
+
+    .owner-business-row-status {
+        display: flex;
+        align-items: center;
+    }
+}
+
+@media (min-width: 700px) {
+    @layer components {
+        .owner-business-row {
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            align-items: center;
+        }
+
+        .owner-business-row-status {
+            justify-content: center;
+        }
+
+        .owner-business-row-actions {
+            align-items: center;
+        }
+
+        .owner-business-row-actions .btn {
+            min-height: 2.55rem;
+            padding: .55rem .8rem;
+            border-radius: .65rem;
+            font-size: .78rem;
+            white-space: nowrap;
+        }
+    }
+}
+
+@media (max-width: 699px) {
+    @layer components {
+        .owner-business-row-status {
+            grid-column: 2;
+        }
+
+        .owner-business-row-actions {
+            grid-column: 1 / -1;
+            padding-left: 3.35rem;
+        }
+    }
+}
