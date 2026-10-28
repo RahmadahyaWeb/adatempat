@@ -32,6 +32,35 @@ class PublicVenueBookingUiTest extends TestCase
             ->assertSee('Rp 250.000');
     }
 
+
+    public function test_hourly_venue_exposes_only_availability_aware_start_slots_and_durations(): void
+    {
+        [$business, $venue] = $this->publishedVenueFixture();
+
+        $component = Livewire::test('pages::venue', [
+            'businessSlug' => $business->slug,
+            'venueSlug' => $venue->slug,
+        ])
+            ->set('bookingDate', now('UTC')->addDay()->format('Y-m-d'));
+
+        $slots = $component->instance()->hourlySlots();
+
+        $this->assertNotEmpty($slots);
+        $this->assertArrayHasKey('value', $slots[0]);
+        $this->assertArrayHasKey('available', $slots[0]);
+
+        $firstAvailable = collect($slots)->firstWhere('available', true);
+        $this->assertNotNull($firstAvailable);
+
+        $component->call('selectHourlyStart', $firstAvailable['value']);
+
+        $durations = $component->instance()->durationOptions();
+
+        $this->assertNotEmpty($durations);
+        $this->assertArrayHasKey('units', $durations[0]);
+        $this->assertArrayHasKey('end', $durations[0]);
+    }
+
     public function test_booking_checkout_route_requires_customer_authentication(): void
     {
         [, $venue] = $this->publishedVenueFixture();

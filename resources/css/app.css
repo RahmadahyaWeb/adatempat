@@ -1716,3 +1716,131 @@
         }
     }
 }
+
+
+/* UI-06 UX boost — slot picker and booking decision flow */
+@layer components {
+    .venue-v2-modal-price {
+        margin-top: .2rem;
+        color: var(--brand-forest);
+        font-size: .74rem;
+        font-weight: 750;
+    }
+
+    .venue-v2-cta-copy {
+        color: var(--ink-soft);
+        font-size: .76rem;
+        line-height: 1.6;
+    }
+
+    .venue-v2-slot-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .65rem;
+    }
+
+    .venue-v2-slot-head span {
+        color: var(--muted);
+        font-size: .7rem;
+        font-weight: 650;
+    }
+
+    .venue-v2-slot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .5rem;
+    }
+
+    .venue-v2-slot-grid button,
+    .venue-v2-duration-grid button {
+        min-height: 2.75rem;
+        border: 1px solid var(--border);
+        border-radius: .7rem;
+        background: var(--surface);
+        color: var(--ink-soft);
+        font-size: .78rem;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .venue-v2-slot-grid button:hover:not(:disabled),
+    .venue-v2-duration-grid button:hover:not(:disabled) {
+        border-color: var(--brand-forest);
+    }
+
+    .venue-v2-slot-grid button.is-selected,
+    .venue-v2-duration-grid button.is-selected {
+        border-color: var(--brand-forest);
+        background: var(--surface-lime);
+        color: var(--brand-forest-deep);
+    }
+
+    .venue-v2-slot-grid button:disabled,
+    .venue-v2-duration-grid button:disabled {
+        cursor: not-allowed;
+        background: var(--surface-soft);
+        color: var(--muted);
+        opacity: .45;
+        text-decoration: line-through;
+    }
+
+    .venue-v2-slot-empty {
+        grid-column: 1 / -1;
+        border-radius: .7rem;
+        background: var(--surface-soft);
+        padding: .8rem;
+        color: var(--muted);
+        font-size: .74rem;
+        line-height: 1.55;
+    }
+
+    .venue-v2-duration-block {
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+
+    .venue-v2-duration-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .5rem;
+    }
+
+    .venue-v2-duration-grid button {
+        display: grid;
+        min-height: 3.5rem;
+        align-content: center;
+        gap: .12rem;
+        padding: .55rem .7rem;
+        text-align: left;
+    }
+
+    .venue-v2-duration-grid strong {
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .venue-v2-duration-grid span {
+        color: var(--muted);
+        font-size: .66rem;
+        font-weight: 600;
+    }
+
+    .venue-v2-duration-grid button.is-selected span {
+        color: inherit;
+        opacity: .72;
+    }
+}
+
+@media (min-width: 640px) {
+    @layer components {
+        .venue-v2-slot-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .venue-v2-duration-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+}
