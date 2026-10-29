@@ -27,6 +27,27 @@ class SubscriptionBillingService
     }
 
     /**
+     * A paid renewal belongs to this exact scheduled period, not an earlier cycle.
+     */
+    public function paidScheduledRenewalInvoice(Subscription $subscription): ?Invoice
+    {
+        if (! $subscription->scheduled_plan_id || ! $subscription->ends_at) {
+            return null;
+        }
+
+        return Invoice::query()
+            ->where('invoice_type', Invoice::TYPE_SUBSCRIPTION)
+            ->where('reference_id', $subscription->getKey())
+            ->where('recipient_user_id', $subscription->owner_id)
+            ->where('status', Invoice::STATUS_PAID)
+            ->whereJsonContains('line_items_json->action', 'renewal_downgrade')
+            ->whereJsonContains('line_items_json->target_plan_id', (int) $subscription->scheduled_plan_id)
+            ->whereJsonContains('line_items_json->scheduled_effective_at', $subscription->ends_at->copy()->utc()->toIso8601String())
+            ->latest('id')
+            ->first();
+    }
+
+    /**
      * @return array{scheduled:bool,subscription:Subscription,invoice:?Invoice,payment:?Payment}
      */
     public function checkoutPlan(
@@ -108,7 +129,17 @@ class SubscriptionBillingService
             ]);
         }
 
+        if ($current->scheduled_plan_id && $this->paidScheduledRenewalInvoice($current)) {
+            throw ValidationException::withMessages([
+                'subscription' => 'Perpanjangan Starter sudah lunas. Paket akan berubah otomatis saat periode Business berakhir.',
+            ]);
+        }
+
         if ($current->scheduled_plan_id && (int) $current->scheduled_plan_id === (int) $targetPlan->getKey()) {
+            if ($retainedBusinessId !== null) {
+                return $this->scheduleDowngrade($owner, $current, $targetPlan, $retainedBusinessId);
+            }
+
             return $this->createRenewal($owner, $current, $targetPlan, $paymentKey, true);
         }
 
@@ -238,8 +269,15 @@ class SubscriptionBillingService
             $action = $lineItems['action'] ?? null;
             $targetPlanId = (int) ($lineItems['target_plan_id'] ?? 0);
             $targetPlan = SubscriptionPlan::query()->whereKey($targetPlanId)->where('is_active', true)->first();
+            $validScheduledRenewal = $action !== 'renewal_downgrade'
+                || (
+                    $lockedSubscription->scheduled_plan_id !== null
+                    && (int) $lockedSubscription->scheduled_plan_id === $targetPlanId
+                    && (int) ($lineItems['retained_business_id'] ?? 0) === (int) ($lockedSubscription->retained_business_id ?? 0)
+                    && ($lineItems['scheduled_effective_at'] ?? null) === $lockedSubscription->ends_at->copy()->utc()->toIso8601String()
+                );
 
-            if (! $validState || ! $validAmount || ! $validFee || ! $validTime || ! $targetPlan || ! in_array($action, ['purchase', 'renewal', 'renewal_downgrade', 'upgrade'], true)) {
+            if (! $validState || ! $validAmount || ! $validFee || ! $validTime || ! $validScheduledRenewal || ! $targetPlan || ! in_array($action, ['purchase', 'renewal', 'renewal_downgrade', 'upgrade'], true)) {
                 $beforePaymentStatus = $lockedPayment->status;
                 $lockedPayment->update(['status' => Payment::STATUS_RECONCILIATION_REQUIRED, 'qris_payload' => null]);
 
@@ -310,6 +348,9 @@ class SubscriptionBillingService
                     'scheduled_plan_id' => null,
                     'retained_business_id' => null,
                 ]);
+            } elseif ($action === 'renewal_downgrade' && $lockedSubscription->ends_at->greaterThan($now)) {
+                // The renewal is paid, but Business remains active until its existing period ends.
+                // The lifecycle scheduler activates Starter and archives excess businesses then.
             } else {
                 $periodStart = $lockedSubscription->ends_at->greaterThan($paidAt)
                     ? CarbonImmutable::instance($lockedSubscription->ends_at)->utc()
@@ -449,12 +490,28 @@ class SubscriptionBillingService
         $result = DB::transaction(function () use ($owner, $subscription, $plan, $paymentKey, $applyScheduledDowngrade): array {
             $locked = Subscription::query()->whereKey($subscription->getKey())->lockForUpdate()->firstOrFail();
 
+            if ($applyScheduledDowngrade) {
+                if (! in_array($locked->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_GRACE_PERIOD], true)
+                    || (int) $locked->scheduled_plan_id !== (int) $plan->getKey()
+                    || $this->paidScheduledRenewalInvoice($locked)
+                    || Payment::query()
+                        ->where('payable_type', Payment::TYPE_SUBSCRIPTION)
+                        ->where('payable_id', $locked->getKey())
+                        ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_VERIFYING, Payment::STATUS_RECONCILIATION_REQUIRED])
+                        ->exists()) {
+                    throw ValidationException::withMessages([
+                        'subscription' => 'Perpanjangan sudah dibayar, sedang diproses, atau jadwal paket telah berubah.',
+                    ]);
+                }
+            }
+
             $invoice = $this->createInvoice($owner, $locked, $plan, Invoice::TYPE_SUBSCRIPTION, (int) $plan->monthly_price, [
                 'action' => $applyScheduledDowngrade ? 'renewal_downgrade' : 'renewal',
                 'target_plan_id' => $plan->getKey(),
                 'duration_days' => (int) $plan->duration_days,
                 'scheduled_plan_id' => $applyScheduledDowngrade ? $plan->getKey() : null,
                 'retained_business_id' => $applyScheduledDowngrade ? $locked->retained_business_id : null,
+                'scheduled_effective_at' => $applyScheduledDowngrade ? $locked->ends_at->copy()->utc()->toIso8601String() : null,
             ]);
             $payment = $this->createPayment($owner, $locked, $invoice, $paymentKey);
 
@@ -544,6 +601,12 @@ class SubscriptionBillingService
             if ($locked->status !== Subscription::STATUS_ACTIVE) {
                 throw ValidationException::withMessages([
                     'subscription' => 'Downgrade hanya dapat dijadwalkan dari langganan Business yang aktif.',
+                ]);
+            }
+
+            if ($this->paidScheduledRenewalInvoice($locked)) {
+                throw ValidationException::withMessages([
+                    'subscription' => 'Perpanjangan Starter sudah dibayar. Pilihan usaha tidak dapat diubah setelah pembayaran.',
                 ]);
             }
 
