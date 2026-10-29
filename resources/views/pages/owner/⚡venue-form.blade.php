@@ -1405,22 +1405,24 @@ new #[Title('Data venue')] class extends Component {
         $venueStatus = $venue ? ($statusMeta[$venue->status] ?? [$venue->status, 'bg-[var(--surface-soft)] text-[var(--ink-soft)]']) : null;
     @endphp
 
-    <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="owner-core-back">
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
-        Kembali ke daftar venue
-    </a>
-
-    <header class="owner-core-header owner-venue-form-header">
-        <p class="owner-core-kicker">{{ $isEditing ? 'Edit venue' : 'Venue baru' }}</p>
-        <h1>
-            {{ $isEditing ? $venue->name : 'Tambahkan venue' }}
-        </h1>
-        <p class="mt-2 break-words text-sm font-semibold text-[var(--ink-soft)] sm:text-base">{{ $business->name }}</p>
-        <p class="mt-3 text-sm leading-6 text-[var(--muted)]">Isi informasi utama terlebih dahulu. Kamu bisa melanjutkan ke pengaturan operasional setelah modul pendukung tersedia.</p>
-        @if ($isEditing)
-            <span class="mt-4 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold {{ $venueStatus[1] }}">{{ $venueStatus[0] }}</span>
-        @endif
-    </header>
+    <div class="owner-venue-page-lead">
+        <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="owner-core-back">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="m15 18-6-6 6-6"/></svg>
+            Kembali ke daftar venue
+        </a>
+        <header class="owner-venue-page-header">
+            <div class="owner-venue-page-heading">
+                <p class="owner-core-kicker">{{ $isEditing ? 'Kelola venue' : 'Venue baru' }} · {{ $business->name }}</p>
+                <h1>{{ $isEditing ? 'Edit venue' : 'Tambah venue' }}</h1>
+                <p class="owner-venue-page-context">{{ $isEditing ? $venue->name : 'Lengkapi informasi untuk membuat venue baru di usaha ini.' }}</p>
+            </div>
+            <div class="owner-venue-page-state">
+                <span>Status venue</span>
+                <strong>{{ $isEditing ? $venueStatus[0] : 'Draft' }}</strong>
+                <p>{{ $isEditing && $venue->status === \App\Models\Venue::STATUS_PUBLISHED ? 'Perubahan operasional berlaku setelah disimpan.' : 'Belum tampil di katalog publik.' }}</p>
+            </div>
+        </header>
+    </div>
 
     @if (session('status'))
         <div role="status" class="status-note status-success mt-6">{{ session('status') }}</div>
@@ -1447,11 +1449,21 @@ new #[Title('Data venue')] class extends Component {
     <div class="owner-venue-form-layout">
         <section id="venue-basic" aria-labelledby="venue-form-heading" class="owner-venue-form-card">
             <div>
-                <h2 id="venue-form-heading" class="text-xl font-extrabold tracking-[-0.04em] sm:text-2xl">Informasi venue</h2>
-                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Informasi ini membantu pengunjung memahami jenis tempat yang ditawarkan.</p>
+                <h2 id="venue-form-heading" class="text-xl font-extrabold tracking-[-0.04em] sm:text-2xl">Informasi dasar</h2>
+                <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Mulai dari identitas dan gambaran venue. Pengaturan lainnya berada di bagian berikutnya.</p>
             </div>
 
             <form wire:submit="save" class="mt-6 space-y-5">
+                <div class="owner-venue-form-toolbar">
+                    <div>
+                        <strong>{{ $isEditing ? 'Perubahan venue' : 'Venue baru' }}</strong>
+                        <span>{{ $isEditing ? 'Simpan setelah selesai mengubah data.' : 'Disimpan sebagai draft, belum dipublikasikan.' }}</span>
+                    </div>
+                    <button type="submit" wire:loading.attr="disabled" class="btn btn-primary">
+                        <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Simpan perubahan' : 'Simpan draft' }}</span>
+                        <span wire:loading wire:target="save">Menyimpan...</span>
+                    </button>
+                </div>
                 <div>
                     <label for="venue-name" class="ui-label">Nama venue <span class="text-[var(--danger-ink)]">*</span></label>
                     <input id="venue-name" type="text" wire:model="name" required maxlength="255" class="ui-input" placeholder="Contoh: Ruang Serbaguna Lantai 2" aria-invalid="{{ $errors->has('name') ? 'true' : 'false' }}">
@@ -1496,6 +1508,15 @@ new #[Title('Data venue')] class extends Component {
                     <input id="venue-capacity" type="number" min="1" max="100000" step="1" wire:model="capacityPersons" class="ui-input" placeholder="Contoh: 80" aria-invalid="{{ $errors->has('capacityPersons') ? 'true' : 'false' }}">
                     @error('capacityPersons') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
                     <p class="mt-2 text-xs leading-5 text-[var(--muted)]">Kosongkan jika kapasitas belum diketahui.</p>
+                </div>
+
+                <div class="owner-venue-description">
+                    <label for="venue-description" class="ui-label">Deskripsi venue</label>
+                    <textarea id="venue-description" wire:model="description" rows="4" maxlength="10000" class="ui-input resize-y" placeholder="Jelaskan suasana, fasilitas utama, dan aktivitas yang cocok untuk venue ini.">{{ $description }}</textarea>
+                    <div class="mt-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                        @error('description') <p role="alert" class="ui-error">{{ $message }}</p> @else <p class="text-xs leading-5 text-[var(--muted)]">Informasi ini membantu pelanggan menentukan pilihan.</p> @enderror
+                        <p class="shrink-0 text-xs text-[var(--muted)]">Maks. 10.000 karakter</p>
+                    </div>
                 </div>
 
                 <fieldset class="owner-venue-form-section">
@@ -1918,15 +1939,6 @@ new #[Title('Data venue')] class extends Component {
                         @endif
                     @endif
                 </section>
-
-                <div>
-                    <label for="venue-description" class="ui-label">Deskripsi venue</label>
-                    <textarea id="venue-description" wire:model="description" rows="5" maxlength="10000" class="ui-input resize-y" placeholder="Jelaskan suasana, penggunaan ruang, atau informasi yang penting bagi pengunjung.">{{ $description }}</textarea>
-                    <div class="mt-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                        @error('description') <p role="alert" class="ui-error">{{ $message }}</p> @else <p class="text-xs leading-5 text-[var(--muted)]">Tuliskan informasi yang benar dan spesifik. Hindari klaim yang belum dapat dipastikan.</p> @enderror
-                        <p class="shrink-0 text-xs text-[var(--muted)]">Maks. 10.000 karakter</p>
-                    </div>
-                </div>
 
                 <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-5 sm:flex-row sm:justify-end">
                     <a href="{{ route('owner.businesses.venues.index', ['business' => $business->public_id]) }}" class="btn btn-secondary w-full sm:w-auto">Batal</a>
