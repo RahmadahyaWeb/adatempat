@@ -4756,3 +4756,502 @@
         }
     }
 }
+
+/* Owner subscription v2: one current state, one next event, one optional action. */
+@layer components {
+    .owner-subscription-v2 {
+        max-width: 77rem;
+        margin-inline: auto;
+    }
+
+    .owner-subscription-v2 .owner-subscription-header {
+        margin-bottom: 1.6rem;
+    }
+
+    .owner-subscription-eyebrow,
+    .owner-subscription-kicker {
+        display: block;
+        color: var(--brand-forest);
+        font-size: .69rem;
+        font-weight: 800;
+        letter-spacing: .075em;
+        line-height: 1.4;
+    }
+
+    .owner-subscription-v2 .owner-subscription-header h1 {
+        margin-top: .35rem;
+        font-size: clamp(1.9rem, 3vw, 2.35rem);
+        line-height: 1.15;
+    }
+
+    .owner-subscription-v2 .owner-subscription-header > div > p:last-child {
+        max-width: 41rem;
+        margin-top: .5rem;
+        color: var(--ink-soft);
+        font-size: .85rem;
+        line-height: 1.6;
+    }
+
+    .owner-subscription-v2 > section {
+        margin-top: 1.1rem;
+    }
+
+    .owner-subscription-v2 .owner-finance-panel {
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+
+    .owner-subscription-current-card {
+        border: 1px solid transparent;
+        border-radius: 1.05rem;
+        background: var(--surface-soft);
+        padding: 1.5rem;
+    }
+
+    .owner-subscription-current-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .owner-subscription-current-title {
+        min-width: 0;
+    }
+
+    .owner-subscription-current-title h2,
+    .owner-subscription-empty-card h2 {
+        margin-top: .3rem;
+        color: var(--ink);
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 850;
+        line-height: 1.18;
+        letter-spacing: -.045em;
+    }
+
+    .owner-subscription-current-title p,
+    .owner-subscription-empty-card > p {
+        margin-top: .5rem;
+        color: var(--ink-soft);
+        font-size: .79rem;
+        line-height: 1.55;
+    }
+
+    .owner-subscription-facts-v2 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .75rem;
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1.2rem;
+    }
+
+    .owner-subscription-facts-v2 > div {
+        min-width: 0;
+        padding-inline-end: .65rem;
+    }
+
+    .owner-subscription-facts-v2 dt {
+        color: var(--ink-soft);
+        font-size: .76rem;
+        font-weight: 600;
+    }
+
+    .owner-subscription-facts-v2 dd {
+        margin-top: .2rem;
+        color: var(--ink);
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        font-weight: 800;
+        letter-spacing: -.02em;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-facts-v2 small {
+        display: block;
+        margin-top: .15rem;
+        color: var(--ink-soft);
+        font-size: .7rem;
+        line-height: 1.45;
+    }
+
+    .owner-subscription-panel-heading {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: .75rem 1.5rem;
+    }
+
+    .owner-subscription-panel-heading > div {
+        flex: 1 1 28rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-panel-heading h2 {
+        margin-top: .35rem;
+        color: var(--ink);
+        font-size: clamp(1.1rem, 2vw, 1.32rem);
+        font-weight: 850;
+        line-height: 1.35;
+        letter-spacing: -.03em;
+    }
+
+    .owner-subscription-panel-heading p {
+        max-width: 48rem;
+        margin-top: .45rem;
+        color: var(--ink-soft);
+        font-size: .81rem;
+        line-height: 1.6;
+    }
+
+    .owner-subscription-status.is-scheduled {
+        background: var(--surface-lime);
+        color: var(--brand-forest);
+    }
+
+    .owner-subscription-transition {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 1.1rem;
+        margin-top: 1.25rem;
+        border: 1px solid var(--border);
+        border-radius: .8rem;
+        background: var(--surface);
+        padding: 1rem 1.15rem;
+    }
+
+    .owner-subscription-transition > div {
+        display: grid;
+        align-content: start;
+        gap: .15rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-transition > div > span,
+    .owner-subscription-retention-summary span {
+        color: var(--ink-soft);
+        font-size: .72rem;
+    }
+
+    .owner-subscription-transition strong {
+        color: var(--ink);
+        font-size: 1.16rem;
+        font-weight: 850;
+        letter-spacing: -.03em;
+    }
+
+    .owner-subscription-transition small {
+        color: var(--ink-soft);
+        font-size: .72rem;
+        line-height: 1.45;
+    }
+
+    .owner-subscription-transition-arrow {
+        color: var(--brand-forest);
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    .owner-subscription-retention-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+        gap: .9rem 1.5rem;
+        margin-top: 1rem;
+        padding-inline: .2rem;
+    }
+
+    .owner-subscription-retention-summary > div {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-retention-summary strong {
+        color: var(--ink);
+        font-size: .87rem;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-retention-summary > p {
+        max-width: 34rem;
+        color: var(--ink-soft);
+        font-size: .77rem;
+        line-height: 1.55;
+    }
+
+    .owner-subscription-footnote {
+        margin-top: .8rem;
+        color: var(--brand-forest);
+        font-size: .75rem;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-adjust-choice {
+        margin-top: 1.05rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+
+    .owner-subscription-adjust-choice summary {
+        width: fit-content;
+        color: var(--brand-forest);
+        font-size: .78rem;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .owner-subscription-adjust-choice summary:focus-visible {
+        outline: 2px solid var(--brand-forest);
+        outline-offset: 3px;
+    }
+
+    .owner-subscription-adjust-choice form {
+        display: grid;
+        justify-items: start;
+        gap: .65rem;
+        max-width: 32rem;
+        margin-top: .9rem;
+    }
+
+    .owner-subscription-adjust-choice .ui-input {
+        max-width: 32rem;
+    }
+
+    .owner-subscription-payment-summary {
+        display: grid;
+        gap: 1.15rem;
+        margin-top: 1.2rem;
+        border-radius: .8rem;
+        background: var(--surface-soft);
+        padding: 1.2rem;
+    }
+
+    .owner-subscription-amount {
+        display: grid;
+        gap: .2rem;
+    }
+
+    .owner-subscription-amount span {
+        color: var(--ink-soft);
+        font-size: .77rem;
+    }
+
+    .owner-subscription-amount strong {
+        color: var(--ink);
+        font-size: clamp(1.55rem, 3vw, 1.95rem);
+        line-height: 1.2;
+        font-weight: 850;
+        letter-spacing: -.04em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .owner-subscription-payment-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        border-top: 1px solid var(--border);
+        padding-top: .85rem;
+    }
+
+    .owner-subscription-payment-meta > div {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-payment-meta dt {
+        color: var(--ink-soft);
+        font-size: .7rem;
+    }
+
+    .owner-subscription-payment-meta dd {
+        color: var(--ink);
+        font-size: .8rem;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-v2 .owner-subscription-plan-form {
+        display: grid;
+        gap: 1rem;
+        justify-items: stretch;
+        margin-top: 1rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-plan-list {
+        grid-template-columns: 1fr;
+        gap: .75rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-plan-choice {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: .85rem;
+        align-items: start;
+        padding: 1.15rem;
+        border-radius: .8rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-plan-choice input {
+        margin-top: .3rem;
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .owner-subscription-plan-name {
+        color: var(--ink);
+        font-size: 1rem;
+        font-weight: 850;
+    }
+
+    .owner-subscription-plan-select {
+        color: var(--brand-forest);
+        font-size: .76rem;
+        font-weight: 800;
+    }
+
+    .owner-subscription-plan-choice:has(input:checked) .owner-subscription-plan-select {
+        color: var(--ink);
+    }
+
+    .owner-subscription-v2 .owner-subscription-retained {
+        width: 100%;
+        max-width: 34rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-retained .ui-input {
+        max-width: 34rem;
+    }
+
+    .owner-subscription-form-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .8rem 1.4rem;
+        margin-top: .1rem;
+    }
+
+    .owner-subscription-form-footer p {
+        max-width: 32rem;
+        color: var(--ink-soft);
+        font-size: .75rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-v2 .owner-subscription-renewal {
+        margin-top: 1.3rem;
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        background: transparent;
+        padding: 1.2rem 0 0;
+    }
+
+    .owner-subscription-v2 .owner-subscription-history-list {
+        margin-top: 1rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-history-item {
+        gap: .65rem 1rem;
+        padding: .9rem 0;
+    }
+
+    .owner-subscription-history-main {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-history-main strong {
+        font-size: .85rem;
+        font-weight: 800;
+    }
+
+    .owner-subscription-history-main > span {
+        color: var(--ink-soft);
+        font-size: .75rem;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-history-main small {
+        color: var(--ink-soft);
+        font-size: .7rem;
+    }
+
+    .owner-subscription-v2 .owner-subscription-history-amount {
+        gap: .3rem;
+        align-items: end;
+    }
+
+    .owner-subscription-history-status {
+        display: inline-flex;
+        width: fit-content;
+        border-radius: 999px;
+        padding: .2rem .55rem;
+        background: var(--surface-soft);
+        color: var(--ink-soft);
+        font-size: .69rem;
+        font-weight: 750;
+        line-height: 1.3;
+    }
+
+    .owner-subscription-history-status.is-paid {
+        background: var(--success-bg);
+        color: var(--success-ink);
+    }
+
+    .owner-subscription-history-status.is-unpaid {
+        background: var(--warning-bg);
+        color: var(--warning-ink);
+    }
+}
+
+@media (max-width: 700px) {
+    @layer components {
+        .owner-subscription-v2 .owner-finance-panel,
+        .owner-subscription-current-card {
+            padding: 1.1rem;
+        }
+
+        .owner-subscription-facts-v2 {
+            grid-template-columns: 1fr;
+            gap: .8rem;
+            margin-top: 1.15rem;
+            padding-top: .9rem;
+        }
+
+        .owner-subscription-facts-v2 > div {
+            padding: .25rem 0;
+        }
+
+        .owner-subscription-transition {
+            grid-template-columns: 1fr;
+            gap: .55rem;
+        }
+
+        .owner-subscription-transition-arrow {
+            transform: rotate(90deg);
+            justify-self: start;
+        }
+
+        .owner-subscription-retention-summary,
+        .owner-subscription-payment-meta {
+            grid-template-columns: 1fr;
+        }
+
+        .owner-subscription-v2 .owner-subscription-plan-choice {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .owner-subscription-plan-select {
+            grid-column: 2;
+        }
+
+        .owner-subscription-form-footer > .btn {
+            width: 100%;
+        }
+    }
+}
