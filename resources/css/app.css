@@ -4366,3 +4366,12 @@
         }
     }
 }
+
+
+/* Keep the visible leading edge of SVG back arrows aligned with page content. */
+@layer components {
+    .owner-core-back,
+    .business-back-link {
+        margin-inline-start: -.35rem;
+    }
+}
