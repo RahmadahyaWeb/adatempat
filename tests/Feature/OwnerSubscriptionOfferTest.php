@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Subscriptions\SubscriptionBillingService;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -56,6 +57,29 @@ class OwnerSubscriptionOfferTest extends TestCase
             ->assertSee('Pilih paket')
             ->assertSee('Starter')
             ->assertSee('Business')
+            ->assertDontSee('Perpanjang Starter');
+    }
+
+    public function test_pending_upgrade_is_shown_after_reload_and_additional_checkout_is_blocked(): void
+    {
+        $owner = $this->owner();
+        $starter = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $business = SubscriptionPlan::query()->where('slug', 'business')->firstOrFail();
+        $this->subscribe($owner, $starter);
+
+        $checkout = app(SubscriptionBillingService::class)->checkoutPlan(
+            $owner,
+            $business,
+            'owner-subscription-ui-pending-upgrade',
+        );
+
+        $this->actingAs($owner)
+            ->get(route('owner.subscription'))
+            ->assertOk()
+            ->assertSee('Upgrade menunggu pembayaran')
+            ->assertSee($checkout['invoice']->invoice_number)
+            ->assertSee('Pembayaran simulasi (lokal)')
+            ->assertSee('Masih ada tagihan yang menunggu pembayaran.')
             ->assertDontSee('Perpanjang Starter');
     }
 
