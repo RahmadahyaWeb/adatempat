@@ -10,11 +10,13 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Subscriptions\SubscriptionBillingService;
+use App\Services\Subscriptions\SubscriptionLifecycleService;
 use App\Services\Payments\PaymentWebhookProcessor;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class SubscriptionBillingServiceTest extends TestCase
@@ -206,6 +208,150 @@ class SubscriptionBillingServiceTest extends TestCase
             'gateway_event_id' => 'evt-subscription-wrong-amount-001',
             'processing_status' => PaymentWebhookEvent::STATUS_PROCESSED,
         ]);
+    }
+
+    public function test_prepaid_downgrade_keeps_business_active_until_period_end_and_then_activates_once(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $businesses = collect(['Satu', 'Dua'])->map(function (string $name) use ($owner): Business {
+            return $owner->businesses()->create([
+                'name' => 'Usaha ' . $name,
+                'slug' => 'prepaid-' . strtolower($name) . '-' . strtolower((string) Str::ulid()),
+                'address' => 'Alamat pengujian',
+                'timezone' => 'Asia/Jakarta',
+                'status' => Business::STATUS_ACTIVE,
+                'published_at' => now(),
+            ]);
+        });
+        $starter = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $businessPlan = SubscriptionPlan::query()->where('slug', 'business')->firstOrFail();
+        $endsAt = now('UTC')->addDays(10)->startOfSecond();
+        $subscription = Subscription::query()->create([
+            'owner_id' => $owner->getKey(),
+            'plan_id' => $businessPlan->getKey(),
+            'is_trial' => false,
+            'status' => Subscription::STATUS_ACTIVE,
+            'starts_at' => $endsAt->copy()->subDays(20),
+            'ends_at' => $endsAt,
+            'grace_ends_at' => $endsAt->copy()->addHours(24),
+        ]);
+        $billing = app(SubscriptionBillingService::class);
+
+        $scheduled = $billing->checkoutPlan($owner, $starter, 'schedule-prepaid-001', $businesses->first()->getKey());
+        $this->assertTrue($scheduled['scheduled']);
+
+        // Updating retained business must never create a payment.
+        $changed = $billing->checkoutPlan($owner, $starter, 'change-retained-prepaid-001', $businesses->last()->getKey());
+        $this->assertTrue($changed['scheduled']);
+        $this->assertNull($changed['invoice']);
+        $this->assertSame($businesses->last()->getKey(), $subscription->fresh()->retained_business_id);
+
+        $checkout = $billing->checkoutPlan($owner, $starter, 'pay-prepaid-001');
+        $this->assertFalse($checkout['scheduled']);
+        $this->assertSame('renewal_downgrade', $checkout['invoice']->line_items_json['action']);
+        $this->assertSame($endsAt->copy()->utc()->toIso8601String(), $checkout['invoice']->line_items_json['scheduled_effective_at']);
+        $this->assertSame((int) $starter->monthly_price, (int) $checkout['invoice']->total_amount);
+
+        $webhook = app(PaymentWebhookProcessor::class)->process('mock', [
+            'event_id' => 'evt-prepaid-downgrade-001',
+            'gateway_transaction_id' => $checkout['payment']->gateway_transaction_id,
+            'status' => Payment::STATUS_PAID,
+            'paid_at' => CarbonImmutable::now('UTC')->toIso8601String(),
+            'gateway_fee_amount' => 0,
+            'amount' => $checkout['payment']->amount,
+        ]);
+
+        $this->assertSame(PaymentWebhookEvent::STATUS_PROCESSED, $webhook['status']);
+        $this->assertSame(Payment::STATUS_PAID, $checkout['payment']->fresh()->status);
+        $this->assertSame(Invoice::STATUS_PAID, $checkout['invoice']->fresh()->status);
+        $this->assertSame($checkout['invoice']->getKey(), $billing->paidScheduledRenewalInvoice($subscription->fresh())?->getKey());
+        $this->assertSame($businessPlan->getKey(), $subscription->fresh()->plan_id);
+        $this->assertSame($starter->getKey(), $subscription->fresh()->scheduled_plan_id);
+        $this->assertSame($endsAt->timestamp, $subscription->fresh()->ends_at->timestamp);
+        $this->assertSame(Business::STATUS_ACTIVE, $businesses->first()->fresh()->status);
+        $this->assertSame(Business::STATUS_ACTIVE, $businesses->last()->fresh()->status);
+
+        try {
+            $billing->checkoutPlan($owner, $starter, 'duplicate-prepaid-001');
+            $this->fail('A second invoice must be blocked after a prepaid Starter renewal.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('subscription', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('invoices', 1);
+        $this->travelTo($endsAt->copy()->addMinute());
+
+        try {
+            $lifecycle = app(SubscriptionLifecycleService::class);
+            $first = $lifecycle->processDue();
+            $this->assertSame(1, $first['downgraded']);
+            $this->assertSame(0, $first['grace_started']);
+            $this->assertSame($starter->getKey(), $subscription->fresh()->plan_id);
+            $this->assertNull($subscription->fresh()->scheduled_plan_id);
+            $this->assertSame($endsAt->copy()->addDays($starter->duration_days)->timestamp, $subscription->fresh()->ends_at->timestamp);
+            $this->assertSame(Business::STATUS_ARCHIVED_BY_DOWNGRADE, $businesses->first()->fresh()->status);
+            $this->assertSame(Business::STATUS_ACTIVE, $businesses->last()->fresh()->status);
+            $this->assertSame(0, $lifecycle->processDue()['downgraded']);
+            $this->assertDatabaseHas('audit_logs', [
+                'auditable_type' => Subscription::class,
+                'auditable_id' => $subscription->getKey(),
+                'action' => 'subscription.scheduled_downgrade_applied',
+            ]);
+        } finally {
+            $this->travelBack();
+        }
+    }
+
+    public function test_scheduled_downgrade_without_payment_enters_grace_without_archiving_businesses(): void
+    {
+        $owner = User::factory()->create([
+            'role' => User::ROLE_OWNER,
+            'status' => 'active',
+            'email_verified_at' => now(),
+        ]);
+        $starter = SubscriptionPlan::query()->where('slug', 'starter')->firstOrFail();
+        $businessPlan = SubscriptionPlan::query()->where('slug', 'business')->firstOrFail();
+        $retained = $owner->businesses()->create([
+            'name' => 'Usaha Retained',
+            'slug' => 'retained-no-payment-' . strtolower((string) Str::ulid()),
+            'address' => 'Alamat pengujian',
+            'timezone' => 'Asia/Jakarta',
+            'status' => Business::STATUS_ACTIVE,
+            'published_at' => now(),
+        ]);
+        $other = $owner->businesses()->create([
+            'name' => 'Usaha Lain',
+            'slug' => 'other-no-payment-' . strtolower((string) Str::ulid()),
+            'address' => 'Alamat pengujian',
+            'timezone' => 'Asia/Jakarta',
+            'status' => Business::STATUS_ACTIVE,
+            'published_at' => now(),
+        ]);
+        $endsAt = now('UTC')->subMinute();
+        $subscription = Subscription::query()->create([
+            'owner_id' => $owner->getKey(),
+            'plan_id' => $businessPlan->getKey(),
+            'scheduled_plan_id' => $starter->getKey(),
+            'retained_business_id' => $retained->getKey(),
+            'is_trial' => false,
+            'status' => Subscription::STATUS_ACTIVE,
+            'starts_at' => $endsAt->copy()->subDays(30),
+            'ends_at' => $endsAt,
+            'grace_ends_at' => $endsAt->copy()->addHours(24),
+        ]);
+
+        $result = app(SubscriptionLifecycleService::class)->processDue();
+
+        $this->assertSame(0, $result['downgraded']);
+        $this->assertSame(1, $result['grace_started']);
+        $this->assertSame($businessPlan->getKey(), $subscription->fresh()->plan_id);
+        $this->assertSame($starter->getKey(), $subscription->fresh()->scheduled_plan_id);
+        $this->assertSame(Business::STATUS_ACTIVE, $retained->fresh()->status);
+        $this->assertSame(Business::STATUS_ACTIVE, $other->fresh()->status);
     }
 
     public function test_same_idempotency_key_returns_the_existing_checkout_instead_of_creating_a_second_invoice(): void

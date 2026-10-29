@@ -143,6 +143,16 @@ new #[Title('Langganan saya')] class extends Component {
     }
 
     #[Computed]
+    public function scheduledRenewalInvoice(): ?Invoice
+    {
+        $current = $this->currentSubscription;
+
+        return $current && $current->scheduled_plan_id
+            ? app(SubscriptionBillingService::class)->paidScheduledRenewalInvoice($current)
+            : null;
+    }
+
+    #[Computed]
     public function recentInvoices()
     {
         return $this->owner()->invoices()
@@ -197,7 +207,7 @@ new #[Title('Langganan saya')] class extends Component {
             $this->checkoutMessage = 'Permintaan langganan telah diproses.';
         }
 
-        unset($this->currentSubscription, $this->recentInvoices, $this->checkoutPayment, $this->checkoutInvoice);
+        unset($this->currentSubscription, $this->scheduledRenewalInvoice, $this->recentInvoices, $this->checkoutPayment, $this->checkoutInvoice);
     }
 
     public function renewCurrentPlan(): void
@@ -211,6 +221,23 @@ new #[Title('Langganan saya')] class extends Component {
         ], true), 403);
 
         $this->planId = (string) $current->plan_id;
+        $this->retainedBusinessId = '';
+        $this->checkoutIdempotencyKey = '';
+        $this->checkout();
+    }
+
+    public function renewScheduledPlan(): void
+    {
+        $current = $this->currentSubscription;
+
+        abort_unless(
+            $current
+            && in_array($current->status, [Subscription::STATUS_ACTIVE, Subscription::STATUS_GRACE_PERIOD], true)
+            && $current->scheduled_plan_id !== null,
+            403,
+        );
+
+        $this->planId = (string) $current->scheduled_plan_id;
         $this->retainedBusinessId = '';
         $this->checkoutIdempotencyKey = '';
         $this->checkout();
@@ -246,7 +273,7 @@ new #[Title('Langganan saya')] class extends Component {
             'checkoutScheduled',
         ]);
         $this->resetValidation();
-        unset($this->currentSubscription, $this->recentInvoices, $this->checkoutPayment, $this->checkoutInvoice);
+        unset($this->currentSubscription, $this->scheduledRenewalInvoice, $this->recentInvoices, $this->checkoutPayment, $this->checkoutInvoice);
     }
 };
 ?>
@@ -263,6 +290,7 @@ new #[Title('Langganan saya')] class extends Component {
         ], true);
         $isStarter = $isSubscribed && $current->plan?->slug === 'starter';
         $scheduled = $current?->scheduledPlan;
+        $paidScheduledRenewalInvoice = $this->scheduledRenewalInvoice;
         $hasOpenPayment = $checkoutPayment
             && in_array($checkoutPayment->status, [
                 \App\Models\Payment::STATUS_PENDING,
@@ -270,7 +298,7 @@ new #[Title('Langganan saya')] class extends Component {
                 \App\Models\Payment::STATUS_RECONCILIATION_REQUIRED,
             ], true)
             && $checkoutInvoice?->status === \App\Models\Invoice::STATUS_UNPAID;
-        $showPayment = $hasOpenPayment && ! $scheduled;
+        $showPayment = $hasOpenPayment;
         $isMockPayment = $showPayment && str_starts_with((string) ($checkoutPayment->qris_payload ?? ''), 'MOCK-QRIS:');
         $isUpgradeInvoice = $checkoutInvoice?->invoice_type === \App\Models\Invoice::TYPE_SUBSCRIPTION_UPGRADE;
         $subscriptionLabel = match ($current?->status) {
@@ -360,7 +388,7 @@ new #[Title('Langganan saya')] class extends Component {
                 <div>
                     <span class="owner-subscription-kicker">PERUBAHAN BERIKUTNYA</span>
                     <h2 id="subscription-next-heading">Downgrade sudah dijadwalkan</h2>
-                    <p>Anda tetap menikmati paket {{ $current->plan?->name }} sampai periode berakhir. Paket baru berlaku pada perpanjangan berbayar berikutnya.</p>
+                    <p>Anda tetap menikmati paket {{ $current->plan?->name }} sampai periode berakhir. Paket Starter mulai berlaku setelah masa Business selesai dan pembayaran Starter lunas.</p>
                 </div>
                 <span class="owner-subscription-status is-scheduled">Terjadwal</span>
             </div>
@@ -387,7 +415,7 @@ new #[Title('Langganan saya')] class extends Component {
                 <p>Usaha lain akan diarsipkan ketika Starter mulai berlaku. Data dan riwayat transaksi tetap tersimpan.</p>
             </div>
 
-            @if ($current->plan?->slug === 'business' && $scheduled->slug === 'starter' && $this->businesses->count() > 1)
+            @if (! $paidScheduledRenewalInvoice && ! $hasOpenPayment && $current->plan?->slug === 'business' && $scheduled->slug === 'starter' && $this->businesses->count() > 1)
                 <details class="owner-subscription-adjust-choice">
                     <summary>Ubah usaha yang dipertahankan</summary>
                     <form wire:submit="updateRetainedBusiness">
@@ -408,7 +436,33 @@ new #[Title('Langganan saya')] class extends Component {
                 </details>
             @endif
 
-            <p class="owner-subscription-footnote">Tidak ada pembayaran baru yang diperlukan untuk menjadwalkan perubahan ini.</p>
+            @if ($paidScheduledRenewalInvoice)
+                <div class="owner-subscription-notice is-success" role="status">
+                    <strong>Perpanjangan Starter sudah lunas.</strong>
+                    Invoice {{ $paidScheduledRenewalInvoice->invoice_number }} telah dibayar.
+                    Business dan seluruh usaha Anda tetap aktif sampai {{ $current->ends_at?->timezone($dateTimeZone)->translatedFormat('d M Y') }}.
+                    Setelah itu, Starter akan aktif otomatis dan usaha selain yang dipertahankan akan diarsipkan.
+                </div>
+            @elseif ($hasOpenPayment)
+                <div class="owner-subscription-notice is-attention" role="status">
+                    <strong>Pembayaran perpanjangan belum selesai.</strong>
+                    Selesaikan tagihan di bagian Pembayaran Berlangsung. Selama periode Business belum berakhir, paket dan semua usaha tetap aktif.
+                </div>
+                <a href="#subscription-checkout" class="btn btn-primary">Lihat tagihan pembayaran</a>
+            @else
+                <div class="owner-subscription-notice" role="status">
+                    <strong>Langkah berikutnya: bayar perpanjangan Starter.</strong>
+                    Penjadwalan gratis, tetapi periode Starter berikutnya memerlukan pembayaran
+                    Rp{{ number_format($scheduled->monthly_price, 0, ',', '.') }} untuk {{ $scheduled->duration_days }} hari.
+                    Pembayaran lebih awal tidak memperpendek masa aktif Business.
+                </div>
+                @error('subscription') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                @error('plan') <p role="alert" class="ui-error">{{ $message }}</p> @enderror
+                <button type="button" wire:click="renewScheduledPlan" wire:loading.attr="disabled" wire:target="renewScheduledPlan" class="btn btn-primary">
+                    <span wire:loading.remove wire:target="renewScheduledPlan">Bayar perpanjangan {{ $scheduled->name }}</span>
+                    <span wire:loading wire:target="renewScheduledPlan">Menyiapkan tagihan...</span>
+                </button>
+            @endif
         </section>
     @endif
 

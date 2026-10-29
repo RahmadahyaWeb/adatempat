@@ -3,6 +3,7 @@
 namespace App\Services\Subscriptions;
 
 use App\Models\AuditLog;
+use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
@@ -102,15 +103,100 @@ class SubscriptionLifecycleService
     }
 
     /**
-     * Move expired active/trial subscriptions into a 24-hour grace period, then suspend
-     * them when grace expires. Confirmed bookings are not changed by this service.
+     * Activate prepaid scheduled downgrades at the end of the old paid period; otherwise
+     * move expired subscriptions to grace, then suspend when grace expires.
+     * Confirmed bookings are not changed by this service.
      *
-     * @return array{grace_started:int,suspended:int,skipped:int}
+     * @return array{downgraded:int,grace_started:int,suspended:int,skipped:int}
      */
     public function processDue(int $limit = 200): array
     {
         $limit = max(1, min($limit, 500));
-        $result = ['grace_started' => 0, 'suspended' => 0, 'skipped' => 0];
+        $result = ['downgraded' => 0, 'grace_started' => 0, 'suspended' => 0, 'skipped' => 0];
+
+        // Prepaid Starter becomes effective only after the existing Business period ends.
+        // Locking and clearing scheduled_plan_id makes repeated scheduler runs idempotent.
+        $scheduledIds = Subscription::query()
+            ->where('status', Subscription::STATUS_ACTIVE)
+            ->whereNotNull('scheduled_plan_id')
+            ->where('ends_at', '<=', now('UTC'))
+            ->orderBy('ends_at')
+            ->limit($limit)
+            ->pluck('id');
+
+        foreach ($scheduledIds as $subscriptionId) {
+            $changed = DB::transaction(function () use ($subscriptionId): bool {
+                $subscription = Subscription::query()->whereKey($subscriptionId)->lockForUpdate()->firstOrFail();
+
+                if (
+                    $subscription->status !== Subscription::STATUS_ACTIVE
+                    || ! $subscription->scheduled_plan_id
+                    || $subscription->ends_at === null
+                    || $subscription->ends_at->isFuture()
+                ) {
+                    return false;
+                }
+
+                $invoice = app(SubscriptionBillingService::class)->paidScheduledRenewalInvoice($subscription);
+
+                if (! $invoice) {
+                    return false;
+                }
+
+                $plan = SubscriptionPlan::query()->whereKey($subscription->scheduled_plan_id)->firstOrFail();
+                $before = [
+                    'plan_id' => $subscription->plan_id,
+                    'ends_at' => $subscription->ends_at->toISOString(),
+                ];
+                $retainedBusinessId = $subscription->retained_business_id;
+                $newEndsAt = $subscription->ends_at->copy()->utc()->addDays((int) $plan->duration_days);
+
+                $subscription->update([
+                    'plan_id' => $plan->getKey(),
+                    'status' => Subscription::STATUS_ACTIVE,
+                    'is_trial' => false,
+                    'ends_at' => $newEndsAt,
+                    'grace_ends_at' => $newEndsAt->copy()->addHours(24),
+                    'suspended_at' => null,
+                    'scheduled_plan_id' => null,
+                    'retained_business_id' => $retainedBusinessId,
+                ]);
+
+                if ($retainedBusinessId) {
+                    Business::query()
+                        ->where('owner_id', $subscription->owner_id)
+                        ->where('id', '!=', $retainedBusinessId)
+                        ->whereNotIn('status', [
+                            Business::STATUS_SUSPENDED,
+                            Business::STATUS_REJECTED,
+                            Business::STATUS_ARCHIVED_BY_DOWNGRADE,
+                        ])
+                        ->update(['status' => Business::STATUS_ARCHIVED_BY_DOWNGRADE]);
+                }
+
+                AuditLog::query()->create([
+                    'actor_user_id' => null,
+                    'actor_role' => 'system',
+                    'action' => 'subscription.scheduled_downgrade_applied',
+                    'auditable_type' => Subscription::class,
+                    'auditable_id' => $subscription->getKey(),
+                    'reason' => 'Prepaid Starter renewal activated at the Business period boundary.',
+                    'before_state_json' => $before,
+                    'after_state_json' => [
+                        'plan_id' => $plan->getKey(),
+                        'ends_at' => $newEndsAt->toISOString(),
+                        'retained_business_id' => $retainedBusinessId,
+                        'invoice_id' => $invoice->getKey(),
+                    ],
+                    'ip_hash' => null,
+                    'created_at' => now('UTC'),
+                ]);
+
+                return true;
+            }, attempts: 3);
+
+            $result[$changed ? 'downgraded' : 'skipped']++;
+        }
 
         $expiredIds = Subscription::query()
             ->whereIn('status', [Subscription::STATUS_TRIALING, Subscription::STATUS_ACTIVE])
