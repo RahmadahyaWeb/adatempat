@@ -9,14 +9,15 @@ class ProcessSubscriptionLifecycle extends Command
 {
     protected $signature = 'subscriptions:process-lifecycle {--limit=200 : Maximum subscriptions to process per state transition}';
 
-    protected $description = 'Start subscription grace periods and suspend subscriptions after grace expires.';
+    protected $description = 'Activate prepaid scheduled downgrades, start grace periods, and suspend expired subscriptions.';
 
     public function handle(SubscriptionLifecycleService $lifecycle): int
     {
         $result = $lifecycle->processDue((int) $this->option('limit'));
 
         $this->info(sprintf(
-            'Subscriptions: %d entered grace period, %d suspended, %d skipped.',
+            'Subscriptions: %d scheduled downgrades activated, %d entered grace, %d suspended, %d skipped.',
+            $result['downgraded'],
             $result['grace_started'],
             $result['suspended'],
             $result['skipped'],
