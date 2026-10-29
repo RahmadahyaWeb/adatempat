@@ -4147,7 +4147,8 @@
     }
 
     .owner-venue-page-lead {
-        max-width: 72rem;
+        width: 100%;
+        max-width: none;
     }
 
     .owner-venue-page-lead .owner-core-back {
