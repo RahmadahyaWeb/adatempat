@@ -4375,3 +4375,384 @@
         margin-inline-start: -.35rem;
     }
 }
+
+
+/* Owner subscription: status first, one clear payment task, then plan choices. */
+@layer components {
+    .owner-subscription-header {
+        margin-bottom: 1.4rem;
+    }
+
+    .owner-subscription-page .owner-subscription-header h1 {
+        font-size: clamp(1.9rem, 3vw, 2.55rem);
+        line-height: 1.14;
+        letter-spacing: -.045em;
+    }
+
+    .owner-subscription-page .owner-subscription-header > div > p:last-child {
+        max-width: 40rem;
+        margin-top: .65rem;
+        font-size: .9rem;
+        line-height: 1.55;
+    }
+
+    .owner-subscription-page > section {
+        margin-top: 1.1rem;
+    }
+
+    .owner-subscription-page .owner-finance-panel {
+        padding: 1.2rem;
+    }
+
+    .owner-subscription-overview {
+        background: var(--surface-soft);
+        border-color: transparent;
+    }
+
+    .owner-subscription-section-label {
+        color: var(--ink-soft);
+        font-size: .78rem;
+        font-weight: 650;
+    }
+
+    .owner-subscription-overview-head,
+    .owner-subscription-checkout-head,
+    .owner-subscription-payment-head,
+    .owner-subscription-section-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem 1.25rem;
+    }
+
+    .owner-subscription-overview h2 {
+        margin-top: .25rem;
+        font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+        line-height: 1.25;
+        font-weight: 800;
+        letter-spacing: -.035em;
+    }
+
+    .owner-subscription-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.8rem;
+        width: fit-content;
+        border-radius: 999px;
+        padding: .25rem .7rem;
+        background: var(--surface-soft);
+        color: var(--ink-soft);
+        font-size: .76rem;
+        font-weight: 750;
+        line-height: 1.25;
+    }
+
+    .owner-subscription-status.is-active {
+        background: var(--success-bg);
+        color: var(--success-ink);
+    }
+
+    .owner-subscription-status.is-attention {
+        background: var(--warning-bg);
+        color: var(--warning-ink);
+    }
+
+    .owner-subscription-facts {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.1rem;
+    }
+
+    .owner-subscription-facts div,
+    .owner-subscription-invoice dl div {
+        display: grid;
+        align-content: start;
+        gap: .25rem;
+        min-width: 0;
+    }
+
+    .owner-subscription-facts dt,
+    .owner-subscription-invoice dt {
+        color: var(--ink-soft);
+        font-size: .75rem;
+    }
+
+    .owner-subscription-facts dd,
+    .owner-subscription-invoice dd {
+        color: var(--ink);
+        font-size: .9rem;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-intro,
+    .owner-subscription-section-head p,
+    .owner-subscription-checkout-head p {
+        max-width: 50rem;
+        margin-top: .4rem;
+        color: var(--ink-soft);
+        font-size: .84rem;
+        line-height: 1.55;
+    }
+
+    .owner-subscription-notice {
+        margin-top: 1rem;
+        border-radius: .65rem;
+        background: var(--surface-soft);
+        color: var(--ink);
+        padding: .9rem 1rem;
+        font-size: .84rem;
+        line-height: 1.55;
+    }
+
+    .owner-subscription-notice.is-attention {
+        background: var(--warning-bg);
+        color: var(--warning-ink);
+    }
+
+    .owner-subscription-notice.is-success {
+        background: var(--success-bg);
+        color: var(--success-ink);
+    }
+
+    .owner-subscription-notice strong {
+        display: block;
+        font-weight: 800;
+    }
+
+    .owner-subscription-notice p {
+        margin-top: .2rem;
+    }
+
+    .owner-subscription-checkout-head h2,
+    .owner-subscription-section-head h2,
+    .owner-subscription-history h2 {
+        color: var(--ink);
+        font-size: 1.15rem;
+        font-weight: 800;
+        line-height: 1.35;
+        letter-spacing: -.025em;
+    }
+
+    .owner-subscription-invoice {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.15rem;
+        border-radius: .75rem;
+        background: var(--surface-soft);
+        padding: 1.1rem;
+    }
+
+    .owner-subscription-invoice-total {
+        display: grid;
+        gap: .2rem;
+    }
+
+    .owner-subscription-invoice-total span {
+        color: var(--ink-soft);
+        font-size: .8rem;
+    }
+
+    .owner-subscription-invoice-total strong {
+        color: var(--ink);
+        font-size: clamp(1.4rem, 2.6vw, 1.85rem);
+        font-weight: 850;
+        line-height: 1.2;
+        letter-spacing: -.035em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .owner-subscription-invoice dl {
+        display: grid;
+        gap: .85rem;
+    }
+
+    .owner-subscription-payment {
+        margin-top: 1rem;
+    }
+
+    .owner-subscription-payment h3,
+    .owner-subscription-renewal h3 {
+        font-size: .93rem;
+        font-weight: 800;
+    }
+
+    .owner-subscription-technical {
+        margin-top: .85rem;
+        font-size: .82rem;
+    }
+
+    .owner-subscription-technical summary {
+        width: fit-content;
+        cursor: pointer;
+        color: var(--brand-forest);
+        font-weight: 750;
+        text-decoration: underline;
+        text-underline-offset: .2rem;
+    }
+
+    .owner-subscription-technical summary:focus-visible,
+    .owner-subscription-page .owner-plan-option:focus-within {
+        outline: 2px solid var(--brand-forest);
+        outline-offset: 3px;
+    }
+
+    .owner-subscription-technical > div {
+        margin-top: .8rem;
+    }
+
+    .owner-subscription-technical textarea {
+        margin-top: .3rem;
+        resize: vertical;
+        overflow-wrap: anywhere;
+        font-size: .78rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-plan-form {
+        display: grid;
+        justify-items: start;
+        gap: 1rem;
+        margin-top: 1.2rem;
+    }
+
+    .owner-subscription-plan-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+        width: 100%;
+        gap: .8rem;
+    }
+
+    .owner-subscription-page .owner-plan-option {
+        width: 100%;
+        align-items: flex-start;
+        border-radius: .75rem;
+        padding: 1rem;
+    }
+
+    .owner-subscription-plan-info {
+        display: grid;
+        gap: .35rem;
+        min-width: 0;
+        color: var(--ink-soft);
+        font-size: .8rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-plan-info > strong {
+        color: var(--ink);
+        font-size: 1rem;
+    }
+
+    .owner-subscription-plan-price {
+        color: var(--ink);
+        font-size: 1.16rem;
+        font-weight: 800;
+        line-height: 1.3;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .owner-subscription-plan-price small {
+        color: var(--ink-soft);
+        font-size: .75rem;
+        font-weight: 500;
+    }
+
+    .owner-subscription-retained {
+        width: min(100%, 32rem);
+    }
+
+    .owner-subscription-retained p {
+        margin: .35rem 0 .65rem;
+        color: var(--ink-soft);
+        font-size: .8rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-renewal {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 1.4rem;
+        border-radius: .75rem;
+        background: var(--surface-soft);
+        padding: 1rem;
+    }
+
+    .owner-subscription-renewal p {
+        margin-top: .3rem;
+        color: var(--ink-soft);
+        font-size: .8rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-history-list {
+        display: grid;
+        gap: .2rem;
+        margin-top: .85rem;
+    }
+
+    .owner-subscription-history-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem 1rem;
+        padding: .8rem 0;
+    }
+
+    .owner-subscription-history-item + .owner-subscription-history-item {
+        border-top: 1px solid var(--border);
+    }
+
+    .owner-subscription-history-item strong {
+        color: var(--ink);
+        font-size: .85rem;
+        overflow-wrap: anywhere;
+    }
+
+    .owner-subscription-history-item p,
+    .owner-subscription-history-amount span {
+        margin-top: .25rem;
+        color: var(--ink-soft);
+        font-size: .75rem;
+        line-height: 1.5;
+    }
+
+    .owner-subscription-history-amount {
+        display: grid;
+        justify-items: start;
+        gap: .1rem;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@media (min-width: 640px) {
+    @layer components {
+        .owner-subscription-facts {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .owner-subscription-invoice dl {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .owner-subscription-history-amount {
+            justify-items: end;
+            text-align: right;
+        }
+    }
+}
+
+@media (max-width: 639px) {
+    @layer components {
+        .owner-subscription-page .owner-subscription-checkout-head .btn,
+        .owner-subscription-page .owner-subscription-renewal .btn,
+        .owner-subscription-plan-form > .btn {
+            width: 100%;
+        }
+    }
+}
