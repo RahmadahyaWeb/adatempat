@@ -1138,6 +1138,9 @@ new #[Title('Data venue')] class extends Component {
 
         $savedVenue = DB::transaction(function () use ($business, $venue, $attributes, $template, $normalisedCustomFields, $normalisedCustomValues, $normalisedAvailabilityRules, $normalisedPriceRows, $pricingUnit): Venue {
             if ($venue === null) {
+                // Serialize concurrent venue creation for the same business.
+                Business::query()->whereKey($business->getKey())->lockForUpdate()->firstOrFail();
+                Gate::authorize('create', [Venue::class, $business]);
                 $savedVenue = $business->venues()->create($attributes + [
                     'status' => Venue::STATUS_DRAFT,
                     'published_at' => null,

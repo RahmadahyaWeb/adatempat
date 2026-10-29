@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Business;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -29,6 +31,7 @@ new #[Title('Kelola usaha')] class extends Component {
 
     public function startCreate(): void
     {
+        Gate::authorize('create', Business::class);
         $this->resetValidation();
         $this->showCreateForm = true;
     }
@@ -58,21 +61,24 @@ new #[Title('Kelola usaha')] class extends Component {
         );
 
         $businessName = trim($validated['name']);
-        $slugBase = Str::slug($businessName) ?: 'usaha';
-        $slug = $slugBase;
-        $suffix = 2;
+        $business = DB::transaction(function () use ($user, $businessName, $validated): Business {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            Gate::authorize('create', Business::class);
 
-        while (Business::query()->where('slug', $slug)->exists()) {
-            $slug = $slugBase . '-' . $suffix;
-            $suffix++;
-        }
+            $slugBase = Str::slug($businessName) ?: 'usaha';
+            $slug = $slugBase;
+            $suffix = 2;
+            while (Business::query()->where('slug', $slug)->exists()) {
+                $slug = $slugBase . '-' . $suffix++;
+            }
 
-        $business = $user->businesses()->create([
-            'name' => $businessName,
-            'slug' => $slug,
-            'address' => trim((string) ($validated['address'] ?? '')) ?: null,
-            'status' => Business::STATUS_DRAFT,
-        ]);
+            return $user->businesses()->create([
+                'name' => $businessName,
+                'slug' => $slug,
+                'address' => trim((string) ($validated['address'] ?? '')) ?: null,
+                'status' => Business::STATUS_DRAFT,
+            ]);
+        }, attempts: 3);
 
         session()->flash('status', 'Usaha berhasil dibuat sebagai draft. Lengkapi informasi dasarnya sebelum melanjutkan.');
 
@@ -92,6 +98,7 @@ new #[Title('Kelola usaha')] class extends Component {
         $activeCount = $businesses->where('status', 'active')->count();
         $venueCount = $businesses->sum('venues_count');
     @endphp
+    @php $canCreateBusiness = Gate::allows('create', Business::class); @endphp
 
     <header class="owner-core-header">
         <div>
@@ -99,10 +106,14 @@ new #[Title('Kelola usaha')] class extends Component {
             <h1>Kelola usaha</h1>
             <p>Atur profil usaha dan venue yang kamu miliki. Konten publik hanya tampil setelah memenuhi persyaratan publikasi.</p>
         </div>
+        @if ($canCreateBusiness)
         <button type="button" wire:click="startCreate" class="btn btn-primary owner-core-primary">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="size-4"><path d="M12 5v14M5 12h14"/></svg>
             Tambah usaha
         </button>
+        @else
+        <a href="{{ route('owner.subscription') }}" class="btn btn-primary owner-core-primary">Lihat paket & kuota</a>
+        @endif
     </header>
 
     @if (session('status'))
@@ -170,7 +181,11 @@ new #[Title('Kelola usaha')] class extends Component {
                 </span>
                 <h3>Belum ada usaha.</h3>
                 <p>Tambahkan usaha untuk mulai menyiapkan profil dan venue.</p>
-                <button type="button" wire:click="startCreate" class="btn btn-primary">Tambah usaha pertama</button>
+                @if ($canCreateBusiness)
+                    <button type="button" wire:click="startCreate" class="btn btn-primary">Tambah usaha pertama</button>
+                @else
+                    <a href="{{ route('owner.subscription') }}" class="btn btn-primary">Pilih paket langganan</a>
+                @endif
             </div>
         @else
             <div class="owner-business-list">

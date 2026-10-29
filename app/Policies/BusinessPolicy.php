@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Business;
 use App\Models\User;
+use App\Services\Subscriptions\SubscriptionEligibilityService;
 
 class BusinessPolicy
 {
@@ -20,7 +21,8 @@ class BusinessPolicy
 
     public function create(User $user): bool
     {
-        return $user->isOwner();
+        return $user->isOwner()
+            && app(SubscriptionEligibilityService::class)->canCreateBusiness((int) $user->getKey());
     }
 
     public function update(User $user, Business $business): bool

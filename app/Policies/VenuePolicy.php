@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Business;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\Subscriptions\SubscriptionEligibilityService;
 
 class VenuePolicy
 {
@@ -27,7 +28,7 @@ class VenuePolicy
     {
         return $user->isOwner()
             && (int) $business->owner_id === (int) $user->getKey()
-            && $business->status !== Business::STATUS_SUSPENDED;
+            && app(SubscriptionEligibilityService::class)->canCreateVenue($business);
     }
 
     public function update(User $user, Venue $venue): bool
