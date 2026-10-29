@@ -43,7 +43,18 @@ new #[Title('Langganan saya')] class extends Component {
     {
         $this->owner();
 
-        return SubscriptionPlan::query()->where('is_active', true)->orderBy('monthly_price')->get();
+        $current = $this->currentSubscription;
+        $canChangePlan = $current && in_array($current->status, [
+            Subscription::STATUS_TRIALING,
+            Subscription::STATUS_ACTIVE,
+            Subscription::STATUS_GRACE_PERIOD,
+        ], true);
+
+        return SubscriptionPlan::query()
+            ->where('is_active', true)
+            ->when($canChangePlan, fn ($query) => $query->whereKeyNot($current->plan_id))
+            ->orderBy('monthly_price')
+            ->get();
     }
 
     #[Computed]
@@ -159,6 +170,22 @@ new #[Title('Langganan saya')] class extends Component {
         unset($this->currentSubscription, $this->recentInvoices, $this->checkoutPayment, $this->checkoutInvoice);
     }
 
+    public function renewCurrentPlan(): void
+    {
+        $current = $this->currentSubscription;
+
+        abort_unless($current && in_array($current->status, [
+            Subscription::STATUS_TRIALING,
+            Subscription::STATUS_ACTIVE,
+            Subscription::STATUS_GRACE_PERIOD,
+        ], true), 403);
+
+        $this->planId = (string) $current->plan_id;
+        $this->retainedBusinessId = '';
+        $this->checkoutIdempotencyKey = '';
+        $this->checkout();
+    }
+
     public function startNewCheckout(): void
     {
         $this->reset([
@@ -253,8 +280,24 @@ new #[Title('Langganan saya')] class extends Component {
     @endif
 
     <section class="owner-finance-panel">
-        <h2 class="text-xl font-extrabold">Pilih paket</h2>
-        <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">Paket yang lebih mahal diproses sebagai upgrade prorata. Downgrade Business ke Starter dijadwalkan untuk periode berikutnya.</p>
+        @php
+            $current = $this->currentSubscription;
+            $isSubscribed = $current && in_array($current->status, [
+                \App\Models\Subscription::STATUS_TRIALING,
+                \App\Models\Subscription::STATUS_ACTIVE,
+                \App\Models\Subscription::STATUS_GRACE_PERIOD,
+            ], true);
+            $isStarter = $isSubscribed && $current->plan?->slug === 'starter';
+        @endphp
+        <h2 class="text-xl font-extrabold">{{ $isStarter ? 'Upgrade paket' : ($isSubscribed ? 'Ubah paket' : 'Pilih paket') }}</h2>
+        <p class="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{{ $isStarter ? 'Tingkatkan ke Business untuk mengelola hingga 5 usaha. Biaya upgrade dihitung prorata berdasarkan sisa periode Starter.' : ($isSubscribed ? 'Paket yang tersedia untuk perubahan langganan. Downgrade ke Starter berlaku pada periode berikutnya.' : 'Pilih paket untuk mulai mengelola usaha dan venue.') }}</p>
+        @if ($isSubscribed)
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <span class="text-sm text-[var(--ink-soft)]">Paket aktif: <strong>{{ $current->plan?->name }}</strong></span>
+                <button type="button" wire:click="renewCurrentPlan" wire:loading.attr="disabled" class="btn btn-secondary">Perpanjang {{ $current->plan?->name }}</button>
+            </div>
+        @endif
+        @if ($this->plans->isNotEmpty())
         <form wire:submit="checkout" class="mt-5 space-y-5">
             <div class="grid gap-3 md:grid-cols-2">
                 @foreach ($this->plans as $plan)
@@ -286,8 +329,11 @@ new #[Title('Langganan saya')] class extends Component {
                 </div>
             @endif
 
-            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Lanjutkan checkout</button>
+            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">{{ $isStarter ? 'Upgrade ke Business' : ($isSubscribed ? 'Lanjutkan perubahan paket' : 'Lanjutkan checkout') }}</button>
         </form>
+        @else
+            <p class="mt-4 text-sm text-[var(--ink-soft)]">Tidak ada paket lain yang tersedia saat ini.</p>
+        @endif
     </section>
 
     <section class="owner-finance-panel">
