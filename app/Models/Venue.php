@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\SubscriptionStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -84,6 +85,26 @@ class Venue extends Model
     }
 
     /**
+     * Scope query to venues that are publicly discoverable on the marketplace.
+     * Excludes inactive, suspended, or expired SaaS subscription venues.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopePubliclyDiscoverable(Builder $query): Builder
+    {
+        return $query->where('is_active', true)
+            ->whereIn('subscription_status', [
+                SubscriptionStatus::Trial->value,
+                SubscriptionStatus::Active->value,
+            ])
+            ->where(function (Builder $subQuery) {
+                $subQuery->whereNull('subscription_expires_at')
+                    ->orWhere('subscription_expires_at', '>', now());
+            });
+    }
+
+    /**
      * Courts configured under this venue.
      *
      * @return HasMany<Court, $this>
@@ -101,5 +122,35 @@ class Venue extends Model
     public function operators(): HasMany
     {
         return $this->hasMany(User::class, 'venue_id');
+    }
+
+    /**
+     * Supported unique sports across active courts.
+     *
+     * @return list<string>
+     */
+    public function activeSports(): array
+    {
+        $activeCourts = $this->relationLoaded('courts')
+            ? $this->courts->where('is_active', true)
+            : $this->courts()->where('is_active', true)->get();
+
+        return $activeCourts->pluck('sport_type')
+            ->map(fn ($sport): string => is_object($sport) ? $sport->value : (string) $sport)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Lowest hourly court rental rate across active courts.
+     */
+    public function startingPrice(): int
+    {
+        $activeCourts = $this->relationLoaded('courts')
+            ? $this->courts->where('is_active', true)
+            : $this->courts()->where('is_active', true)->get();
+
+        return (int) ($activeCourts->min('default_hourly_rate') ?? 0);
     }
 }

@@ -96,4 +96,29 @@ class CourtSlot extends Model
                 });
         });
     }
+
+    /**
+     * Resolve effective slot status, accounting for expired checkout holds dynamically.
+     */
+    public function resolveEffectiveStatus(?CarbonInterface $referenceTime = null): SlotStatus
+    {
+        if ($this->status === SlotStatus::Held) {
+            $now = $referenceTime ?? now();
+            if ($this->locked_until !== null && $this->locked_until->gt($now)) {
+                return SlotStatus::Held;
+            }
+
+            return SlotStatus::Available;
+        }
+
+        return $this->status;
+    }
+
+    /**
+     * Determine whether this slot is currently bookable by a player.
+     */
+    public function isBookable(?CarbonInterface $referenceTime = null): bool
+    {
+        return $this->resolveEffectiveStatus($referenceTime)->isBookable();
+    }
 }

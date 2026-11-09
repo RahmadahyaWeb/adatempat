@@ -33,3 +33,40 @@ test('court slot belongs to court relationship', function () {
     expect($slot->court())->toBeInstanceOf(BelongsTo::class)
         ->and($slot->court()->getRelated())->toBeInstanceOf(Court::class);
 });
+
+test('resolveEffectiveStatus and isBookable dynamically evaluate hold expiration', function () {
+    Carbon::setTestNow('2026-11-10 10:00:00');
+
+    // Available slot
+    $availableSlot = new CourtSlot(['status' => SlotStatus::Available]);
+    expect($availableSlot->resolveEffectiveStatus())->toBe(SlotStatus::Available)
+        ->and($availableSlot->isBookable())->toBeTrue();
+
+    // Active hold
+    $activeHeldSlot = new CourtSlot([
+        'status' => SlotStatus::Held,
+        'locked_until' => Carbon::parse('2026-11-10 10:10:00'),
+    ]);
+    expect($activeHeldSlot->resolveEffectiveStatus())->toBe(SlotStatus::Held)
+        ->and($activeHeldSlot->isBookable())->toBeFalse();
+
+    // Expired hold
+    $expiredHeldSlot = new CourtSlot([
+        'status' => SlotStatus::Held,
+        'locked_until' => Carbon::parse('2026-11-10 09:55:00'),
+    ]);
+    expect($expiredHeldSlot->resolveEffectiveStatus())->toBe(SlotStatus::Available)
+        ->and($expiredHeldSlot->isBookable())->toBeTrue();
+
+    // Booked slot
+    $bookedSlot = new CourtSlot(['status' => SlotStatus::Booked]);
+    expect($bookedSlot->resolveEffectiveStatus())->toBe(SlotStatus::Booked)
+        ->and($bookedSlot->isBookable())->toBeFalse();
+
+    // Blocked slot
+    $blockedSlot = new CourtSlot(['status' => SlotStatus::Blocked]);
+    expect($blockedSlot->resolveEffectiveStatus())->toBe(SlotStatus::Blocked)
+        ->and($blockedSlot->isBookable())->toBeFalse();
+
+    Carbon::setTestNow();
+});
