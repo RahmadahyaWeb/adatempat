@@ -8,6 +8,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -66,5 +67,15 @@ class User extends Authenticatable
     public function isSuperadmin(): bool
     {
         return $this->role === UserRole::Superadmin;
+    }
+
+    /**
+     * Assigned venue for venue operators.
+     *
+     * @return BelongsTo<Venue, $this>
+     */
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
     }
 }

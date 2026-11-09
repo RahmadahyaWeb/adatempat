@@ -1,7 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminVenueController;
+use App\Http\Controllers\Admin\AdminVenueSubscriptionController;
 use App\Http\Controllers\Auth\MagicLinkController;
 use App\Http\Controllers\HealthcheckController;
+use App\Http\Controllers\Operator\OperatorCourtController;
+use App\Http\Controllers\Operator\OperatorVenueController;
+use App\Http\Middleware\EnsureUserIsSuperadmin;
+use App\Http\Middleware\EnsureUserIsVenueOperator;
+use App\Http\Middleware\EnsureVenueSubscriptionActive;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,3 +21,25 @@ Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('/magic-link', [MagicLinkController::class, 'send'])->name('magic-link.send');
     Route::get('/magic-link/verify/{user}', [MagicLinkController::class, 'verify'])->name('magic-link.verify');
 });
+
+Route::prefix('operator')
+    ->name('operator.')
+    ->middleware(['auth', EnsureUserIsVenueOperator::class, EnsureVenueSubscriptionActive::class])
+    ->group(function () {
+        Route::get('/venue', [OperatorVenueController::class, 'show'])->name('venue.show');
+        Route::put('/venue', [OperatorVenueController::class, 'update'])->name('venue.update');
+
+        Route::get('/courts', [OperatorCourtController::class, 'index'])->name('courts.index');
+        Route::post('/courts', [OperatorCourtController::class, 'store'])->name('courts.store');
+        Route::get('/courts/{court}', [OperatorCourtController::class, 'show'])->name('courts.show');
+        Route::put('/courts/{court}', [OperatorCourtController::class, 'update'])->name('courts.update');
+        Route::delete('/courts/{court}', [OperatorCourtController::class, 'destroy'])->name('courts.destroy');
+    });
+
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', EnsureUserIsSuperadmin::class])
+    ->group(function () {
+        Route::post('/venues', [AdminVenueController::class, 'store'])->name('venues.store');
+        Route::patch('/venues/{venue}/subscription', [AdminVenueSubscriptionController::class, 'update'])->name('venues.subscription.update');
+    });
