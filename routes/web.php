@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\AdminVenueSubscriptionController;
 use App\Http\Controllers\Auth\MagicLinkController;
 use App\Http\Controllers\HealthcheckController;
 use App\Http\Controllers\Operator\OperatorCourtController;
+use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
+use App\Http\Controllers\Operator\OperatorCourtSlotController;
 use App\Http\Controllers\Operator\OperatorVenueController;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
 use App\Http\Middleware\EnsureUserIsVenueOperator;
@@ -34,6 +36,13 @@ Route::prefix('operator')
         Route::get('/courts/{court}', [OperatorCourtController::class, 'show'])->name('courts.show');
         Route::put('/courts/{court}', [OperatorCourtController::class, 'update'])->name('courts.update');
         Route::delete('/courts/{court}', [OperatorCourtController::class, 'destroy'])->name('courts.destroy');
+
+        Route::get('/courts/{court}/slots', [OperatorCourtSlotController::class, 'index'])->name('courts.slots.index');
+
+        Route::get('/courts/{court}/pricing-rules', [OperatorCourtPricingRuleController::class, 'index'])->name('courts.pricing-rules.index');
+        Route::post('/courts/{court}/pricing-rules', [OperatorCourtPricingRuleController::class, 'store'])->name('courts.pricing-rules.store');
+        Route::put('/courts/{court}/pricing-rules/{pricingRule}', [OperatorCourtPricingRuleController::class, 'update'])->name('courts.pricing-rules.update');
+        Route::delete('/courts/{court}/pricing-rules/{pricingRule}', [OperatorCourtPricingRuleController::class, 'destroy'])->name('courts.pricing-rules.destroy');
     });
 
 Route::prefix('admin')

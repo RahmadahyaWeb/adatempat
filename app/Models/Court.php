@@ -8,6 +8,7 @@ use App\Enums\SportType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Court extends Model
@@ -62,5 +63,25 @@ class Court extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    /**
+     * Tiered pricing rules configured for this court.
+     *
+     * @return HasMany<CourtPricingRule, $this>
+     */
+    public function pricingRules(): HasMany
+    {
+        return $this->hasMany(CourtPricingRule::class);
+    }
+
+    /**
+     * Scheduled discrete 60-minute slots generated for this court.
+     *
+     * @return HasMany<CourtSlot, $this>
+     */
+    public function slots(): HasMany
+    {
+        return $this->hasMany(CourtSlot::class);
     }
 }
