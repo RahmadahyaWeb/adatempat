@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('slots:generate --days=30')->daily();
+Schedule::command('court-slots:prune-expired-holds')->everyMinute();

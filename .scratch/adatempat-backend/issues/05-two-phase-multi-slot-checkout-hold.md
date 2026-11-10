@@ -5,16 +5,16 @@ A high-concurrency two-phase locking engine that enables Players to reserve mult
 
 **Blocked by:** 04: Public Venue Discovery and Slot Availability API
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Booking and BookingItem entities represent customer reservations and locked-price slot line items.
-- [ ] Table `booking_items` enforces a composite unique constraint `(booking_id, court_slot_id)`, allowing historical retention without unique key conflicts when slots are re-booked.
-- [ ] Checkout hold initiation accepts an array of court slot IDs and sorts them in ascending numerical order before attempting lock acquisition to prevent deadlocks.
-- [ ] Redis atomic locks are acquired per slot (`court_slot:lock:{id}`) with a 600-second (10-minute) TTL.
-- [ ] Any failure to acquire a lock within the requested set triggers an immediate rollback of all previously acquired locks in that request and returns HTTP 409 Conflict.
-- [ ] Successful Redis locking executes a database transaction updating slot rows to held status with `locked_until` set to 10 minutes in the future.
-- [ ] A pending draft booking is created with a unique booking code, calculated total amount in integer Rupiah, and corresponding booking items locking the current slot prices.
-- [ ] Players can explicitly abandon checkout, immediately resetting slot status to available and releasing Redis locks.
-- [ ] Slot availability queries dynamically treat slots with expired holds (`locked_until <= now()`) as available just-in-time.
-- [ ] Scheduled artisan command runs every minute to transition abandoned draft bookings to expired status and reset database slot statuses.
-- [ ] Automated test suite verifies multi-slot lock acquisition, numeric ordering deadlock prevention, fail-fast rollback on contention, JIT expiration evaluation, and scheduled prune cleanup.
+- [x] Booking and BookingItem entities represent customer reservations and locked-price slot line items.
+- [x] Table `booking_items` enforces a composite unique constraint `(booking_id, court_slot_id)`, allowing historical retention without unique key conflicts when slots are re-booked.
+- [x] Checkout hold initiation accepts an array of court slot IDs and sorts them in ascending numerical order before attempting lock acquisition to prevent deadlocks.
+- [x] Redis atomic locks are acquired per slot (`court_slot:lock:{id}`) with a 600-second (10-minute) TTL.
+- [x] Any failure to acquire a lock within the requested set triggers an immediate rollback of all previously acquired locks in that request and returns HTTP 409 Conflict.
+- [x] Successful Redis locking executes a database transaction updating slot rows to held status with `locked_until` set to 10 minutes in the future.
+- [x] A pending draft booking is created with a unique booking code, calculated total amount in integer Rupiah, and corresponding booking items locking the current slot prices.
+- [x] Players can explicitly abandon checkout, immediately resetting slot status to available and releasing Redis locks.
+- [x] Slot availability queries dynamically treat slots with expired holds (`locked_until <= now()`) as available just-in-time.
+- [x] Scheduled artisan command runs every minute to transition abandoned draft bookings to expired status and reset database slot statuses.
+- [x] Automated test suite verifies multi-slot lock acquisition, numeric ordering deadlock prevention, fail-fast rollback on contention, JIT expiration evaluation, and scheduled prune cleanup.

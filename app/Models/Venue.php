@@ -125,6 +125,16 @@ class Venue extends Model
     }
 
     /**
+     * Bookings hosted by this venue.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
      * Supported unique sports across active courts.
      *
      * @return list<string>

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CourtSlot extends Model
 {
@@ -63,6 +64,16 @@ class CourtSlot extends Model
     public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
+    }
+
+    /**
+     * Historical or active booking items claiming this slot.
+     *
+     * @return HasMany<BookingItem, $this>
+     */
+    public function bookingItems(): HasMany
+    {
+        return $this->hasMany(BookingItem::class);
     }
 
     /**

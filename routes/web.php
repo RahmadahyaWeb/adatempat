@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminVenueController;
 use App\Http\Controllers\Admin\AdminVenueSubscriptionController;
 use App\Http\Controllers\Auth\MagicLinkController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\HealthcheckController;
 use App\Http\Controllers\Operator\OperatorCourtController;
 use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
@@ -22,6 +23,11 @@ Route::get('/health', HealthcheckController::class)->name('health');
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('/magic-link', [MagicLinkController::class, 'send'])->name('magic-link.send');
     Route::get('/magic-link/verify/{user}', [MagicLinkController::class, 'verify'])->name('magic-link.verify');
+});
+
+Route::prefix('checkout')->name('checkout.')->middleware('auth')->group(function () {
+    Route::post('/hold', [CheckoutController::class, 'hold'])->name('hold')->middleware('throttle:10,1');
+    Route::post('/{booking:booking_code}/abandon', [CheckoutController::class, 'abandon'])->name('abandon');
 });
 
 Route::prefix('operator')
