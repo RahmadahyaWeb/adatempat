@@ -5,16 +5,16 @@ Centralized platform administration panel endpoints for Superadmins alongside an
 
 **Blocked by:** 02: Venue and Court Management with Operator Scoping, 09: Operator Walk-in Slot Blocking and Schedule Timeline Control
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Superadmin routes under `/admin/*` are protected by authentication and superadmin role middleware.
-- [ ] Authorization layer configures a global bypass for Superadmins via `Gate::before`, enabling platform-wide auditing and administrative overrides.
-- [ ] Superadmin can curate supported sport types and Indonesian city master data.
-- [ ] Superadmin can onboard new venues and link Venue Operator user accounts.
-- [ ] Superadmin can transition venue SaaS subscription status between trial, active, suspended, and expired with expiration timestamps.
-- [ ] Changes to venue subscription status immediately affect public marketplace search indexing and operator write permissions.
-- [ ] Pest architecture test file enforces strict typing (`declare(strict_types=1);`) across all PHP classes.
-- [ ] Architecture test verifies that all domain models extend Eloquent Model and that all status enums are string-backed.
-- [ ] Architecture test verifies that controllers delegate business logic to dedicated services rather than executing direct transaction logic.
-- [ ] Architecture test asserts that debugging statements (`dd`, `dump`, `ray`) are completely absent across the application.
-- [ ] Full automated test suite passes end-to-end across all units, features, and architecture rules.
+- [x] Superadmin routes under `/admin/*` are protected by authentication and superadmin role middleware.
+- [x] Authorization layer configures a global bypass for Superadmins via `Gate::before`, enabling platform-wide auditing and administrative overrides.
+- [x] Superadmin can curate supported sport types and Indonesian city master data.
+- [x] Superadmin can onboard new venues and link Venue Operator user accounts.
+- [x] Superadmin can transition venue SaaS subscription status between trial, active, suspended, and expired with expiration timestamps.
+- [x] Changes to venue subscription status immediately affect public marketplace search indexing and operator write permissions.
+- [x] Pest architecture test file enforces strict typing (`declare(strict_types=1);`) across all PHP classes.
+- [x] Architecture test verifies that all domain models extend Eloquent Model and that all status enums are string-backed.
+- [x] Architecture test verifies that controllers delegate business logic to dedicated services rather than executing direct transaction logic.
+- [x] Architecture test asserts that debugging statements (`dd`, `dump`, `ray`) are completely absent across the application.
+- [x] Full automated test suite passes end-to-end across all units, features, and architecture rules.

@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminCityController;
+use App\Http\Controllers\Admin\AdminSportTypeController;
 use App\Http\Controllers\Admin\AdminVenueController;
+use App\Http\Controllers\Admin\AdminVenueOperatorController;
 use App\Http\Controllers\Admin\AdminVenueSubscriptionController;
 use App\Http\Controllers\Auth\MagicLinkController;
 use App\Http\Controllers\CheckoutController;
@@ -88,6 +91,26 @@ Route::prefix('admin')
     ->name('admin.')
     ->middleware(['auth', EnsureUserIsSuperadmin::class])
     ->group(function () {
+        // Venue Management
+        Route::get('/venues', [AdminVenueController::class, 'index'])->name('venues.index');
         Route::post('/venues', [AdminVenueController::class, 'store'])->name('venues.store');
+        Route::get('/venues/{venue}', [AdminVenueController::class, 'show'])->name('venues.show');
         Route::patch('/venues/{venue}/subscription', [AdminVenueSubscriptionController::class, 'update'])->name('venues.subscription.update');
+
+        // Venue Operator Assignment
+        Route::get('/venues/{venue}/operators', [AdminVenueOperatorController::class, 'index'])->name('venues.operators.index');
+        Route::post('/venues/{venue}/operators', [AdminVenueOperatorController::class, 'store'])->name('venues.operators.store');
+        Route::delete('/venues/{venue}/operators/{user}', [AdminVenueOperatorController::class, 'destroy'])->name('venues.operators.destroy');
+
+        // Master Data Curation: Sports
+        Route::get('/sports', [AdminSportTypeController::class, 'index'])->name('sports.index');
+        Route::post('/sports', [AdminSportTypeController::class, 'store'])->name('sports.store');
+        Route::put('/sports/{sportType}', [AdminSportTypeController::class, 'update'])->name('sports.update');
+        Route::delete('/sports/{sportType}', [AdminSportTypeController::class, 'destroy'])->name('sports.destroy');
+
+        // Master Data Curation: Indonesian Cities
+        Route::get('/cities', [AdminCityController::class, 'index'])->name('cities.index');
+        Route::post('/cities', [AdminCityController::class, 'store'])->name('cities.store');
+        Route::put('/cities/{city}', [AdminCityController::class, 'update'])->name('cities.update');
+        Route::delete('/cities/{city}', [AdminCityController::class, 'destroy'])->name('cities.destroy');
     });

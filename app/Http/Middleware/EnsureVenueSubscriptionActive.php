@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Venue;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,7 +30,7 @@ class EnsureVenueSubscriptionActive
             return $next($request);
         }
 
-        $venue = $user?->venue;
+        $venue = $user?->venue_id ? Venue::find($user->venue_id) : null;
 
         if (! $venue || ! $venue->hasActiveSubscription()) {
             if ($request->expectsJson()) {

@@ -141,3 +141,130 @@ test('superadmin can toggle SaaS subscription status and expiration', function (
     expect($venue->subscription_status)->toBe(SubscriptionStatus::Suspended)
         ->and($venue->hasActiveSubscription())->toBeFalse();
 });
+
+test('superadmin can onboard a new venue and link an existing venue operator user account in one step', function () {
+    $existingUser = User::create([
+        'name' => 'Budi Operator',
+        'email' => 'budi.operator@adatempat.com',
+        'role' => UserRole::Player,
+    ]);
+
+    $response = $this->actingAs($this->superadmin)->postJson('/admin/venues', [
+        'name' => 'Kuningan Padel Club',
+        'city' => 'Jakarta Selatan',
+        'address' => 'Jl. HR Rasuna Said',
+        'operator_id' => $existingUser->id,
+    ]);
+
+    $response->assertStatus(201)
+        ->assertJson([
+            'status' => 'success',
+            'message' => 'Venue onboarded successfully.',
+            'data' => [
+                'name' => 'Kuningan Padel Club',
+                'slug' => 'kuningan-padel-club',
+            ],
+        ]);
+
+    $createdVenueId = $response->json('data.id');
+    $existingUser->refresh();
+    expect($existingUser->venue_id)->toBe($createdVenueId)
+        ->and($existingUser->role)->toBe(UserRole::VenueOperator);
+});
+
+test('superadmin can onboard a venue and link an operator via email address', function () {
+    $response = $this->actingAs($this->superadmin)->postJson('/admin/venues', [
+        'name' => 'Pondok Indah Tennis Court',
+        'city' => 'Jakarta Selatan',
+        'address' => 'Jl. Metro Pondok Indah',
+        'operator_email' => 'manager.pitc@adatempat.com',
+    ]);
+
+    $response->assertStatus(201);
+    $createdVenueId = $response->json('data.id');
+
+    $operator = User::where('email', 'manager.pitc@adatempat.com')->first();
+    expect($operator)->not->toBeNull()
+        ->and($operator->venue_id)->toBe($createdVenueId)
+        ->and($operator->role)->toBe(UserRole::VenueOperator);
+});
+
+test('superadmin can list all venues and view individual venue profile', function () {
+    Venue::create([
+        'name' => 'Alpha Sports Arena',
+        'slug' => 'alpha-sports-arena',
+        'city' => 'Bandung',
+        'address' => 'Jl. Dago',
+    ]);
+
+    $indexResponse = $this->actingAs($this->superadmin)->getJson('/admin/venues');
+    $indexResponse->assertStatus(200)
+        ->assertJsonStructure([
+            'status',
+            'data' => [
+                '*' => ['id', 'name', 'slug', 'city', 'operators', 'courts'],
+            ],
+        ]);
+
+    $venue = Venue::where('slug', 'alpha-sports-arena')->first();
+    $showResponse = $this->actingAs($this->superadmin)->getJson("/admin/venues/{$venue->id}");
+    $showResponse->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'data' => [
+                'name' => 'Alpha Sports Arena',
+                'slug' => 'alpha-sports-arena',
+            ],
+        ]);
+});
+
+test('superadmin can link and unlink operators for a venue', function () {
+    $venue = Venue::create([
+        'name' => 'Kemang Badminton Hall',
+        'slug' => 'kemang-badminton-hall',
+        'city' => 'Jakarta Selatan',
+        'address' => 'Jl. Bangka Raya',
+    ]);
+
+    $staffUser = User::create([
+        'name' => 'Staff Member',
+        'email' => 'staff.kemang@adatempat.com',
+        'role' => UserRole::Player,
+    ]);
+
+    // Link operator via user_id
+    $linkResponse = $this->actingAs($this->superadmin)->postJson("/admin/venues/{$venue->id}/operators", [
+        'user_id' => $staffUser->id,
+    ]);
+
+    $linkResponse->assertStatus(201)
+        ->assertJson([
+            'status' => 'success',
+            'message' => 'Venue operator linked successfully.',
+            'data' => [
+                'id' => $staffUser->id,
+                'venue_id' => $venue->id,
+                'role' => UserRole::VenueOperator->value,
+            ],
+        ]);
+
+    $staffUser->refresh();
+    expect($staffUser->venue_id)->toBe($venue->id)
+        ->and($staffUser->role)->toBe(UserRole::VenueOperator);
+
+    // List operators
+    $listResponse = $this->actingAs($this->superadmin)->getJson("/admin/venues/{$venue->id}/operators");
+    $listResponse->assertStatus(200);
+    expect($listResponse->json('data.0.id'))->toBe($staffUser->id);
+
+    // Unlink operator
+    $unlinkResponse = $this->actingAs($this->superadmin)->deleteJson("/admin/venues/{$venue->id}/operators/{$staffUser->id}");
+    $unlinkResponse->assertStatus(200)
+        ->assertJson([
+            'status' => 'success',
+            'message' => 'Venue operator unlinked successfully.',
+        ]);
+
+    $staffUser->refresh();
+    expect($staffUser->venue_id)->toBeNull();
+});
