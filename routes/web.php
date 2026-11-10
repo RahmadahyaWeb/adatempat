@@ -9,6 +9,7 @@ use App\Http\Controllers\Operator\OperatorCourtController;
 use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
 use App\Http\Controllers\Operator\OperatorCourtSlotController;
 use App\Http\Controllers\Operator\OperatorVenueController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
 use App\Http\Middleware\EnsureUserIsVenueOperator;
 use App\Http\Middleware\EnsureVenueSubscriptionActive;
@@ -28,6 +29,9 @@ Route::prefix('auth')->name('auth.')->group(function () {
 Route::prefix('checkout')->name('checkout.')->middleware('auth')->group(function () {
     Route::post('/hold', [CheckoutController::class, 'hold'])->name('hold')->middleware('throttle:10,1');
     Route::post('/{booking:booking_code}/abandon', [CheckoutController::class, 'abandon'])->name('abandon');
+    Route::post('/{booking:booking_code}/pay', [PaymentController::class, 'pay'])->name('pay');
+    Route::get('/{booking:booking_code}/status', [PaymentController::class, 'status'])->name('status');
+    Route::post('/{booking:booking_code}/inquire', [PaymentController::class, 'inquire'])->name('inquire');
 });
 
 Route::prefix('operator')

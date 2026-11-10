@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\Public\PublicCourtSlotController;
 use App\Http\Controllers\Public\PublicVenueController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/webhooks/midtrans', MidtransWebhookController::class)->name('webhooks.midtrans');
 
 Route::prefix('venues')->name('venues.')->group(function () {
     Route::get('/', [PublicVenueController::class, 'index'])->name('index');

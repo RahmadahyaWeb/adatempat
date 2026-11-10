@@ -5,16 +5,16 @@ Automated payment generation and reconciliation using Midtrans Core API Dynamic 
 
 **Blocked by:** 05: Two-Phase Multi-Slot Checkout Hold Engine
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Payment entity models gateway audit trails, storing order reference, Midtrans transaction ID, gross amount in integer Rupiah, payment type, status, QR string, and raw webhook payloads.
-- [ ] Outbound charge request to Midtrans Core API formats a dynamic QRIS payload with 10-minute custom expiry matching the hold duration.
-- [ ] Charge response persists QR string and metadata to the payment record and returns them to the checkout client.
-- [ ] Webhook endpoint verifies inbound SHA-512 signature using timing-safe comparison (`hash_equals`), rejecting discrepancies with HTTP 401 Unauthorized.
-- [ ] Webhook settlement processing acquires a row-level lock on the booking and asserts valid status transitions.
-- [ ] Legitimate settlement transitions booking payment status to paid, records paid-at timestamp, commits slots to booked, and releases Redis hold locks.
-- [ ] Duplicate or triplicate webhook notifications for an already paid booking return HTTP 200 OK idempotently without re-triggering transitions or corrupting audit data.
-- [ ] Payment expiration or cancellation webhooks transition booking status accordingly, reset court slots to available, and release Redis locks.
-- [ ] Checkout status polling endpoint allows clients to check payment status every 3 seconds.
-- [ ] Manual status inquiry endpoint queries the Midtrans Status API directly, verifies signatures, and reconciles booking state on demand.
-- [ ] Automated test suite verifies QRIS charge formation, signature tampering detection, pessimistic settlement locking, duplicate webhook idempotency, and status polling fallback.
+- [x] Payment entity models gateway audit trails, storing order reference, Midtrans transaction ID, gross amount in integer Rupiah, payment type, status, QR string, and raw webhook payloads.
+- [x] Outbound charge request to Midtrans Core API formats a dynamic QRIS payload with 10-minute custom expiry matching the hold duration.
+- [x] Charge response persists QR string and metadata to the payment record and returns them to the checkout client.
+- [x] Webhook endpoint verifies inbound SHA-512 signature using timing-safe comparison (`hash_equals`), rejecting discrepancies with HTTP 401 Unauthorized.
+- [x] Webhook settlement processing acquires a row-level lock on the booking and asserts valid status transitions.
+- [x] Legitimate settlement transitions booking payment status to paid, records paid-at timestamp, commits slots to booked, and releases Redis hold locks.
+- [x] Duplicate or triplicate webhook notifications for an already paid booking return HTTP 200 OK idempotently without re-triggering transitions or corrupting audit data.
+- [x] Payment expiration or cancellation webhooks transition booking status accordingly, reset court slots to available, and release Redis locks.
+- [x] Checkout status polling endpoint allows clients to check payment status every 3 seconds.
+- [x] Manual status inquiry endpoint queries the Midtrans Status API directly, verifies signatures, and reconciles booking state on demand.
+- [x] Automated test suite verifies QRIS charge formation, signature tampering detection, pessimistic settlement locking, duplicate webhook idempotency, and status polling fallback.

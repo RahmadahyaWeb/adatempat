@@ -6,6 +6,7 @@ use App\Enums\CheckInStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\BookingItem;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\Venue;
 use Carbon\Carbon;
@@ -46,7 +47,9 @@ test('booking relationships return correct relations', function () {
         ->and($booking->checkedInBy())->toBeInstanceOf(BelongsTo::class)
         ->and($booking->checkedInBy()->getRelated())->toBeInstanceOf(User::class)
         ->and($booking->items())->toBeInstanceOf(HasMany::class)
-        ->and($booking->items()->getRelated())->toBeInstanceOf(BookingItem::class);
+        ->and($booking->items()->getRelated())->toBeInstanceOf(BookingItem::class)
+        ->and($booking->payments())->toBeInstanceOf(HasMany::class)
+        ->and($booking->payments()->getRelated())->toBeInstanceOf(Payment::class);
 });
 
 test('booking code generator produces ADT-YYYYMMDD-XXXX format', function () {

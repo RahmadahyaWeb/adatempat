@@ -108,6 +108,16 @@ class Booking extends Model
     }
 
     /**
+     * Gateway payment records.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Generate unique booking code formatted as ADT-YYYYMMDD-XXXX.
      */
     public static function generateBookingCode(?CarbonInterface $referenceTime = null): string
