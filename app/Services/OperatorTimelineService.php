@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Enums\PaymentStatus;
 use App\Enums\SlotStatus;
 use App\Models\Court;
-use App\Models\CourtSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Carbon\CarbonInterface;
@@ -16,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class OperatorTimelineService
 {
     public function __construct(
-        protected SlotGenerationService $slotGenerationService
+        protected CourtSlotAvailabilityService $availabilityService
     ) {}
 
     /**
@@ -33,7 +32,7 @@ class OperatorTimelineService
         /** @var Venue $venue */
         $venue = $operator->venue ?? Venue::findOrFail($operator->venue_id);
 
-        $targetDate = $this->slotGenerationService->validateBookingHorizon($venue, $date);
+        $targetDate = $this->availabilityService->validateBookingHorizon($venue, $date);
         $dateString = $targetDate->toDateString();
 
         $courtsQuery = Court::query()
@@ -46,22 +45,8 @@ class OperatorTimelineService
 
         $courts = $courtsQuery->orderBy('id')->get();
 
-        // Ensure slots exist for all selected courts for this date (JIT generation)
-        foreach ($courts as $court) {
-            $this->slotGenerationService->generateSlotsForCourtAndDate($court, $targetDate);
-        }
-
-        // Load court slots with booking items and booking data
-        $courtIds = $courts->pluck('id')->all();
-        $slots = CourtSlot::query()
-            ->whereIn('court_id', $courtIds)
-            ->where('date', $dateString)
-            ->with([
-                'bookingItems.booking.user',
-            ])
-            ->orderBy('start_time')
-            ->get()
-            ->groupBy('court_id');
+        // Retrieve slots for all selected courts for this date via availability service
+        $slots = $this->availabilityService->getTimelineSlotsForCourts($venue, $courts, $targetDate);
 
         $now = now();
         $courtsData = [];

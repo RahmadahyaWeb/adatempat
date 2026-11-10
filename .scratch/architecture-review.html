@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review for adatempat-v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- Header -->
+      <header class="border-b border-stone-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <span class="text-xs uppercase tracking-widest text-stone-500 font-semibold">Architecture Review</span>
+          <h1 class="text-3xl font-serif font-bold text-slate-950 mt-1">adatempat-v2</h1>
+          <p class="text-sm text-stone-600 mt-1">November 10, 2026 · Deepening Opportunities & Seam Analysis</p>
+        </div>
+        <!-- Compact Legend -->
+        <div class="flex items-center gap-4 text-xs font-mono bg-white border border-stone-200 px-3 py-2 rounded shadow-sm text-stone-700">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 border border-slate-700 bg-stone-100 rounded-sm"></span>
+            <span>Module</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 border-t-2 border-dashed border-stone-500"></span>
+            <span>Seam</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 border-t-2 border-red-600"></span>
+            <span class="text-red-700 font-semibold">Leakage</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 bg-slate-900 rounded-sm"></span>
+            <span class="font-bold text-slate-900">Deep Module</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Candidates -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- Candidate 1 -->
+        <article id="candidate-pricing" class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h2 class="text-xl font-serif font-bold text-slate-900">1. Collapse Pricing Rule Resolution and Propagation</h2>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Strong</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-100 text-slate-700 border border-slate-200">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-stone-600 bg-stone-50 border border-stone-200 p-2.5 rounded space-y-1">
+            <div>app/Services/PricingResolutionService.php</div>
+            <div>app/Services/SlotPricingPropagationService.php</div>
+            <div>app/Http/Controllers/Operator/OperatorCourtPricingRuleController.php</div>
+          </div>
+
+          <!-- Before / After Diagram -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">Before: Shallow modules & Leaking Coordination</div>
+              <div class="rounded bg-white border border-stone-200 p-2 flex items-center justify-center min-h-[280px]">
+                <pre class="mermaid text-xs">
+                  flowchart TD
+                    Ctrl[OperatorCourtPricingRuleController]
+                    Model[CourtPricingRule Model]
+                    Prop[SlotPricingPropagationService]
+                    Res[PricingResolutionService]
+                    Slots[(Future CourtSlots)]
+
+                    Ctrl -->|1. creates/updates| Model
+                    Ctrl -.->|2. manual coordinate| Prop
+                    Prop -->|queries| Slots
+                    Prop -->|calls per slot| Res
+                    Res -->|checks hierarchy| Model
+                    Prop -->|3. mutates price| Slots
+
+                    classDef leak stroke:#dc2626,stroke-width:2px;
+                    class Ctrl,Prop leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">After: Deep Pricing Rule Module</div>
+              <div class="rounded bg-white border border-stone-200 p-2 flex items-center justify-center min-h-[280px]">
+                <pre class="mermaid text-xs">
+                  flowchart TD
+                    Ctrl[OperatorCourtPricingRuleController]
+                    subgraph DeepPricing ["Deep Pricing Rule Module"]
+                      Interface["Small Interface: setRule(), resolvePrice()"]
+                      subgraph Implementation ["Internal Implementation"]
+                        Validate[Operational Hours Invariants]
+                        Store[Pricing Rule Persistence]
+                        Resolve[Specificity Hierarchy Resolution]
+                        Propagate[Atomic Slot Price Propagation]
+                      end
+                    end
+                    Slots[(Future CourtSlots)]
+
+                    Ctrl -->|one call| Interface
+                    Interface --> Validate
+                    Validate --> Store
+                    Store --> Propagate
+                    Resolve --> Propagate
+                    Propagate --> Slots
+
+                    classDef deep fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;
+                    class DeepPricing,Interface deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="font-semibold text-slate-900">Problem:</span>
+              <span class="text-stone-700">The pricing subsystem is shallow, forcing callers to coordinate rule persistence and slot price propagation across two disconnected modules.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900">Solution:</span>
+              <span class="text-stone-700">Collapse pricing rule resolution and future slot price propagation into one deep Pricing Rule module behind a unified interface.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900 block mb-1">Wins:</span>
+              <ul class="list-disc list-inside space-y-0.5 text-stone-700 text-xs font-mono">
+                <li>locality: pricing rules and propagation stay unified</li>
+                <li>leverage: callers update rules in one call</li>
+                <li>interface shrinks; implementation absorbs slot traversal</li>
+                <li>tests hit one interface for pricing</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article id="candidate-availability" class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h2 class="text-xl font-serif font-bold text-slate-900">2. Consolidate the Court Slot Availability Module</h2>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Strong</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-indigo-100 text-indigo-800 border border-indigo-200">local-substitutable</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-stone-600 bg-stone-50 border border-stone-200 p-2.5 rounded space-y-1">
+            <div>app/Services/SlotGenerationService.php</div>
+            <div>app/Http/Controllers/Public/PublicCourtSlotController.php</div>
+            <div>app/Services/OperatorTimelineService.php</div>
+            <div>app/Http/Controllers/Operator/OperatorCourtSlotController.php</div>
+          </div>
+
+          <!-- Before / After Diagram (Hand-crafted Visual Layout) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">Before: Callers Coordinate Horizon, Generation & SQL</div>
+              <div class="rounded bg-white border border-stone-200 p-4 min-h-[280px] flex flex-col justify-between text-xs font-mono">
+                <!-- Callers -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="border border-red-300 bg-red-50 p-2 rounded text-red-900">
+                    <span class="font-bold">PublicCourtSlotController</span>
+                    <div class="text-[10px] text-red-700 mt-1">manually invokes 3 steps + FORCE INDEX query</div>
+                  </div>
+                  <div class="border border-red-300 bg-red-50 p-2 rounded text-red-900">
+                    <span class="font-bold">OperatorTimelineService</span>
+                    <div class="text-[10px] text-red-700 mt-1">manually validates horizon + calls JIT generation</div>
+                  </div>
+                </div>
+
+                <!-- Leaking Seam -->
+                <div class="my-2 border-t-2 border-dashed border-red-400 relative">
+                  <span class="absolute -top-2.5 right-4 bg-red-100 text-red-700 px-1.5 text-[10px] rounded font-semibold uppercase">leaking seam</span>
+                </div>
+
+                <!-- Exposed Modules -->
+                <div class="space-y-1.5">
+                  <div class="border border-stone-300 bg-stone-100 p-1.5 rounded flex justify-between items-center">
+                    <span>SlotGenerationService::validateBookingHorizon()</span>
+                    <span class="text-[10px] text-stone-500">shallow</span>
+                  </div>
+                  <div class="border border-stone-300 bg-stone-100 p-1.5 rounded flex justify-between items-center">
+                    <span>SlotGenerationService::generateSlotsForCourtAndDate()</span>
+                    <span class="text-[10px] text-stone-500">shallow</span>
+                  </div>
+                  <div class="border border-stone-300 bg-stone-100 p-1.5 rounded flex justify-between items-center">
+                    <span>CourtSlot::from('FORCE INDEX (idx_slots_availability)')</span>
+                    <span class="text-[10px] text-red-600 font-bold">SQL leaked in controller</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">After: Deep Court Slot Availability Module</div>
+              <div class="rounded bg-white border border-stone-200 p-4 min-h-[280px] flex flex-col justify-between text-xs font-mono">
+                <!-- Clean Callers -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="border border-slate-300 bg-slate-50 p-2 rounded text-slate-800">
+                    <span class="font-bold">PublicCourtSlotController</span>
+                    <div class="text-[10px] text-emerald-700 mt-1">one call: getAvailableSlots()</div>
+                  </div>
+                  <div class="border border-slate-300 bg-slate-50 p-2 rounded text-slate-800">
+                    <span class="font-bold">OperatorTimelineService</span>
+                    <div class="text-[10px] text-emerald-700 mt-1">one call: getTimelineSlots()</div>
+                  </div>
+                </div>
+
+                <!-- Clean Seam -->
+                <div class="my-2 border-t-2 border-dashed border-stone-400 relative">
+                  <span class="absolute -top-2.5 right-4 bg-stone-100 text-stone-600 px-1.5 text-[10px] rounded font-semibold uppercase">single seam</span>
+                </div>
+
+                <!-- Deep Module -->
+                <div class="deep text-white p-3 rounded-lg border border-sky-500 shadow-sm space-y-2">
+                  <div class="flex justify-between items-center border-b border-slate-700 pb-1">
+                    <span class="font-bold text-sky-300 uppercase tracking-wider text-[11px]">CourtSlotAvailability Module</span>
+                    <span class="text-[9px] bg-sky-950 text-sky-300 border border-sky-800 px-1 rounded">Deep</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-1 text-[10px] text-slate-300">
+                    <div class="bg-slate-800/80 p-1 rounded">✓ Horizon Enforcement</div>
+                    <div class="bg-slate-800/80 p-1 rounded">✓ Idempotent JIT Gen</div>
+                    <div class="bg-slate-800/80 p-1 rounded">✓ Covering Index Scan</div>
+                    <div class="bg-slate-800/80 p-1 rounded">✓ Status & Hold Calc</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="font-semibold text-slate-900">Problem:</span>
+              <span class="text-stone-700">The slot availability interface is shallow, forcing multiple callers to manually coordinate booking horizon validation, JIT slot generation, and raw SQL index hints.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900">Solution:</span>
+              <span class="text-stone-700">Deepen slot retrieval into an Availability module that hides horizon enforcement, JIT slot generation, and covering index queries behind a single read interface.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900 block mb-1">Wins:</span>
+              <ul class="list-disc list-inside space-y-0.5 text-stone-700 text-xs font-mono">
+                <li>leverage: one interface serves public and operators</li>
+                <li>locality: index hints and JIT generation stay encapsulated</li>
+                <li>callers request slots, not retrieval mechanics</li>
+                <li>tests verify availability across one seam</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article id="candidate-slot-transitions" class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h2 class="text-xl font-serif font-bold text-slate-900">3. Unify Court Slot Operational State Transitions</h2>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Worth exploring</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-100 text-slate-700 border border-slate-200">in-process</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-stone-600 bg-stone-50 border border-stone-200 p-2.5 rounded space-y-1">
+            <div>app/Services/SlotBlockingService.php</div>
+            <div>app/Services/BookingConcurrencyService.php</div>
+            <div>app/Http/Controllers/Operator/OperatorSlotBlockingController.php</div>
+            <div>app/Models/CourtSlot.php</div>
+          </div>
+
+          <!-- Before / After Diagram (Mass / Cross-section Diagram) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">Before: Fragmented Slot Status Mutation</div>
+              <div class="rounded bg-white border border-stone-200 p-3 min-h-[280px] flex flex-col justify-around text-xs font-mono">
+                <div class="border-l-4 border-red-500 bg-red-50/60 p-2 rounded-r space-y-1">
+                  <div class="font-bold text-red-900">SlotBlockingService (104 lines)</div>
+                  <div class="text-[10px] text-red-700">Duplicated tenant assertion + throws HTTP 403 in domain logic</div>
+                </div>
+                <div class="border-l-4 border-amber-500 bg-amber-50/60 p-2 rounded-r space-y-1">
+                  <div class="font-bold text-amber-900">BookingConcurrencyService</div>
+                  <div class="text-[10px] text-amber-700">Manually sets status = Held, locked_until</div>
+                </div>
+                <div class="border-l-4 border-stone-400 bg-stone-100 p-2 rounded-r space-y-1">
+                  <div class="font-bold text-stone-800">CourtSlot Model Direct Updates</div>
+                  <div class="text-[10px] text-stone-600">Raw updates bypass state transition validation invariants</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">After: Unified Court Slot State Module</div>
+              <div class="rounded bg-white border border-stone-200 p-3 min-h-[280px] flex flex-col justify-center text-xs font-mono">
+                <div class="deep text-white p-4 rounded-lg border border-sky-500 shadow space-y-3">
+                  <div class="border-b border-slate-700 pb-2">
+                    <span class="text-sky-300 font-bold uppercase text-[11px] block">Court Slot State Machine</span>
+                    <span class="text-slate-400 text-[10px]">Small Interface: block(), unblock(), hold(), book()</span>
+                  </div>
+                  <div class="space-y-1 text-[10px] text-slate-300">
+                    <div class="bg-slate-800 p-1.5 rounded">✓ Strict Transition Guard (Available ↔ Blocked)</div>
+                    <div class="bg-slate-800 p-1.5 rounded">✓ Pessimistic Lock Invariant Enforced</div>
+                    <div class="bg-slate-800 p-1.5 rounded">✓ Authorization Handled Exclusively by Policies</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="font-semibold text-slate-900">Problem:</span>
+              <span class="text-stone-700">Slot state transitions are shallow and fragmented, causing SlotBlockingService to duplicate authorization logic and leak HTTP exceptions across the seam.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900">Solution:</span>
+              <span class="text-stone-700">Collapse slot blocking and operational status transitions into the Court Slot module, moving authorization entirely to policies.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900 block mb-1">Wins:</span>
+              <ul class="list-disc list-inside space-y-0.5 text-stone-700 text-xs font-mono">
+                <li>locality: valid slot transitions concentrate together</li>
+                <li>interface shrinks; HTTP exceptions leave domain implementation</li>
+                <li>deletion test: removes shallow blocking wrapper</li>
+                <li>tests exercise slot state through one interface</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- Candidate 4 -->
+        <article id="candidate-gateway-seam" class="bg-white border border-stone-200 rounded-xl p-6 shadow-sm space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <h2 class="text-xl font-serif font-bold text-slate-900">4. Formalize the Payment Gateway Seam with Two Adapters</h2>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">Speculative</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-purple-100 text-purple-800 border border-purple-200">ports & adapters</span>
+            </div>
+          </div>
+
+          <div class="font-mono text-xs text-stone-600 bg-stone-50 border border-stone-200 p-2.5 rounded space-y-1">
+            <div>app/Services/PaymentReconciliationService.php</div>
+            <div>app/Services/MidtransGatewayService.php</div>
+          </div>
+
+          <!-- Before / After Diagram (Mermaid Sequence / Dependency Graph) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">Before: One Adapter = Hypothetical Seam</div>
+              <div class="rounded bg-white border border-stone-200 p-2 flex items-center justify-center min-h-[280px]">
+                <pre class="mermaid text-xs">
+                  flowchart TD
+                    Reconcile[PaymentReconciliationService]
+                    Midtrans[MidtransGatewayService]
+                    HTTP[Midtrans Core API]
+
+                    Reconcile -->|hardwired concrete class| Midtrans
+                    Midtrans -->|direct Http client| HTTP
+
+                    classDef leak stroke:#dc2626,stroke-width:2px;
+                    class Midtrans leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-stone-200 bg-stone-50/50 p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-mono tracking-wider text-stone-500 font-semibold mb-2">After: Two Adapters = Real Seam</div>
+              <div class="rounded bg-white border border-stone-200 p-2 flex items-center justify-center min-h-[280px]">
+                <pre class="mermaid text-xs">
+                  flowchart TD
+                    Reconcile[PaymentReconciliationService]
+                    Seam{{PaymentGateway Interface}}
+                    AdapterProd[MidtransGatewayAdapter]
+                    AdapterTest[InMemoryGatewayFake]
+
+                    Reconcile -->|depends on seam| Seam
+                    Seam -.->|prod adapter| AdapterProd
+                    Seam -.->|test adapter| AdapterTest
+
+                    classDef seam stroke:#0284c7,stroke-width:2px,stroke-dasharray: 4 4;
+                    class Seam seam;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="font-semibold text-slate-900">Problem:</span>
+              <span class="text-stone-700">PaymentReconciliationService couples directly to concrete MidtransGatewayService across a hypothetical single-adapter seam, requiring HTTP mock layers in tests.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900">Solution:</span>
+              <span class="text-stone-700">Formalize the payment gateway seam with two adapters: one for Midtrans Core API and one in-memory fake for test isolation.</span>
+            </div>
+            <div>
+              <span class="font-semibold text-slate-900 block mb-1">Wins:</span>
+              <ul class="list-disc list-inside space-y-0.5 text-stone-700 text-xs font-mono">
+                <li>two adapters justify a real seam</li>
+                <li>tests run without HTTP network mocking</li>
+                <li>leverage: reconciliation swaps adapters cleanly</li>
+                <li>Midtrans payload details stay inside adapter</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- Top Recommendation Section -->
+      <section id="top-recommendation" class="bg-slate-900 text-white rounded-xl p-8 shadow-lg border border-slate-800 space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-sky-500 text-white">Top Recommendation</span>
+        </div>
+        <h2 class="text-2xl font-serif font-bold text-white">Consolidate the Court Slot Availability Module</h2>
+        <p class="text-stone-300 text-sm leading-relaxed max-w-3xl">
+          Slot retrieval is the highest-volume operational query path in adatempat. Currently, controllers directly orchestrate booking horizon validations, just-in-time slot generation, and raw SQL index hints (<code class="text-sky-300 font-mono text-xs">FORCE INDEX (idx_slots_availability)</code>). Consolidating this into a single deep module encapsulates database optimization details, guarantees uniform horizon enforcement, and gives public players and venue operators a single clean seam to test and navigate.
+        </p>
+        <div class="pt-2">
+          <a href="#candidate-availability" class="inline-flex items-center gap-2 text-sm font-semibold text-sky-400 hover:text-sky-300 hover:underline">
+            <span>View Candidate 2 details</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
