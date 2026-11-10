@@ -7,12 +7,36 @@ namespace App\Models;
 use App\Enums\CheckInStatus;
 use App\Enums\PaymentStatus;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property string $booking_code
+ * @property int $user_id
+ * @property int $venue_id
+ * @property int $total_amount
+ * @property PaymentStatus $payment_status
+ * @property CheckInStatus $check_in_status
+ * @property string|null $qr_token
+ * @property string|null $midtrans_transaction_id
+ * @property string|null $qris_url
+ * @property CarbonInterface|null $qris_expires_at
+ * @property CarbonInterface|null $paid_at
+ * @property CarbonInterface|null $checked_in_at
+ * @property int|null $checked_in_by
+ * @property CarbonInterface|null $rescheduled_at
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property-read User $user
+ * @property-read Venue $venue
+ * @property-read User|null $checkedInBy
+ * @property-read Collection<int, BookingItem> $items
+ */
 class Booking extends Model
 {
     use HasFactory;

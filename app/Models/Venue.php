@@ -5,12 +5,35 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\SubscriptionStatus;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $slug
+ * @property string $city
+ * @property string $address
+ * @property string|null $phone
+ * @property string|null $description
+ * @property array<string>|null $facilities
+ * @property int $booking_horizon_days
+ * @property bool $allow_reschedule
+ * @property bool $is_active
+ * @property SubscriptionStatus $subscription_status
+ * @property CarbonInterface|null $subscription_expires_at
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property CarbonInterface|null $deleted_at
+ * @property-read Collection<int, Court> $courts
+ * @property-read Collection<int, User> $operators
+ * @property-read Collection<int, Booking> $bookings
+ */
 class Venue extends Model
 {
     use HasFactory, SoftDeletes;

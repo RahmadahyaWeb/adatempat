@@ -5,10 +5,23 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DayType;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $court_id
+ * @property DayType $day_type
+ * @property string $start_time
+ * @property string $end_time
+ * @property int $price_per_hour
+ * @property string|null $tier_name
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property-read Court $court
+ */
 class CourtPricingRule extends Model
 {
     use HasFactory;

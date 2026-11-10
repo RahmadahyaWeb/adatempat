@@ -70,7 +70,7 @@ class CheckInVerificationService
             // Duplicate Check-In Guard
             if ($booking->check_in_status === CheckInStatus::CheckedIn) {
                 $booking->load('checkedInBy');
-                $staffName = $booking->checkedInBy?->name ?? 'Front-desk Staff';
+                $staffName = $booking->checkedInBy !== null ? $booking->checkedInBy->name : 'Front-desk Staff';
                 $checkedInAt = $booking->checked_in_at?->toIso8601String() ?? now()->toIso8601String();
 
                 throw new DuplicateCheckInException(

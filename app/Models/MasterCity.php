@@ -4,9 +4,18 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $province
+ * @property bool $is_active
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ */
 class MasterCity extends Model
 {
     use HasFactory;

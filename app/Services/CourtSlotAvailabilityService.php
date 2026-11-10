@@ -89,7 +89,7 @@ class CourtSlotAvailabilityService
      * ensuring JIT generation across all specified courts.
      *
      * @param  Collection<int, Court>  $courts
-     * @return Collection<int, Collection<int, CourtSlot>>
+     * @return Collection<(int|string), Collection<int, CourtSlot>>
      *
      * @throws BookingHorizonExceededException
      */
@@ -112,6 +112,7 @@ class CourtSlotAvailabilityService
             ])
             ->orderBy('start_time')
             ->get()
+            ->toBase()
             ->groupBy('court_id');
     }
 }

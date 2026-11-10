@@ -24,7 +24,11 @@ class PricingResolutionService
     ): int {
         $rule = $this->resolveMatchingRule($court, $date, $startTime, $endTime);
 
-        return $rule?->price_per_hour ?? (int) $court->default_hourly_rate;
+        if ($rule !== null) {
+            return (int) $rule->price_per_hour;
+        }
+
+        return (int) $court->default_hourly_rate;
     }
 
     /**

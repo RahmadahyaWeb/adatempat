@@ -5,12 +5,30 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\SportType;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $venue_id
+ * @property string $name
+ * @property SportType $sport_type
+ * @property string $opening_time
+ * @property string $closing_time
+ * @property int $default_hourly_rate
+ * @property bool $is_active
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property CarbonInterface|null $deleted_at
+ * @property-read Venue $venue
+ * @property-read Collection<int, CourtPricingRule> $pricingRules
+ * @property-read Collection<int, CourtSlot> $slots
+ */
 class Court extends Model
 {
     use HasFactory, SoftDeletes;

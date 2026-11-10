@@ -19,6 +19,15 @@ This document defines architectural conventions and non-mechanical judgement cal
   1. Phase 1 (Distributed): Acquire temporary Redis atomic locks with explicit TTL (e.g., 600s for checkout hold) using fail-fast rollback on contention.
   2. Phase 2 (Pessimistic DB): Acquire row-level locks (`SELECT ... FOR UPDATE`) inside database transactions during status mutation or settlement.
 - **Fail-Fast Rollback**: If any slot or entity in a multi-item batch cannot be acquired, immediately release all previously acquired locks in the batch and return `HTTP 409 Conflict`.
+- **Slot State Mutation Ownership**:
+  - The lifecycle of `CourtSlot` (`available`, `held`, `booked`, `blocked`) represents high-concurrency inventory.
+  - Controllers, jobs, and event listeners must never directly assign or mutate `CourtSlot->status` (enforced by `tests/ArchTest.php`).
+  - All status transitions must be executed exclusively through dedicated lock-holding domain services:
+    - Hold (`available` -> `held`): `BookingConcurrencyService::holdSlots()`
+    - Settlement (`held` -> `booked`): `PaymentReconciliationService`
+    - Walk-in / Maintenance Blocking (`available` -> `blocked` / `blocked` -> `available`): `SlotBlockingService`
+    - Reschedule Atomic Swap (`booked` -> `available` and `available` -> `booked`): `RescheduleService`
+    - Availability Inspection & JIT Generation: `CourtSlotAvailabilityService`
 
 ---
 

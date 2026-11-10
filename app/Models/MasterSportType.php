@@ -4,9 +4,19 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property string $slug
+ * @property string $name
+ * @property string|null $icon
+ * @property bool $is_active
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ */
 class MasterSportType extends Model
 {
     use HasFactory;

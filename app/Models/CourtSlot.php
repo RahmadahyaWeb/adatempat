@@ -12,6 +12,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $court_id
+ * @property CarbonInterface $date
+ * @property string $start_time
+ * @property string $end_time
+ * @property int $price
+ * @property SlotStatus $status
+ * @property CarbonInterface|null $locked_until
+ * @property string|null $block_reason
+ * @property CarbonInterface $created_at
+ * @property CarbonInterface $updated_at
+ * @property-read Court $court
+ */
 class CourtSlot extends Model
 {
     use HasFactory;

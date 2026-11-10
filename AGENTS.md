@@ -16,7 +16,7 @@ Single-context layout (`GLOSSARY.md` at root and `docs/adr/`). See `docs/agents/
 
 ### Architecture & Service Boundaries
 
-Controllers coordinate requests and delegate domain logic and database transactions to dedicated services in `app/Services/`. Mechanically enforced by `tests/ArchTest.php`.
+Controllers coordinate requests and delegate domain logic and database transactions to dedicated services in `app/Services/`. Service boundaries and catalog live in `docs/architecture/services.md`. Mechanically enforced by `tests/ArchTest.php`.
 
 ### Coding Standards
 
