@@ -5,14 +5,14 @@ Venue Operator timeline controls and manual slot blocking capabilities for walk-
 
 **Blocked by:** 07: Digital Ticket Attendance Verification and Front-Desk Check-in
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Operator backoffice timeline view endpoint returns daily court schedule data with discrete 60-minute slot statuses and reservation details for the operator's assigned venue.
-- [ ] Timeline responses include customer identifiers, payment status, and check-in timestamps for booked slots.
-- [ ] Slot blocking endpoint allows operators to transition an available slot to blocked status with a mandatory or optional explanatory reason.
-- [ ] Blocking service asserts that the target slot is currently in available status and belongs to the operator's assigned venue.
-- [ ] Attempting to block a slot that is currently held in checkout or already booked by a customer is rejected with HTTP 409 Conflict.
-- [ ] Slot unblocking endpoint allows operators to transition a previously blocked maintenance slot back to available status.
-- [ ] Unblocking action verifies that the slot is currently in blocked status and clears the block reason.
-- [ ] All blocking and unblocking operations are guarded by venue operator authorization policies, rejecting cross-venue operations with HTTP 403 Forbidden.
-- [ ] Automated test suite verifies timeline data structure, successful walk-in slot blocking, conflict rejection on held/booked slots, maintenance unblocking, and multi-tenant authorization guards.
+- [x] Operator backoffice timeline view endpoint returns daily court schedule data with discrete 60-minute slot statuses and reservation details for the operator's assigned venue.
+- [x] Timeline responses include customer identifiers, payment status, and check-in timestamps for booked slots.
+- [x] Slot blocking endpoint allows operators to transition an available slot to blocked status with a mandatory or optional explanatory reason.
+- [x] Blocking service asserts that the target slot is currently in available status and belongs to the operator's assigned venue.
+- [x] Attempting to block a slot that is currently held in checkout or already booked by a customer is rejected with HTTP 409 Conflict.
+- [x] Slot unblocking endpoint allows operators to transition a previously blocked maintenance slot back to available status.
+- [x] Unblocking action verifies that the slot is currently in blocked status and clears the block reason.
+- [x] All blocking and unblocking operations are guarded by venue operator authorization policies, rejecting cross-venue operations with HTTP 403 Forbidden.
+- [x] Automated test suite verifies timeline data structure, successful walk-in slot blocking, conflict rejection on held/booked slots, maintenance unblocking, and multi-tenant authorization guards.

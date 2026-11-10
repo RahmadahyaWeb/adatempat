@@ -9,6 +9,8 @@ use App\Http\Controllers\Operator\OperatorCheckInController;
 use App\Http\Controllers\Operator\OperatorCourtController;
 use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
 use App\Http\Controllers\Operator\OperatorCourtSlotController;
+use App\Http\Controllers\Operator\OperatorSlotBlockingController;
+use App\Http\Controllers\Operator\OperatorTimelineController;
 use App\Http\Controllers\Operator\OperatorVenueController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Player\PlayerRescheduleController;
@@ -62,6 +64,8 @@ Route::prefix('operator')
         Route::get('/venue', [OperatorVenueController::class, 'show'])->name('venue.show');
         Route::put('/venue', [OperatorVenueController::class, 'update'])->name('venue.update');
 
+        Route::get('/timeline', OperatorTimelineController::class)->name('timeline');
+
         Route::post('/check-in', OperatorCheckInController::class)->name('check-in');
 
         Route::get('/courts', [OperatorCourtController::class, 'index'])->name('courts.index');
@@ -71,6 +75,8 @@ Route::prefix('operator')
         Route::delete('/courts/{court}', [OperatorCourtController::class, 'destroy'])->name('courts.destroy');
 
         Route::get('/courts/{court}/slots', [OperatorCourtSlotController::class, 'index'])->name('courts.slots.index');
+        Route::post('/slots/{slot}/block', [OperatorSlotBlockingController::class, 'block'])->name('slots.block');
+        Route::post('/slots/{slot}/unblock', [OperatorSlotBlockingController::class, 'unblock'])->name('slots.unblock');
 
         Route::get('/courts/{court}/pricing-rules', [OperatorCourtPricingRuleController::class, 'index'])->name('courts.pricing-rules.index');
         Route::post('/courts/{court}/pricing-rules', [OperatorCourtPricingRuleController::class, 'store'])->name('courts.pricing-rules.store');
