@@ -11,6 +11,7 @@ use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
 use App\Http\Controllers\Operator\OperatorCourtSlotController;
 use App\Http\Controllers\Operator\OperatorVenueController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Player\PlayerRescheduleController;
 use App\Http\Controllers\Player\PlayerTicketController;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
 use App\Http\Middleware\EnsureUserIsVenueOperator;
@@ -42,6 +43,7 @@ Route::prefix('player')
     ->group(function () {
         Route::get('/bookings', [PlayerTicketController::class, 'index'])->name('bookings.index');
         Route::get('/tickets/{booking:booking_code}', [PlayerTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/bookings/{booking:booking_code}/reschedule', PlayerRescheduleController::class)->name('bookings.reschedule');
     });
 
 Route::prefix('profile')
@@ -50,6 +52,7 @@ Route::prefix('profile')
     ->group(function () {
         Route::get('/bookings', [PlayerTicketController::class, 'index'])->name('bookings.index');
         Route::get('/tickets/{booking:booking_code}', [PlayerTicketController::class, 'show'])->name('tickets.show');
+        Route::post('/bookings/{booking:booking_code}/reschedule', PlayerRescheduleController::class)->name('bookings.reschedule');
     });
 
 Route::prefix('operator')

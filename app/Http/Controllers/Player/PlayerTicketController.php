@@ -38,6 +38,7 @@ class PlayerTicketController extends Controller
                 'check_in_status' => $booking->check_in_status->value,
                 'qr_token' => $booking->canRevealTicket() ? $booking->qr_token : null,
                 'created_at' => $booking->created_at?->toISOString(),
+                'rescheduled_at' => $booking->rescheduled_at?->toISOString(),
                 'items' => $booking->items->map(fn ($item) => [
                     'court_id' => $item->courtSlot?->court_id,
                     'court_name' => $item->courtSlot?->court?->name,
@@ -74,6 +75,7 @@ class PlayerTicketController extends Controller
                 'total_amount' => $booking->total_amount,
                 'paid_at' => $booking->paid_at?->toISOString(),
                 'checked_in_at' => $booking->checked_in_at?->toISOString(),
+                'rescheduled_at' => $booking->rescheduled_at?->toISOString(),
                 'qr_token' => $booking->canRevealTicket() ? $booking->qr_token : null,
                 'venue' => [
                     'id' => $booking->venue->id,

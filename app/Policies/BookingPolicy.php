@@ -32,4 +32,12 @@ class BookingPolicy
     {
         return $user->isVenueOperator() && $user->venue_id === $booking->venue_id;
     }
+
+    /**
+     * Determine whether the user can reschedule the booking.
+     */
+    public function reschedule(User $user, Booking $booking): bool
+    {
+        return $booking->user_id === $user->id;
+    }
 }

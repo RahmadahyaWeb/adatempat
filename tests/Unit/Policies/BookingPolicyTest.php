@@ -86,3 +86,24 @@ test('operator cannot view or check in booking belonging to another venue', func
     expect($policy->view($operatorA, $bookingB))->toBeFalse()
         ->and($policy->checkIn($operatorA, $bookingB))->toBeFalse();
 });
+
+test('player can reschedule their own booking', function () {
+    $player = User::factory()->create(['role' => UserRole::Player]);
+    $venue = createTestVenue('venue-reschedule-1');
+    $booking = createTestBooking($player->id, $venue->id);
+
+    $policy = new BookingPolicy;
+
+    expect($policy->reschedule($player, $booking))->toBeTrue();
+});
+
+test('player cannot reschedule booking belonging to another player', function () {
+    $player = User::factory()->create(['role' => UserRole::Player]);
+    $otherPlayer = User::factory()->create(['role' => UserRole::Player]);
+    $venue = createTestVenue('venue-reschedule-2');
+    $booking = createTestBooking($otherPlayer->id, $venue->id);
+
+    $policy = new BookingPolicy;
+
+    expect($policy->reschedule($player, $booking))->toBeFalse();
+});
