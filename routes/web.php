@@ -5,11 +5,13 @@ use App\Http\Controllers\Admin\AdminVenueSubscriptionController;
 use App\Http\Controllers\Auth\MagicLinkController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\HealthcheckController;
+use App\Http\Controllers\Operator\OperatorCheckInController;
 use App\Http\Controllers\Operator\OperatorCourtController;
 use App\Http\Controllers\Operator\OperatorCourtPricingRuleController;
 use App\Http\Controllers\Operator\OperatorCourtSlotController;
 use App\Http\Controllers\Operator\OperatorVenueController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Player\PlayerTicketController;
 use App\Http\Middleware\EnsureUserIsSuperadmin;
 use App\Http\Middleware\EnsureUserIsVenueOperator;
 use App\Http\Middleware\EnsureVenueSubscriptionActive;
@@ -34,12 +36,30 @@ Route::prefix('checkout')->name('checkout.')->middleware('auth')->group(function
     Route::post('/{booking:booking_code}/inquire', [PaymentController::class, 'inquire'])->name('inquire');
 });
 
+Route::prefix('player')
+    ->name('player.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/bookings', [PlayerTicketController::class, 'index'])->name('bookings.index');
+        Route::get('/tickets/{booking:booking_code}', [PlayerTicketController::class, 'show'])->name('tickets.show');
+    });
+
+Route::prefix('profile')
+    ->name('profile.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get('/bookings', [PlayerTicketController::class, 'index'])->name('bookings.index');
+        Route::get('/tickets/{booking:booking_code}', [PlayerTicketController::class, 'show'])->name('tickets.show');
+    });
+
 Route::prefix('operator')
     ->name('operator.')
     ->middleware(['auth', EnsureUserIsVenueOperator::class, EnsureVenueSubscriptionActive::class])
     ->group(function () {
         Route::get('/venue', [OperatorVenueController::class, 'show'])->name('venue.show');
         Route::put('/venue', [OperatorVenueController::class, 'update'])->name('venue.update');
+
+        Route::post('/check-in', OperatorCheckInController::class)->name('check-in');
 
         Route::get('/courts', [OperatorCourtController::class, 'index'])->name('courts.index');
         Route::post('/courts', [OperatorCourtController::class, 'store'])->name('courts.store');

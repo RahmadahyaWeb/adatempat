@@ -63,7 +63,7 @@ A single-use QR Code Indonesian Standard payment generated dynamically via Midtr
 _Avoid_: QR code, payment code, Midtrans charge
 
 **Payment Status**:
-The transactional lifecycle state of a booking: `pending`, `paid`, `expired`, or `rescheduled`.
+The transactional lifecycle state of a booking: `pending`, `paid`, `expired`, `rescheduled`, `completed`, or `cancelled`.
 _Avoid_: Order status, bill status
 
 **Digital Ticket**:

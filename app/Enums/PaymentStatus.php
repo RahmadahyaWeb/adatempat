@@ -10,6 +10,8 @@ enum PaymentStatus: string
     case Paid = 'paid';
     case Expired = 'expired';
     case Rescheduled = 'rescheduled';
+    case Completed = 'completed';
+    case Cancelled = 'cancelled';
 
     /**
      * Determine if the booking is currently pending payment.
@@ -25,6 +27,22 @@ enum PaymentStatus: string
     public function isPaid(): bool
     {
         return $this === self::Paid;
+    }
+
+    /**
+     * Determine if the booking reservation has completed its duration.
+     */
+    public function isCompleted(): bool
+    {
+        return $this === self::Completed;
+    }
+
+    /**
+     * Determine if the booking has been cancelled.
+     */
+    public function isCancelled(): bool
+    {
+        return $this === self::Cancelled;
     }
 
     /**

@@ -12,3 +12,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('slots:generate --days=30')->daily();
 Schedule::command('court-slots:prune-expired-holds')->everyMinute();
+Schedule::command('bookings:mark-completed')->hourly();

@@ -118,6 +118,18 @@ class Booking extends Model
     }
 
     /**
+     * Determine if the digital ticket details and QR token can be revealed.
+     */
+    public function canRevealTicket(): bool
+    {
+        return in_array($this->payment_status, [
+            PaymentStatus::Paid,
+            PaymentStatus::Rescheduled,
+            PaymentStatus::Completed,
+        ], true);
+    }
+
+    /**
      * Generate unique booking code formatted as ADT-YYYYMMDD-XXXX.
      */
     public static function generateBookingCode(?CarbonInterface $referenceTime = null): string
